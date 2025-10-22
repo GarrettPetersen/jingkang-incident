@@ -1,6 +1,6 @@
 import { draw, mergeDecks, shuffleDeck } from './deck';
 import type { Card, Deck, GameState, PlayerId, VerbSpec, NodeId, PieceId } from './types';
-import { currentPlayer, findAdjacentNodes } from './types';
+import { currentPlayer, findAdjacentNodes, nextPlayerId } from './types';
 
 export interface EngineConfig {
   handLimit: number;
@@ -10,10 +10,17 @@ export const DefaultConfig: EngineConfig = { handLimit: 5 };
 
 export function startTurn(state: GameState): void {
   state.prompt = null;
+  if (!state.currentPlayerId) {
+    // Initialize using legacy index for hotseat
+    state.currentPlayerId = state.players[state.currentPlayerIndex].id;
+  }
 }
 
 export function endTurn(state: GameState): void {
-  state.currentPlayerIndex = (state.currentPlayerIndex + 1) % state.players.length;
+  // Advance authoritative turn owner by seating
+  state.currentPlayerId = nextPlayerId(state);
+  // Keep legacy index in sync for hotseat
+  state.currentPlayerIndex = state.players.findIndex((p) => p.id === state.currentPlayerId);
   state.prompt = null;
 }
 

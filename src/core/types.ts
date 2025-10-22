@@ -108,15 +108,50 @@ export interface GameState {
   pieceTypes: Record<PieceTypeId, PieceType>;
   pieces: Record<PieceId, Piece>;
   players: PlayerState[];
+  // Whose turn it is (authoritative for game flow)
+  currentPlayerId?: PlayerId;
+  // Which player perspective the client is viewing (for multiplayer)
+  viewPlayerId?: PlayerId;
+  // Deprecated legacy field for hotseat; kept for compatibility
   currentPlayerIndex: number;
+  // Seating order (clockwise). If absent, uses players[] order.
+  seating?: { order: PlayerId[] };
   prompt: Prompt | null;
   gameOver: boolean;
   winnerId?: PlayerId;
   log: GameLogEntry[];
 }
 
+export function getPlayerById(state: GameState, playerId: PlayerId): PlayerState | undefined {
+  return state.players.find((p) => p.id === playerId);
+}
+
+export function getPlayerIndexById(state: GameState, playerId: PlayerId): number {
+  return state.players.findIndex((p) => p.id === playerId);
+}
+
 export function currentPlayer(state: GameState): PlayerState {
+  if (state.currentPlayerId) {
+    const p = getPlayerById(state, state.currentPlayerId);
+    if (p) return p;
+  }
   return state.players[state.currentPlayerIndex];
+}
+
+export function viewingPlayer(state: GameState): PlayerState {
+  if (state.viewPlayerId) {
+    const p = getPlayerById(state, state.viewPlayerId);
+    if (p) return p;
+  }
+  return currentPlayer(state);
+}
+
+export function nextPlayerId(state: GameState): PlayerId {
+  const order = state.seating?.order ?? state.players.map((p) => p.id);
+  const currentId = state.currentPlayerId ?? state.players[state.currentPlayerIndex].id;
+  const idx = order.indexOf(currentId);
+  const nextIdx = (idx + 1) % order.length;
+  return order[nextIdx];
 }
 
 export function findAdjacentNodes(map: MapGraph, nodeId: NodeId): NodeId[] {

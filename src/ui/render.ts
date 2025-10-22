@@ -1,4 +1,5 @@
 import type { GameState, NodeId, Piece } from '../core/types';
+import { viewingPlayer } from '../core/types';
 
 export function renderApp(root: HTMLElement, state: GameState, handlers: {
   onPlayCard: (cardId: string) => void;
@@ -21,7 +22,7 @@ export function renderApp(root: HTMLElement, state: GameState, handlers: {
 
 function renderLeftPanel(state: GameState, handlers: any): HTMLElement {
   const div = document.createElement('div');
-  const player = state.players[state.currentPlayerIndex];
+  const player = viewingPlayer(state);
   const h = document.createElement('h3');
   h.textContent = `Hand - ${player.name}`;
   div.appendChild(h);
