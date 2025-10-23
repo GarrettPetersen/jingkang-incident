@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="420" viewBox="0 0 300 420">
+  <rect width="300" height="420" rx="16" ry="16" fill="#eefdef" stroke="#333"/>
+  <text x="150" y="40" text-anchor="middle" font-size="20" fill="#333">Recruit</text>
+  <rect x="140" y="350" width="20" height="20" fill="#d33" stroke="#811" stroke-width="3"/>
+  <g>
+    <rect x="24" y="320" width="252" height="72" fill="#fff0"/>
+  </g>
+</svg>
+

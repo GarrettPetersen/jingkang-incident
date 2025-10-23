@@ -132,6 +132,9 @@ export interface GameState {
   currentPlayerIndex: number;
   // Seating order (clockwise). If absent, uses players[] order.
   seating?: { order: PlayerId[] };
+  // Enforce one card play per turn
+  hasPlayedThisTurn?: boolean;
+  lastPlayedCardId?: CardId;
   prompt: Prompt | null;
   gameOver: boolean;
   winnerId?: PlayerId;

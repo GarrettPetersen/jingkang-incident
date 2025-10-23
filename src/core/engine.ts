@@ -33,6 +33,8 @@ export function startTurn(state: GameState): void {
   __turnStartSnapshot = deepCloneState(state);
   // In hotseat, keep viewing player synced with current
   state.viewPlayerId = state.currentPlayerId;
+  state.hasPlayedThisTurn = false;
+  state.lastPlayedCardId = undefined;
 }
 
 export function endTurn(state: GameState): void {
@@ -49,6 +51,10 @@ export function endTurn(state: GameState): void {
 
 export function playCard(state: GameState, cardId: string): void {
   if (state.gameOver) return;
+  if (state.hasPlayedThisTurn) {
+    state.log.push({ message: `Already played a card this turn.` });
+    return;
+  }
   const player = currentPlayer(state);
   const idx = player.hand.findIndex((c) => c.id === cardId);
   if (idx === -1) return;
@@ -68,6 +74,8 @@ export function playCard(state: GameState, cardId: string): void {
     } else {
       player.discardPile = pushBottom(player.discardPile, [card]);
     }
+    state.hasPlayedThisTurn = true;
+    state.lastPlayedCardId = card.id;
   }
 }
 

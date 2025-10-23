@@ -65,7 +65,7 @@ const recruitCard: Card = {
   id: 'c-recruit',
   name: 'Recruit',
   verbs: [{ type: 'recruit', pieceTypeId: 'cubeRed' }],
-  asset: { path: '/cards/maneuver.svg', size: { width: 300, height: 420 }, iconSlot: { x: 24, y: 320, width: 252, height: 72 } },
+  asset: { path: '/cards/recruit.svg', size: { width: 300, height: 420 }, iconSlot: { x: 24, y: 320, width: 252, height: 72 } },
 };
 const destroyCard: Card = {
   id: 'c-destroy',

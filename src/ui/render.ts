@@ -155,20 +155,38 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
     svg.appendChild(label);
   }
 
-  // pieces
+  // pieces (group by node and spread so they don't overlap)
+  const byNode: Record<string, Piece[]> = {};
   for (const piece of Object.values(state.pieces)) {
-    drawPiece(svg, piece, state);
+    if (piece.location.kind === 'node') {
+      const nid = piece.location.nodeId;
+      (byNode[nid] ??= []).push(piece);
+    }
+  }
+  for (const [nodeId, pieces] of Object.entries(byNode)) {
+    const node = state.map.nodes[nodeId];
+    const count = pieces.length;
+    const cols = Math.ceil(Math.sqrt(count));
+    const rows = Math.ceil(count / cols);
+    const spacing = 14; // pixels between pieces in the grid
+    for (let i = 0; i < count; i++) {
+      const piece = pieces[i];
+      const row = Math.floor(i / cols);
+      const col = i % cols;
+      const dx = (col - (cols - 1) / 2) * spacing;
+      const dy = (row - (rows - 1) / 2) * spacing;
+      drawPieceAt(svg, piece, state, node.x + dx, node.y - 24 + dy);
+    }
   }
 
   return svg as unknown as HTMLElement;
 }
 
-function drawPiece(svg: SVGSVGElement, piece: Piece, state: GameState): void {
-  if (piece.location.kind !== 'node') return; // for now only show node pieces
-  const node = state.map.nodes[piece.location.nodeId];
+function drawPieceAt(svg: SVGSVGElement, piece: Piece, state: GameState, x: number, y: number): void {
+  if (piece.location.kind !== 'node') return;
   const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-  rect.setAttribute('x', String(node.x - 8));
-  rect.setAttribute('y', String(node.y - 24));
+  rect.setAttribute('x', String(x - 8));
+  rect.setAttribute('y', String(y));
   rect.setAttribute('width', '16');
   rect.setAttribute('height', '16');
   const owner = state.players.find((p) => p.id === piece.ownerId);
@@ -233,7 +251,13 @@ function renderHand(state: GameState, handlers: any): HTMLElement {
   div.style.borderTop = '1px solid #444';
   const player = viewingPlayer(state);
   for (const card of player.hand) {
-    div.appendChild(renderCard(card, () => handlers.onPlayCard(card.id)));
+    const disabled = !!state.hasPlayedThisTurn;
+    const cardEl = renderCard(card, () => handlers.onPlayCard(card.id));
+    if (disabled) {
+      cardEl.style.opacity = '0.5';
+      (cardEl as any).style.pointerEvents = 'none';
+    }
+    div.appendChild(cardEl);
   }
   return div;
 }
