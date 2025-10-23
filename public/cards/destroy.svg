@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="420" viewBox="0 0 300 420">
+  <rect width="300" height="420" rx="16" ry="16" fill="#ffecec" stroke="#333"/>
+  <text x="150" y="40" text-anchor="middle" font-size="20" fill="#333">Destroy</text>
+  <g>
+    <line x1="110" y1="360" x2="190" y2="360" stroke="#a00" stroke-width="6"/>
+    <line x1="110" y1="340" x2="190" y2="380" stroke="#a00" stroke-width="6"/>
+  </g>
+  <g>
+    <rect x="24" y="320" width="252" height="72" fill="#fff0"/>
+  </g>
+</svg>
+

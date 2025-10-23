@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="420" viewBox="0 0 300 420">
+  <rect width="300" height="420" rx="16" ry="16" fill="#fff5f5" stroke="#333"/>
+  <text x="150" y="40" text-anchor="middle" font-size="20" fill="#333">Dagger</text>
+  <g transform="translate(100,330)">
+    <path d="M50 0 L60 20 L50 40 L40 20 Z" fill="#bbb" stroke="#444" stroke-width="3"/>
+    <rect x="44" y="40" width="12" height="16" fill="#7a5230" stroke="#3f2a1a" stroke-width="3"/>
+  </g>
+  <g>
+    <rect x="24" y="320" width="252" height="72" fill="#fff0"/>
+  </g>
+</svg>
+

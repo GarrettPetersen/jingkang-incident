@@ -58,7 +58,7 @@ const tuckOpponentCard: Card = {
   name: 'Dagger',
   icons: ['dagger'],
   verbs: [{ type: 'tuck', target: 'opponent' }],
-  asset: { path: '/cards/coin.svg', size: { width: 300, height: 420 }, iconSlot: { x: 24, y: 320, width: 252, height: 72 } },
+  asset: { path: '/cards/dagger.svg', size: { width: 300, height: 420 }, iconSlot: { x: 24, y: 320, width: 252, height: 72 } },
 };
 // Optional end-game card available for future use
 const recruitCard: Card = {
@@ -71,7 +71,7 @@ const destroyCard: Card = {
   id: 'c-destroy',
   name: 'Destroy',
   verbs: [{ type: 'destroy' }],
-  asset: { path: '/cards/endgame.svg', size: { width: 300, height: 420 }, iconSlot: { x: 24, y: 320, width: 252, height: 72 } },
+  asset: { path: '/cards/destroy.svg', size: { width: 300, height: 420 }, iconSlot: { x: 24, y: 320, width: 252, height: 72 } },
 };
 const redrawCard: Card = {
   id: 'c-redraw',
