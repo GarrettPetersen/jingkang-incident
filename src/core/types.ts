@@ -135,6 +135,8 @@ export interface GameState {
   // Enforce one card play per turn
   hasPlayedThisTurn?: boolean;
   lastPlayedCardId?: CardId;
+  // Whether the player has taken any action this turn (enables Undo)
+  hasActedThisTurn?: boolean;
   prompt: Prompt | null;
   gameOver: boolean;
   winnerId?: PlayerId;

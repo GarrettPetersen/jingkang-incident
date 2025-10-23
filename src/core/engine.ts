@@ -35,6 +35,7 @@ export function startTurn(state: GameState): void {
   state.viewPlayerId = state.currentPlayerId;
   state.hasPlayedThisTurn = false;
   state.lastPlayedCardId = undefined;
+  state.hasActedThisTurn = false;
 }
 
 export function endTurn(state: GameState): void {
@@ -79,6 +80,7 @@ export function playCard(state: GameState, cardId: string): void {
       player.discardPile = pushBottom(player.discardPile, [card]);
     }
     state.hasPlayedThisTurn = true;
+    state.hasActedThisTurn = true;
     state.lastPlayedCardId = card.id;
   }
 }

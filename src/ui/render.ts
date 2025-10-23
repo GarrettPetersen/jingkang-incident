@@ -54,9 +54,13 @@ function renderLeftPanel(state: GameState, handlers: any): HTMLElement {
   const endBtn = document.createElement('button');
   endBtn.textContent = 'End Turn';
   endBtn.onclick = () => handlers.onEndTurn();
+  endBtn.disabled = !state.hasPlayedThisTurn;
+  if (endBtn.disabled) endBtn.style.opacity = '0.5';
   const undoBtn = document.createElement('button');
   undoBtn.textContent = 'Undo Turn';
   undoBtn.onclick = () => handlers.onUndo();
+  undoBtn.disabled = !state.hasActedThisTurn;
+  if (undoBtn.disabled) undoBtn.style.opacity = '0.5';
   controls.appendChild(endBtn);
   controls.appendChild(undoBtn);
   div.appendChild(controls);
