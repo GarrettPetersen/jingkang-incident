@@ -87,8 +87,6 @@ const players: PlayerState[] = [
   {
     id: 'P1',
     name: 'Player 1',
-    drawPile: { cards: [...deck1.cards] },
-    discardPile: { cards: [] },
     hand: [redrawCard],
     tucked: [],
     color: '#d33',
@@ -96,8 +94,6 @@ const players: PlayerState[] = [
   {
     id: 'P2',
     name: 'Player 2',
-    drawPile: { cards: [...deck1.cards] },
-    discardPile: { cards: [] },
     hand: [redrawCard],
     tucked: [],
     color: '#33d',
@@ -109,6 +105,8 @@ export const initialState: GameState = {
   pieceTypes,
   pieces,
   players,
+  drawPile: { cards: [...deck1.cards, ...deck1.cards] },
+  discardPile: { cards: [] },
   currentPlayerIndex: 0,
   currentPlayerId: 'P1',
   viewPlayerId: 'P1',

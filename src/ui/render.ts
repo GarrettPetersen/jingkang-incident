@@ -25,7 +25,7 @@ function collectRects(root: HTMLElement): Map<string, DOMRect> {
   return map;
 }
 
-function runFLIP(root: HTMLElement, viewerId: string): void {
+function runFLIP(root: HTMLElement): void {
   const current: Map<string, { el: HTMLElement; rect: DOMRect }> = new Map();
   root.querySelectorAll<HTMLElement>('[data-key]')
     .forEach((el) => {
@@ -34,7 +34,7 @@ function runFLIP(root: HTMLElement, viewerId: string): void {
       current.set(key, { el, rect: el.getBoundingClientRect() });
     });
 
-  const drawPileKey = `pile:draw:${viewerId}`;
+  const drawPileKey = `pile:draw:global`;
   const drawPileRect = current.get(drawPileKey)?.rect;
 
   current.forEach(({ el, rect }, key) => {
@@ -107,7 +107,7 @@ export function renderApp(root: HTMLElement, state: GameState, handlers: {
 
   root.appendChild(container);
   // Animate transitions
-  runFLIP(root, viewingPlayer(state).id);
+  runFLIP(root);
 }
 
 function renderLeftPanel(state: GameState, handlers: any): HTMLElement {
@@ -262,53 +262,22 @@ function drawPieceAt(svg: SVGSVGElement, piece: Piece, state: GameState, x: numb
   svg.appendChild(rect);
 }
 
-function renderTuckedCardIcon(card: { asset?: { path: string; size: { width: number; height: number }; iconSlot?: { x: number; y: number; width: number; height: number } }; name: string }): HTMLElement {
-  const container = document.createElement('div');
-  container.style.position = 'relative';
-  container.style.width = '126px'; // display width for icon slot (scale of 0.5 for 252)
-  container.style.height = '36px';
-  container.style.overflow = 'hidden';
-  container.style.border = '1px solid #333';
-  container.style.borderRadius = '4px';
-  container.title = card.name;
-
-  const asset = card.asset;
-  if (!asset || !asset.iconSlot) {
-    // fallback: simple label
-    container.textContent = card.name;
-    container.style.padding = '4px 8px';
-    return container;
-  }
-
-  const scaleX = 126 / asset.iconSlot.width; // fit icon slot width to container
-  const scaleY = 36 / asset.iconSlot.height;
-  const scale = Math.min(scaleX, scaleY);
-  const displayW = asset.size.width * scale;
-  const displayH = asset.size.height * scale;
-  const offsetX = -asset.iconSlot.x * scale;
-  const offsetY = -asset.iconSlot.y * scale;
-
-  const img = document.createElement('img');
-  img.src = asset.path;
-  img.alt = card.name;
-  img.style.width = `${displayW}px`;
-  img.style.height = `${displayH}px`;
-  img.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
-  img.style.objectFit = 'cover';
-  img.draggable = false;
-  container.appendChild(img);
-  return container;
-}
+// Legacy helper, no longer used
 
 function renderHand(state: GameState, handlers: any): HTMLElement {
   const div = document.createElement('div');
   div.style.display = 'flex';
   div.style.alignItems = 'center';
-  div.style.justifyContent = 'center';
+  div.style.justifyContent = 'space-between';
   div.style.gap = '10px';
   div.style.padding = '8px';
   div.style.borderTop = '1px solid #444';
   const player = viewingPlayer(state);
+  const center = document.createElement('div');
+  center.style.display = 'flex';
+  center.style.alignItems = 'center';
+  center.style.justifyContent = 'center';
+  center.style.gap = '10px';
   for (const card of player.hand) {
     const disabled = !!state.hasPlayedThisTurn;
     const cardEl = renderCard(card, () => handlers.onPlayCard(card.id));
@@ -317,20 +286,25 @@ function renderHand(state: GameState, handlers: any): HTMLElement {
       cardEl.style.opacity = '0.5';
       (cardEl as any).style.pointerEvents = 'none';
     }
-    div.appendChild(cardEl);
+    center.appendChild(cardEl);
   }
-  // Show draw/discard piles at edges of the hand row
-  const leftStack = renderPile('Draw', '/cards/back.svg', player.drawPile.cards.length);
-  leftStack.setAttribute('data-key', `pile:draw:${player.id}`);
-  const rightStack = renderPile('Discard', '/cards/back.svg', player.discardPile.cards.length);
-  rightStack.setAttribute('data-key', `pile:discard:${player.id}`);
-  leftStack.style.marginRight = 'auto';
-  rightStack.style.marginLeft = 'auto';
-  const tucks = renderTuckStack(player.tucked);
-  tucks.style.marginLeft = '16px';
-  div.prepend(leftStack);
-  div.append(tucks);
-  div.append(rightStack);
+  // Left: draw pile
+  const leftStack = renderPile('Draw', '/cards/back.svg', state.drawPile.cards.length);
+  leftStack.setAttribute('data-key', `pile:draw:global`);
+  // Right: tucks and discard
+  const rightZone = document.createElement('div');
+  rightZone.style.display = 'flex';
+  rightZone.style.alignItems = 'center';
+  rightZone.style.gap = '16px';
+  const tucks = renderTuckSplay(player.tucked, 'self');
+  tucks.style.zIndex = '2';
+  const rightStack = renderPile('Discard', '/cards/back.svg', state.discardPile.cards.length);
+  rightStack.setAttribute('data-key', `pile:discard:global`);
+  rightZone.appendChild(tucks);
+  rightZone.appendChild(rightStack);
+  div.appendChild(leftStack);
+  div.appendChild(center);
+  div.appendChild(rightZone);
   return div;
 }
 
@@ -428,10 +402,10 @@ function renderOpponents(state: GameState): HTMLElement {
     const piles = document.createElement('div');
     piles.style.display = 'flex';
     piles.style.gap = '12px';
-    const oppDraw = renderPile('Draw', '/cards/back.svg', opp.drawPile.cards.length, 'sm');
-    oppDraw.setAttribute('data-key', `pile:draw:${opp.id}`);
-    const oppDiscard = renderPile('Discard', '/cards/back.svg', opp.discardPile.cards.length, 'sm');
-    oppDiscard.setAttribute('data-key', `pile:discard:${opp.id}`);
+    const oppDraw = renderPile('Draw', '/cards/back.svg', state.drawPile.cards.length, 'sm');
+    oppDraw.setAttribute('data-key', `pile:draw:global`);
+    const oppDiscard = renderPile('Discard', '/cards/back.svg', state.discardPile.cards.length, 'sm');
+    oppDiscard.setAttribute('data-key', `pile:discard:global`);
     piles.appendChild(oppDraw);
     piles.appendChild(oppDiscard);
     panel.appendChild(piles);
@@ -458,23 +432,15 @@ function renderOpponents(state: GameState): HTMLElement {
     handWrap.appendChild(hand);
     handWrap.appendChild(handLbl);
     panel.appendChild(handWrap);
-    // Opponent tucks: show icon strips
-    const tucks = document.createElement('div');
-    tucks.style.display = 'flex';
-    tucks.style.gap = '4px';
-    for (const card of opp.tucked) {
-      const icon = renderTuckedCardIcon(card);
-      icon.setAttribute('data-key', `card:${getStableCardKey(card)}`);
-      icon.style.width = '84px';
-      icon.style.height = '24px';
-      panel.appendChild(icon);
-    }
+    // Opponent tucks: splayed icons (opponent orientation)
+    const tucks = renderTuckSplay(opp.tucked, 'opponent');
+    panel.appendChild(tucks);
     bar.appendChild(panel);
   }
   return bar;
 }
 
-function renderTuckStack(cards: any[]): HTMLElement {
+function renderTuckSplay(cards: any[], orientation: 'self' | 'opponent'): HTMLElement {
   const wrap = document.createElement('div');
   wrap.style.display = 'flex';
   wrap.style.flexDirection = 'column';
@@ -483,16 +449,71 @@ function renderTuckStack(cards: any[]): HTMLElement {
   lbl.style.fontSize = '12px';
   lbl.style.color = '#ccc';
   wrap.appendChild(lbl);
-  const stack = document.createElement('div');
-  stack.style.display = 'flex';
-  stack.style.flexDirection = 'column';
-  stack.style.gap = '6px';
-  for (const card of cards) {
-    const el = renderTuckedCardIcon(card);
-    el.setAttribute('data-key', `card:${getStableCardKey(card)}`);
-    stack.appendChild(el);
-  }
-  wrap.appendChild(stack);
+
+  const area = document.createElement('div');
+  area.style.position = 'relative';
+  // Lay cards with vertical offset so icon slots remain visible
+  const baseWidth = 126; // icon slot display width
+  const baseHeight = 36;
+  const offset = 24; // px vertical overlap shift for clearer icon visibility
+  area.style.width = `${baseWidth}px`;
+  area.style.height = `${cards.length > 0 ? baseHeight + offset * (cards.length - 1) : baseHeight}px`;
+
+  cards.forEach((card, idx) => {
+    const asset = card.asset;
+    const key = `card:${getStableCardKey(card)}`;
+    const el = document.createElement('div');
+    el.setAttribute('data-key', key);
+    el.style.position = 'absolute';
+    el.style.left = '0px';
+    el.style.top = `${idx * offset}px`;
+    el.style.width = `${baseWidth}px`;
+    el.style.height = `${baseHeight}px`;
+    el.style.overflow = 'hidden';
+    el.title = card.name;
+
+    if (!asset || !asset.iconSlot) {
+      el.textContent = card.name;
+      el.style.border = '1px solid #333';
+      el.style.borderRadius = '4px';
+      el.style.padding = '4px 8px';
+      area.appendChild(el);
+      return;
+    }
+
+    // scale image so that full card width fits a reasonable scale
+    const scaleX = baseWidth / asset.iconSlot.width;
+    const scaleY = baseHeight / asset.iconSlot.height;
+    const scale = Math.min(scaleX, scaleY);
+    const displayW = asset.size.width * scale;
+    const displayH = asset.size.height * scale;
+
+    // Place img so that the iconSlot aligns within the container
+    const img = document.createElement('img');
+    img.src = asset.path;
+    img.alt = card.name;
+    img.style.width = `${displayW}px`;
+    img.style.height = `${displayH}px`;
+    img.style.objectFit = 'cover';
+    img.draggable = false;
+    img.style.transformOrigin = 'top left';
+    // For self: align to the bottom icon slot and rotate the container so the card is upside down
+    if (orientation === 'self') {
+      const tx = -asset.iconSlot.x * scale;
+      const ty = -asset.iconSlot.y * scale;
+      img.style.transform = `translate(${tx}px, ${ty}px)`;
+      el.style.transform = 'rotate(180deg)';
+      el.style.transformOrigin = 'center';
+    } else {
+      const tx = -asset.iconSlot.x * scale;
+      const ty = -asset.iconSlot.y * scale;
+      img.style.transform = `translate(${tx}px, ${ty}px)`;
+    }
+    el.appendChild(img);
+    area.appendChild(el);
+  });
+
+  wrap.appendChild(area);
   return wrap;
 }
 

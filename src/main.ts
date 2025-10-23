@@ -37,6 +37,10 @@ function rerender() {
       if (snap) {
         // Replace state object contents
         Object.assign(state, snap)
+        // Ensure per-turn flags and prompt are reset so hand re-enables
+        ;(state as any).hasPlayedThisTurn = false
+        ;(state as any).hasActedThisTurn = false
+        state.prompt = null
         rerender()
       }
     },
@@ -58,6 +62,9 @@ function rerender() {
   const snap = getTurnStartSnapshot()
   if (snap) {
     Object.assign(state, snap)
+    ;(state as any).hasPlayedThisTurn = false
+    ;(state as any).hasActedThisTurn = false
+    state.prompt = null
     rerender()
   }
 }

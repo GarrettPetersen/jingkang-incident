@@ -84,8 +84,6 @@ export type VerbSpec =
 export interface PlayerState {
   id: PlayerId;
   name: string;
-  drawPile: Deck;
-  discardPile: Deck;
   hand: Card[];
   tucked: Card[]; // cards tucked for icons
   color?: string;
@@ -124,6 +122,9 @@ export interface GameState {
   pieceTypes: Record<PieceTypeId, PieceType>;
   pieces: Record<PieceId, Piece>;
   players: PlayerState[];
+  // Global decks shared by all players
+  drawPile: Deck;
+  discardPile: Deck;
   // Whose turn it is (authoritative for game flow)
   currentPlayerId?: PlayerId;
   // Which player perspective the client is viewing (for multiplayer)

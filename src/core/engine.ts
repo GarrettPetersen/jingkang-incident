@@ -77,7 +77,7 @@ export function playCard(state: GameState, cardId: string): void {
     } else if (tuckedSomewhere) {
       // already moved to a tucked stack; do not discard
     } else {
-      player.discardPile = pushBottom(player.discardPile, [card]);
+      state.discardPile = pushBottom(state.discardPile, [card]);
     }
     state.hasPlayedThisTurn = true;
     state.hasActedThisTurn = true;
@@ -94,13 +94,12 @@ function executeVerb(
   switch (verb.type) {
     case 'draw': {
       const player = state.players.find((p) => p.id === playerId)!;
-      // If draw pile empty, reshuffle discard into draw
-      if (player.drawPile.cards.length === 0 && player.discardPile.cards.length > 0) {
-        player.drawPile = shuffleDeck(mergeDecks([player.discardPile]));
-        player.discardPile = { cards: [] } as Deck;
+      if (state.drawPile.cards.length === 0 && state.discardPile.cards.length > 0) {
+        state.drawPile = shuffleDeck(mergeDecks([state.discardPile]));
+        state.discardPile = { cards: [] } as Deck;
       }
-      const { drawn, deck } = draw(player.drawPile, verb.count);
-      player.drawPile = deck;
+      const { drawn, deck } = draw(state.drawPile, verb.count);
+      state.drawPile = deck;
       player.hand.push(...drawn);
       state.log.push({ message: `${player.name} draws ${drawn.length}` });
       break;
@@ -109,12 +108,12 @@ function executeVerb(
       const player = state.players.find((p) => p.id === playerId)!;
       const need = Math.max(0, verb.limit - player.hand.length);
       if (need > 0) {
-        if (player.drawPile.cards.length < need && player.discardPile.cards.length > 0) {
-          player.drawPile = shuffleDeck(mergeDecks([player.discardPile]));
-          player.discardPile = { cards: [] } as Deck;
+        if (state.drawPile.cards.length < need && state.discardPile.cards.length > 0) {
+          state.drawPile = shuffleDeck(mergeDecks([state.discardPile]));
+          state.discardPile = { cards: [] } as Deck;
         }
-        const { drawn, deck } = draw(player.drawPile, need);
-        player.drawPile = deck;
+        const { drawn, deck } = draw(state.drawPile, need);
+        state.drawPile = deck;
         player.hand.push(...drawn);
         state.log.push({ message: `${player.name} draws ${drawn.length} to ${verb.limit}` });
       }
