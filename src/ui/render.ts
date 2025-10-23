@@ -5,37 +5,61 @@ export function renderApp(root: HTMLElement, state: GameState, handlers: {
   onPlayCard: (cardId: string) => void;
   onSelectPiece: (pieceId: string) => void;
   onSelectNode: (nodeId: NodeId) => void;
+  onEndTurn: () => void;
+  onUndo: () => void;
 }): void {
   root.innerHTML = '';
 
   const container = document.createElement('div');
   container.style.display = 'grid';
-  container.style.gridTemplateColumns = '280px 1fr 280px';
-  container.style.gap = '16px';
+  container.style.gridTemplateRows = '1fr 180px';
+  container.style.gridTemplateColumns = '240px 1fr 240px';
+  container.style.gridTemplateAreas = `
+    'left board right'
+    'hand hand hand'
+  `;
+  container.style.height = '100vh';
+  container.style.gap = '12px';
 
-  container.appendChild(renderLeftPanel(state, handlers));
-  container.appendChild(renderBoard(state, handlers));
-  container.appendChild(renderRightPanel(state));
+  const left = renderLeftPanel(state, handlers);
+  left.style.gridArea = 'left';
+  container.appendChild(left);
+
+  const board = renderBoard(state, handlers);
+  (board as any).style.gridArea = 'board';
+  container.appendChild(board);
+
+  const right = renderRightPanel(state);
+  right.style.gridArea = 'right';
+  container.appendChild(right);
+
+  const hand = renderHand(state, handlers);
+  hand.style.gridArea = 'hand';
+  container.appendChild(hand);
 
   root.appendChild(container);
 }
 
-function renderLeftPanel(state: GameState, handlers: any): HTMLElement {
+function renderLeftPanel(state: GameState, _handlers: any): HTMLElement {
   const div = document.createElement('div');
   const player = viewingPlayer(state);
   const h = document.createElement('h3');
-  h.textContent = `Hand - ${player.name}`;
+  h.textContent = `Viewing: ${player.name}`;
   div.appendChild(h);
-  const ul = document.createElement('ul');
-  for (const c of player.hand) {
-    const li = document.createElement('li');
-    const btn = document.createElement('button');
-    btn.textContent = c.name;
-    btn.onclick = () => handlers.onPlayCard(c.id);
-    li.appendChild(btn);
-    ul.appendChild(li);
-  }
-  div.appendChild(ul);
+
+  const controls = document.createElement('div');
+  controls.style.display = 'flex';
+  controls.style.flexDirection = 'column';
+  controls.style.gap = '8px';
+  const endBtn = document.createElement('button');
+  endBtn.textContent = 'End Turn';
+  endBtn.onclick = () => (window as any).onEndTurn?.();
+  const undoBtn = document.createElement('button');
+  undoBtn.textContent = 'Undo Turn';
+  undoBtn.onclick = () => (window as any).onUndo?.();
+  controls.appendChild(endBtn);
+  controls.appendChild(undoBtn);
+  div.appendChild(controls);
 
   if (state.prompt) {
     const p = document.createElement('div');
@@ -49,9 +73,25 @@ function renderLeftPanel(state: GameState, handlers: any): HTMLElement {
 
 function renderRightPanel(state: GameState): HTMLElement {
   const div = document.createElement('div');
-  const h = document.createElement('h3');
-  h.textContent = 'Log';
-  div.appendChild(h);
+  {
+    const h = document.createElement('h3');
+    h.textContent = 'Tucked';
+    div.appendChild(h);
+    const viewer = viewingPlayer(state);
+    const wrap = document.createElement('div');
+    wrap.style.display = 'flex';
+    wrap.style.flexDirection = 'column';
+    wrap.style.gap = '6px';
+    for (const card of viewer.tucked) {
+      const icon = renderTuckedCardIcon(card);
+      wrap.appendChild(icon);
+    }
+    div.appendChild(wrap);
+  }
+
+  const h2 = document.createElement('h3');
+  h2.textContent = 'Log';
+  div.appendChild(h2);
   const ul = document.createElement('ul');
   for (const entry of state.log.slice(-10)) {
     const li = document.createElement('li');
@@ -67,6 +107,8 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
   svg.setAttribute('viewBox', '0 0 600 400');
   svg.style.border = '1px solid #555';
   svg.style.background = '#111';
+  svg.style.width = '100%';
+  svg.style.height = '100%';
 
   // edges
   for (const e of Object.values(state.map.edges)) {
@@ -89,6 +131,14 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
     circle.setAttribute('cy', String(n.y));
     circle.setAttribute('r', '10');
     circle.setAttribute('fill', '#ddd');
+
+    if (state.prompt?.kind === 'selectNode') {
+      if (state.prompt.nodeOptions.includes(n.id)) {
+        circle.setAttribute('fill', '#7cf');
+        circle.style.cursor = 'pointer';
+        circle.addEventListener('click', () => handlers.onSelectNode(n.id));
+      }
+    }
 
     if (state.prompt?.kind === 'selectAdjacentNode' && state.prompt.nodeOptions.includes(n.id)) {
       circle.setAttribute('fill', '#7cf');
@@ -129,13 +179,103 @@ function drawPiece(svg: SVGSVGElement, piece: Piece, state: GameState): void {
     rect.style.cursor = 'pointer';
     rect.setAttribute('stroke', '#ff0');
     rect.setAttribute('stroke-width', '2');
-    rect.addEventListener('click', () => {
-      // delegate to caller via custom event style handler
-      (window as any).onSelectPiece?.(piece.id);
-    });
+    rect.addEventListener('click', () => (window as any).onSelectPiece?.(piece.id));
   }
 
   svg.appendChild(rect);
+}
+
+function renderTuckedCardIcon(card: { asset?: { path: string; size: { width: number; height: number }; iconSlot?: { x: number; y: number; width: number; height: number } }; name: string }): HTMLElement {
+  const container = document.createElement('div');
+  container.style.position = 'relative';
+  container.style.width = '126px'; // display width for icon slot (scale of 0.5 for 252)
+  container.style.height = '36px';
+  container.style.overflow = 'hidden';
+  container.style.border = '1px solid #333';
+  container.style.borderRadius = '4px';
+  container.title = card.name;
+
+  const asset = card.asset;
+  if (!asset || !asset.iconSlot) {
+    // fallback: simple label
+    container.textContent = card.name;
+    container.style.padding = '4px 8px';
+    return container;
+  }
+
+  const scaleX = 126 / asset.iconSlot.width; // fit icon slot width to container
+  const scaleY = 36 / asset.iconSlot.height;
+  const scale = Math.min(scaleX, scaleY);
+  const displayW = asset.size.width * scale;
+  const displayH = asset.size.height * scale;
+  const offsetX = -asset.iconSlot.x * scale;
+  const offsetY = -asset.iconSlot.y * scale;
+
+  const img = document.createElement('img');
+  img.src = asset.path;
+  img.alt = card.name;
+  img.style.width = `${displayW}px`;
+  img.style.height = `${displayH}px`;
+  img.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+  img.style.objectFit = 'cover';
+  img.draggable = false;
+  container.appendChild(img);
+  return container;
+}
+
+function renderHand(state: GameState, handlers: any): HTMLElement {
+  const div = document.createElement('div');
+  div.style.display = 'flex';
+  div.style.alignItems = 'center';
+  div.style.justifyContent = 'center';
+  div.style.gap = '10px';
+  div.style.padding = '8px';
+  div.style.borderTop = '1px solid #444';
+  const player = viewingPlayer(state);
+  for (const card of player.hand) {
+    div.appendChild(renderCard(card, () => handlers.onPlayCard(card.id)));
+  }
+  return div;
+}
+
+function renderCard(card: { name: string; asset?: { path: string; size: { width: number; height: number }; iconSlot?: { x: number; y: number; width: number; height: number } } }, onClick: () => void): HTMLElement {
+  const w = 150; // tarot-ish scaled width
+  const h = Math.round(w * (420 / 300));
+  const container = document.createElement('div');
+  container.style.position = 'relative';
+  container.style.width = `${w}px`;
+  container.style.height = `${h}px`;
+  container.style.border = '1px solid #333';
+  container.style.borderRadius = '10px';
+  container.style.overflow = 'hidden';
+  container.style.cursor = 'pointer';
+  container.title = card.name;
+  container.addEventListener('click', onClick);
+
+  const img = document.createElement('img');
+  img.src = card.asset?.path ?? '/vite.svg';
+  img.alt = card.name;
+  img.style.width = '100%';
+  img.style.height = '100%';
+  img.style.objectFit = 'cover';
+  img.draggable = false;
+  container.appendChild(img);
+
+  // Always show the icon slot overlay if present
+  if (card.asset?.iconSlot) {
+    const overlay = document.createElement('div');
+    const scale = w / card.asset.size.width;
+    overlay.style.position = 'absolute';
+    overlay.style.left = `${card.asset.iconSlot.x * scale}px`;
+    overlay.style.top = `${card.asset.iconSlot.y * scale}px`;
+    overlay.style.width = `${card.asset.iconSlot.width * scale}px`;
+    overlay.style.height = `${card.asset.iconSlot.height * scale}px`;
+    overlay.style.outline = '2px solid #0006';
+    overlay.style.pointerEvents = 'none';
+    container.appendChild(overlay);
+  }
+
+  return container;
 }
 
 

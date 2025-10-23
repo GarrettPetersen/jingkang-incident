@@ -58,6 +58,12 @@ export interface Card {
   name: string;
   icons?: IconId[];
   verbs: VerbSpec[];
+  asset?: {
+    path: string; // public path to image (e.g., /cards/coin.svg)
+    size: { width: number; height: number }; // pixel dimensions of the full card asset
+    iconSlot?: { x: number; y: number; width: number; height: number }; // region to show when tucked
+  };
+  keepOnPlay?: boolean; // if true, card returns to hand after play
 }
 
 export interface Deck {
@@ -67,8 +73,11 @@ export interface Deck {
 // Verb specs
 export type VerbSpec =
   | { type: 'draw'; count: number }
-  | { type: 'tuckSelf' }
+  | { type: 'drawUpTo'; limit: number }
+  | { type: 'tuck'; target: 'self' | 'opponent' }
   | { type: 'move'; steps?: number }
+  | { type: 'recruit'; pieceTypeId: PieceTypeId }
+  | { type: 'destroy' }
   | { type: 'endGame'; winner?: 'self' | 'none' };
 
 // Player & Game state
@@ -87,7 +96,7 @@ export type Prompt =
       kind: 'selectPiece';
       playerId: PlayerId;
       pieceIds: PieceId[];
-      next: { kind: 'forMove'; steps: number };
+      next: { kind: 'forMove'; steps: number } | { kind: 'forDestroy' };
       message: string;
     }
   | {
@@ -96,6 +105,13 @@ export type Prompt =
       pieceId: PieceId;
       nodeOptions: NodeId[];
       stepsRemaining: number;
+      message: string;
+    }
+  | {
+      kind: 'selectNode';
+      playerId: PlayerId;
+      nodeOptions: NodeId[];
+      next: { kind: 'forRecruit'; pieceTypeId: PieceTypeId };
       message: string;
     };
 

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="420" viewBox="0 0 300 420">
+  <rect width="300" height="420" rx="16" ry="16" fill="#faf8f0" stroke="#333"/>
+  <text x="150" y="40" text-anchor="middle" font-size="20" fill="#333">Coin</text>
+  <circle cx="150" cy="360" r="22" fill="#f0c419" stroke="#b78900" stroke-width="3"/>
+  <text x="150" y="366" text-anchor="middle" font-size="18" fill="#333">1</text>
+  <g>
+    <rect x="24" y="320" width="252" height="72" fill="#fff0"/>
+  </g>
+</svg>
+
