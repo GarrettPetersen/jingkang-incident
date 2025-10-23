@@ -40,7 +40,7 @@ export function renderApp(root: HTMLElement, state: GameState, handlers: {
   root.appendChild(container);
 }
 
-function renderLeftPanel(state: GameState, _handlers: any): HTMLElement {
+function renderLeftPanel(state: GameState, handlers: any): HTMLElement {
   const div = document.createElement('div');
   const player = viewingPlayer(state);
   const h = document.createElement('h3');
@@ -53,10 +53,10 @@ function renderLeftPanel(state: GameState, _handlers: any): HTMLElement {
   controls.style.gap = '8px';
   const endBtn = document.createElement('button');
   endBtn.textContent = 'End Turn';
-  endBtn.onclick = () => (window as any).onEndTurn?.();
+  endBtn.onclick = () => handlers.onEndTurn();
   const undoBtn = document.createElement('button');
   undoBtn.textContent = 'Undo Turn';
-  undoBtn.onclick = () => (window as any).onUndo?.();
+  undoBtn.onclick = () => handlers.onUndo();
   controls.appendChild(endBtn);
   controls.appendChild(undoBtn);
   div.appendChild(controls);

@@ -39,12 +39,16 @@ export function startTurn(state: GameState): void {
 
 export function endTurn(state: GameState): void {
   // Advance authoritative turn owner by seating
+  const prevId = state.currentPlayerId ?? state.players[state.currentPlayerIndex].id;
   state.currentPlayerId = nextPlayerId(state);
   // Keep legacy index in sync for hotseat
   state.currentPlayerIndex = state.players.findIndex((p) => p.id === state.currentPlayerId);
   // In hotseat, viewing player follows the turn owner
   state.viewPlayerId = state.currentPlayerId;
   state.prompt = null;
+  const prev = state.players.find((p) => p.id === prevId)?.name ?? prevId;
+  const next = state.players.find((p) => p.id === state.currentPlayerId)?.name ?? state.currentPlayerId;
+  state.log.push({ message: `End turn: ${prev} → ${next}` });
   // Begin next turn and snapshot it
   startTurn(state);
 }
