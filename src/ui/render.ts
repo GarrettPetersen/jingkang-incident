@@ -483,102 +483,68 @@ function renderTuckSplay(cards: any[], orientation: 'self' | 'opponent'): HTMLEl
   header.appendChild(badge);
   wrap.appendChild(header);
 
-  const groups = groupCardsByFirstIcon(cards);
   const scroll = document.createElement('div');
   scroll.style.overflowX = 'auto';
   scroll.style.paddingBottom = '4px';
   scroll.style.maxWidth = '100%';
-  scroll.style.display = 'flex';
-  scroll.style.gap = '12px';
 
-  for (const [iconId, groupCards] of groups) {
-    const group = document.createElement('div');
-    group.style.display = 'flex';
-    group.style.flexDirection = 'column';
-    group.style.gap = '4px';
-    const glabel = document.createElement('div');
-    glabel.textContent = iconId;
-    glabel.style.fontSize = '11px';
-    glabel.style.color = '#aaa';
-    group.appendChild(glabel);
+  const cols = Math.ceil(cards.length / MAX_ROWS);
+  const area = document.createElement('div');
+  area.style.position = 'relative';
+  area.style.width = `${cols * CARD_WIDTH + (cols - 1) * COL_GAP}px`;
+  area.style.height = `${(Math.min(MAX_ROWS, cards.length) - 1) * ROW_OFFSET + BAND_HEIGHT}px`;
 
-    const rows = Math.min(MAX_ROWS, Math.max(1, Math.ceil(groupCards.length)));
-    const cols = Math.ceil(groupCards.length / MAX_ROWS);
-    const area = document.createElement('div');
-    area.style.position = 'relative';
-    area.style.width = `${cols * CARD_WIDTH + (cols - 1) * COL_GAP}px`;
-    area.style.height = `${(rows - 1) * ROW_OFFSET + BAND_HEIGHT}px`;
+  cards.forEach((card, index) => {
+    const asset = card.asset;
+    const key = `card:${getStableCardKey(card)}`;
+    const col = Math.floor(index / MAX_ROWS);
+    const row = index % MAX_ROWS;
+    const el = document.createElement('div');
+    el.setAttribute('data-key', key);
+    el.style.position = 'absolute';
+    el.style.left = `${col * (CARD_WIDTH + COL_GAP)}px`;
+    el.style.top = `${row * ROW_OFFSET}px`;
+    el.style.width = `${CARD_WIDTH}px`;
+    el.style.height = `${BAND_HEIGHT}px`;
+    el.style.overflow = 'hidden';
+    el.title = card.name;
 
-    groupCards.forEach((card, index) => {
-      const asset = card.asset;
-      const key = `card:${getStableCardKey(card)}`;
-      const col = Math.floor(index / MAX_ROWS);
-      const row = index % MAX_ROWS;
-      const el = document.createElement('div');
-      el.setAttribute('data-key', key);
-      el.style.position = 'absolute';
-      el.style.left = `${col * (CARD_WIDTH + COL_GAP)}px`;
-      el.style.top = `${row * ROW_OFFSET}px`;
-      el.style.width = `${CARD_WIDTH}px`;
-      el.style.height = `${BAND_HEIGHT}px`;
-      el.style.overflow = 'hidden';
-      el.title = card.name;
+    if (!asset || !asset.iconSlot) {
+      el.textContent = card.name;
+      el.style.border = '1px solid #333';
+      el.style.borderRadius = '4px';
+      el.style.padding = '4px 8px';
+      area.appendChild(el);
+    } else {
+      const scale = CARD_WIDTH / asset.size.width;
+      const displayW = asset.size.width * scale;
+      const displayH = asset.size.height * scale;
+      const img = document.createElement('img');
+      img.src = asset.path;
+      img.alt = card.name;
+      img.style.width = `${displayW}px`;
+      img.style.height = `${displayH}px`;
+      img.style.objectFit = 'cover';
+      img.draggable = false;
+      img.style.transformOrigin = 'top left';
 
-      if (!asset || !asset.iconSlot) {
-        el.textContent = card.name;
-        el.style.border = '1px solid #333';
-        el.style.borderRadius = '4px';
-        el.style.padding = '4px 8px';
-        area.appendChild(el);
-      } else {
-        const scale = CARD_WIDTH / asset.size.width;
-        const displayW = asset.size.width * scale;
-        const displayH = asset.size.height * scale;
-        const img = document.createElement('img');
-        img.src = asset.path;
-        img.alt = card.name;
-        img.style.width = `${displayW}px`;
-        img.style.height = `${displayH}px`;
-        img.style.objectFit = 'cover';
-        img.draggable = false;
-        img.style.transformOrigin = 'top left';
-
-        if (orientation === 'self') {
-          // Align to top icon slot then rotate container so bottom band faces player
-          const tx = -asset.iconSlot.x * scale;
-          const ty = -asset.iconSlot.y * scale;
-          img.style.transform = `translate(${tx}px, ${ty}px)`;
-          el.style.transform = 'rotate(180deg)';
-          el.style.transformOrigin = 'center';
-        } else {
-          const tx = -asset.iconSlot.x * scale;
-          const ty = -asset.iconSlot.y * scale;
-          img.style.transform = `translate(${tx}px, ${ty}px)`;
-        }
-
-        // Preview on click
-        el.addEventListener('click', () => showCardPreview(card));
-        el.appendChild(img);
-        area.appendChild(el);
+      const tx = -asset.iconSlot.x * scale;
+      const ty = -asset.iconSlot.y * scale;
+      img.style.transform = `translate(${tx}px, ${ty}px)`;
+      if (orientation === 'self') {
+        el.style.transform = 'rotate(180deg)';
+        el.style.transformOrigin = 'center';
       }
-    });
 
-    group.appendChild(area);
-    scroll.appendChild(group);
-  }
+      el.addEventListener('click', () => showCardPreview(card));
+      el.appendChild(img);
+      area.appendChild(el);
+    }
+  });
 
+  scroll.appendChild(area);
   wrap.appendChild(scroll);
   return wrap;
-}
-
-function groupCardsByFirstIcon(cards: any[]): Map<string, any[]> {
-  const map = new Map<string, any[]>();
-  for (const c of cards) {
-    const key = (c.icons && c.icons.length > 0) ? String(c.icons[0]) : 'misc';
-    if (!map.has(key)) map.set(key, []);
-    map.get(key)!.push(c);
-  }
-  return map;
 }
 
 function showCardPreview(card: any): void {

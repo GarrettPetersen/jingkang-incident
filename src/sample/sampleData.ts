@@ -81,7 +81,26 @@ const redrawCard: Card = {
   asset: { path: '/cards/logistics.svg', size: { width: 300, height: 420 }, iconSlot: { x: 24, y: 320, width: 252, height: 72 } },
 };
 
-const deck1: Deck = { cards: [moveCard, drawCard, recruitCard, destroyCard, tuckSelfCard, tuckOpponentCard] };
+// Add multiple coins/daggers for tuck testing
+const extraCoins: Card[] = Array.from({ length: 8 }, (_, i) => ({
+  ...tuckSelfCard,
+  id: `c-tuck-${i + 1}`,
+}));
+const extraDaggers: Card[] = Array.from({ length: 8 }, (_, i) => ({
+  ...tuckOpponentCard,
+  id: `c-dagger-${i + 1}`,
+}));
+
+const deck1: Deck = { cards: [
+  moveCard,
+  drawCard,
+  recruitCard,
+  destroyCard,
+  tuckSelfCard,
+  tuckOpponentCard,
+  ...extraCoins,
+  ...extraDaggers,
+] };
 
 const players: PlayerState[] = [
   {
