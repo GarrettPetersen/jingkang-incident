@@ -142,11 +142,36 @@ function renderLeftPanel(state: GameState, handlers: any): HTMLElement {
     div.appendChild(p);
   }
 
+  // Global Draw pile (left of board)
+  const deckWrap = document.createElement('div');
+  deckWrap.style.marginTop = '12px';
+  const deckLbl = document.createElement('div');
+  deckLbl.textContent = 'Draw Pile';
+  deckLbl.style.fontSize = '12px';
+  deckLbl.style.color = '#ccc';
+  const draw = renderPile('Draw', '/cards/back.svg', state.drawPile.cards.length);
+  draw.setAttribute('data-key', 'pile:draw:global');
+  deckWrap.appendChild(deckLbl);
+  deckWrap.appendChild(draw);
+  div.appendChild(deckWrap);
+
   return div;
 }
 
 function renderRightPanel(state: GameState): HTMLElement {
   const div = document.createElement('div');
+  // Global Discard pile (right of board)
+  const discWrap = document.createElement('div');
+  const discLbl = document.createElement('div');
+  discLbl.textContent = 'Discard Pile';
+  discLbl.style.fontSize = '12px';
+  discLbl.style.color = '#ccc';
+  const discard = renderPile('Discard', '/cards/back.svg', state.discardPile.cards.length);
+  discard.setAttribute('data-key', 'pile:discard:global');
+  discWrap.appendChild(discLbl);
+  discWrap.appendChild(discard);
+  div.appendChild(discWrap);
+
   const h2 = document.createElement('h3');
   h2.textContent = 'Log';
   div.appendChild(h2);
@@ -288,20 +313,17 @@ function renderHand(state: GameState, handlers: any): HTMLElement {
     }
     center.appendChild(cardEl);
   }
-  // Left: draw pile
-  const leftStack = renderPile('Draw', '/cards/back.svg', state.drawPile.cards.length);
-  leftStack.setAttribute('data-key', `pile:draw:global`);
-  // Right: tucks and discard
+  // Left spacer (global draw is in left panel)
+  const leftStack = document.createElement('div');
+  leftStack.style.width = '100px';
+  // Right: tucks and spacer (global discard is in right panel)
   const rightZone = document.createElement('div');
   rightZone.style.display = 'flex';
   rightZone.style.alignItems = 'center';
   rightZone.style.gap = '16px';
   const tucks = renderTuckSplay(player.tucked, 'self');
   tucks.style.zIndex = '2';
-  const rightStack = renderPile('Discard', '/cards/back.svg', state.discardPile.cards.length);
-  rightStack.setAttribute('data-key', `pile:discard:global`);
   rightZone.appendChild(tucks);
-  rightZone.appendChild(rightStack);
   div.appendChild(leftStack);
   div.appendChild(center);
   div.appendChild(rightZone);
@@ -398,17 +420,7 @@ function renderOpponents(state: GameState): HTMLElement {
     name.style.fontSize = '12px';
     name.style.color = '#ddd';
     panel.appendChild(name);
-    // Opponent piles
-    const piles = document.createElement('div');
-    piles.style.display = 'flex';
-    piles.style.gap = '12px';
-    const oppDraw = renderPile('Draw', '/cards/back.svg', state.drawPile.cards.length, 'sm');
-    oppDraw.setAttribute('data-key', `pile:draw:global`);
-    const oppDiscard = renderPile('Discard', '/cards/back.svg', state.discardPile.cards.length, 'sm');
-    oppDiscard.setAttribute('data-key', `pile:discard:global`);
-    piles.appendChild(oppDraw);
-    piles.appendChild(oppDiscard);
-    panel.appendChild(piles);
+    // No opponent piles here; global piles are shown next to the board
     // Opponent hand: show card backs count
     const hand = document.createElement('div');
     hand.style.display = 'flex';
@@ -441,80 +453,162 @@ function renderOpponents(state: GameState): HTMLElement {
 }
 
 function renderTuckSplay(cards: any[], orientation: 'self' | 'opponent'): HTMLElement {
+  const MAX_ROWS = 8;
+  const BAND_HEIGHT = 36; // visible band height per card
+  const ROW_OFFSET = 28; // vertical spacing between bands
+  const CARD_WIDTH = 150; // full card width
+  const COL_GAP = 12;
+
   const wrap = document.createElement('div');
   wrap.style.display = 'flex';
   wrap.style.flexDirection = 'column';
+
+  // Header with count badge
+  const header = document.createElement('div');
+  header.style.display = 'flex';
+  header.style.alignItems = 'center';
+  header.style.gap = '8px';
   const lbl = document.createElement('div');
-  lbl.textContent = `Tucks (${cards.length})`;
+  lbl.textContent = 'Tucks';
   lbl.style.fontSize = '12px';
   lbl.style.color = '#ccc';
-  wrap.appendChild(lbl);
+  const badge = document.createElement('span');
+  badge.textContent = String(cards.length);
+  badge.style.background = '#444';
+  badge.style.color = '#eee';
+  badge.style.fontSize = '11px';
+  badge.style.padding = '0 6px';
+  badge.style.borderRadius = '10px';
+  header.appendChild(lbl);
+  header.appendChild(badge);
+  wrap.appendChild(header);
 
-  const area = document.createElement('div');
-  area.style.position = 'relative';
-  // Lay cards with vertical offset so icon slots remain visible
-  const baseWidth = 126; // icon slot display width
-  const baseHeight = 36;
-  const offset = 24; // px vertical overlap shift for clearer icon visibility
-  area.style.width = `${baseWidth}px`;
-  area.style.height = `${cards.length > 0 ? baseHeight + offset * (cards.length - 1) : baseHeight}px`;
+  const groups = groupCardsByFirstIcon(cards);
+  const scroll = document.createElement('div');
+  scroll.style.overflowX = 'auto';
+  scroll.style.paddingBottom = '4px';
+  scroll.style.maxWidth = '100%';
+  scroll.style.display = 'flex';
+  scroll.style.gap = '12px';
 
-  cards.forEach((card, idx) => {
-    const asset = card.asset;
-    const key = `card:${getStableCardKey(card)}`;
-    const el = document.createElement('div');
-    el.setAttribute('data-key', key);
-    el.style.position = 'absolute';
-    el.style.left = '0px';
-    el.style.top = `${idx * offset}px`;
-    el.style.width = `${baseWidth}px`;
-    el.style.height = `${baseHeight}px`;
-    el.style.overflow = 'hidden';
-    el.title = card.name;
+  for (const [iconId, groupCards] of groups) {
+    const group = document.createElement('div');
+    group.style.display = 'flex';
+    group.style.flexDirection = 'column';
+    group.style.gap = '4px';
+    const glabel = document.createElement('div');
+    glabel.textContent = iconId;
+    glabel.style.fontSize = '11px';
+    glabel.style.color = '#aaa';
+    group.appendChild(glabel);
 
-    if (!asset || !asset.iconSlot) {
-      el.textContent = card.name;
-      el.style.border = '1px solid #333';
-      el.style.borderRadius = '4px';
-      el.style.padding = '4px 8px';
-      area.appendChild(el);
-      return;
-    }
+    const rows = Math.min(MAX_ROWS, Math.max(1, Math.ceil(groupCards.length)));
+    const cols = Math.ceil(groupCards.length / MAX_ROWS);
+    const area = document.createElement('div');
+    area.style.position = 'relative';
+    area.style.width = `${cols * CARD_WIDTH + (cols - 1) * COL_GAP}px`;
+    area.style.height = `${(rows - 1) * ROW_OFFSET + BAND_HEIGHT}px`;
 
-    // scale image so that full card width fits a reasonable scale
-    const scaleX = baseWidth / asset.iconSlot.width;
-    const scaleY = baseHeight / asset.iconSlot.height;
-    const scale = Math.min(scaleX, scaleY);
-    const displayW = asset.size.width * scale;
-    const displayH = asset.size.height * scale;
+    groupCards.forEach((card, index) => {
+      const asset = card.asset;
+      const key = `card:${getStableCardKey(card)}`;
+      const col = Math.floor(index / MAX_ROWS);
+      const row = index % MAX_ROWS;
+      const el = document.createElement('div');
+      el.setAttribute('data-key', key);
+      el.style.position = 'absolute';
+      el.style.left = `${col * (CARD_WIDTH + COL_GAP)}px`;
+      el.style.top = `${row * ROW_OFFSET}px`;
+      el.style.width = `${CARD_WIDTH}px`;
+      el.style.height = `${BAND_HEIGHT}px`;
+      el.style.overflow = 'hidden';
+      el.title = card.name;
 
-    // Place img so that the iconSlot aligns within the container
-    const img = document.createElement('img');
-    img.src = asset.path;
-    img.alt = card.name;
-    img.style.width = `${displayW}px`;
-    img.style.height = `${displayH}px`;
-    img.style.objectFit = 'cover';
-    img.draggable = false;
-    img.style.transformOrigin = 'top left';
-    // For self: align to the bottom icon slot and rotate the container so the card is upside down
-    if (orientation === 'self') {
-      const tx = -asset.iconSlot.x * scale;
-      const ty = -asset.iconSlot.y * scale;
-      img.style.transform = `translate(${tx}px, ${ty}px)`;
-      el.style.transform = 'rotate(180deg)';
-      el.style.transformOrigin = 'center';
-    } else {
-      const tx = -asset.iconSlot.x * scale;
-      const ty = -asset.iconSlot.y * scale;
-      img.style.transform = `translate(${tx}px, ${ty}px)`;
-    }
-    el.appendChild(img);
-    area.appendChild(el);
-  });
+      if (!asset || !asset.iconSlot) {
+        el.textContent = card.name;
+        el.style.border = '1px solid #333';
+        el.style.borderRadius = '4px';
+        el.style.padding = '4px 8px';
+        area.appendChild(el);
+      } else {
+        const scale = CARD_WIDTH / asset.size.width;
+        const displayW = asset.size.width * scale;
+        const displayH = asset.size.height * scale;
+        const img = document.createElement('img');
+        img.src = asset.path;
+        img.alt = card.name;
+        img.style.width = `${displayW}px`;
+        img.style.height = `${displayH}px`;
+        img.style.objectFit = 'cover';
+        img.draggable = false;
+        img.style.transformOrigin = 'top left';
 
-  wrap.appendChild(area);
+        if (orientation === 'self') {
+          // Align to top icon slot then rotate container so bottom band faces player
+          const tx = -asset.iconSlot.x * scale;
+          const ty = -asset.iconSlot.y * scale;
+          img.style.transform = `translate(${tx}px, ${ty}px)`;
+          el.style.transform = 'rotate(180deg)';
+          el.style.transformOrigin = 'center';
+        } else {
+          const tx = -asset.iconSlot.x * scale;
+          const ty = -asset.iconSlot.y * scale;
+          img.style.transform = `translate(${tx}px, ${ty}px)`;
+        }
+
+        // Preview on click
+        el.addEventListener('click', () => showCardPreview(card));
+        el.appendChild(img);
+        area.appendChild(el);
+      }
+    });
+
+    group.appendChild(area);
+    scroll.appendChild(group);
+  }
+
+  wrap.appendChild(scroll);
   return wrap;
+}
+
+function groupCardsByFirstIcon(cards: any[]): Map<string, any[]> {
+  const map = new Map<string, any[]>();
+  for (const c of cards) {
+    const key = (c.icons && c.icons.length > 0) ? String(c.icons[0]) : 'misc';
+    if (!map.has(key)) map.set(key, []);
+    map.get(key)!.push(c);
+  }
+  return map;
+}
+
+function showCardPreview(card: any): void {
+  if (!card || !card.asset) return;
+  const existing = document.getElementById('card-preview-overlay');
+  if (existing) existing.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'card-preview-overlay';
+  overlay.style.position = 'fixed';
+  overlay.style.left = '0';
+  overlay.style.top = '0';
+  overlay.style.right = '0';
+  overlay.style.bottom = '0';
+  overlay.style.background = 'rgba(0,0,0,0.6)';
+  overlay.style.display = 'flex';
+  overlay.style.alignItems = 'center';
+  overlay.style.justifyContent = 'center';
+  overlay.style.zIndex = '9999';
+  overlay.addEventListener('click', () => overlay.remove());
+
+  const img = document.createElement('img');
+  img.src = card.asset.path;
+  img.alt = card.name;
+  img.style.maxWidth = '80vw';
+  img.style.maxHeight = '80vh';
+  img.style.borderRadius = '8px';
+  img.style.boxShadow = '0 10px 30px rgba(0,0,0,0.5)';
+
+  overlay.appendChild(img);
+  document.body.appendChild(overlay);
 }
 
 
