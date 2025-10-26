@@ -1,5 +1,7 @@
 node_modules/
 dist/
+.npm-cache/
+
 .DS_Store
 .vite/
 *.log
