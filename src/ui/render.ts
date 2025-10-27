@@ -323,7 +323,20 @@ function renderHand(state: GameState, handlers: any): HTMLElement {
   rightZone.style.gap = '16px';
   const tucks = renderTuckSplay(player.tucked, 'self');
   tucks.style.zIndex = '2';
+  // Player coin inventory
+  const coinRow = document.createElement('div');
+  coinRow.style.display = 'flex';
+  coinRow.style.alignItems = 'center';
+  coinRow.style.gap = '6px';
+  const coinLbl = document.createElement('div');
+  coinLbl.textContent = 'Coins';
+  coinLbl.style.fontSize = '12px';
+  coinLbl.style.color = '#ccc';
+  const coins = renderCoins(player.coins ?? 0);
+  coinRow.appendChild(coinLbl);
+  coinRow.appendChild(coins);
   rightZone.appendChild(tucks);
+  rightZone.appendChild(coinRow);
   div.appendChild(leftStack);
   div.appendChild(center);
   div.appendChild(rightZone);
@@ -420,7 +433,6 @@ function renderOpponents(state: GameState): HTMLElement {
     name.style.fontSize = '12px';
     name.style.color = '#ddd';
     panel.appendChild(name);
-    // No opponent piles here; global piles are shown next to the board
     // Opponent hand: show card backs count
     const hand = document.createElement('div');
     hand.style.display = 'flex';
@@ -444,9 +456,21 @@ function renderOpponents(state: GameState): HTMLElement {
     handWrap.appendChild(hand);
     handWrap.appendChild(handLbl);
     panel.appendChild(handWrap);
-    // Opponent tucks: splayed icons (opponent orientation)
+    // Opponent tucks and coins
     const tucks = renderTuckSplay(opp.tucked, 'opponent');
+    const coinRow = document.createElement('div');
+    coinRow.style.display = 'flex';
+    coinRow.style.alignItems = 'center';
+    coinRow.style.gap = '6px';
+    const coinLbl = document.createElement('div');
+    coinLbl.textContent = 'Coins';
+    coinLbl.style.fontSize = '11px';
+    coinLbl.style.color = '#aaa';
+    const coins = renderCoins(opp.coins ?? 0, 'sm');
+    coinRow.appendChild(coinLbl);
+    coinRow.appendChild(coins);
     panel.appendChild(tucks);
+    panel.appendChild(coinRow);
     bar.appendChild(panel);
   }
   return bar;
@@ -575,6 +599,35 @@ function showCardPreview(card: any): void {
 
   overlay.appendChild(img);
   document.body.appendChild(overlay);
+}
+
+function renderCoins(count: number, size: 'sm' | 'md' = 'md'): HTMLElement {
+  const wrap = document.createElement('div');
+  wrap.style.display = 'flex';
+  wrap.style.gap = size === 'sm' ? '4px' : '6px';
+  const r = size === 'sm' ? 6 : 8;
+  for (let i = 0; i < Math.min(count, 10); i++) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', String(r * 2));
+    svg.setAttribute('height', String(r * 2));
+    const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c.setAttribute('cx', String(r));
+    c.setAttribute('cy', String(r));
+    c.setAttribute('r', String(r));
+    c.setAttribute('fill', '#f0c419');
+    c.setAttribute('stroke', '#b78900');
+    c.setAttribute('stroke-width', '2');
+    svg.appendChild(c);
+    wrap.appendChild(svg);
+  }
+  if (count > 10) {
+    const more = document.createElement('span');
+    more.textContent = `+${count - 10}`;
+    more.style.fontSize = size === 'sm' ? '10px' : '12px';
+    more.style.color = '#ccc';
+    wrap.appendChild(more);
+  }
+  return wrap;
 }
 
 

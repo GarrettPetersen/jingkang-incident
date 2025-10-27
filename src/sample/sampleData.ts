@@ -46,11 +46,11 @@ const drawCard: Card = {
   verbs: [{ type: 'draw', count: 2 }],
   asset: { path: '/cards/logistics.svg', size: { width: 300, height: 420 }, iconSlot: { x: 24, y: 320, width: 252, height: 72 } },
 };
-const tuckSelfCard: Card = {
-  id: 'c-tuck',
-  name: 'Coin',
-  icons: ['coin'],
-  verbs: [{ type: 'tuck', target: 'self' }],
+const gainCoinCard: Card = {
+  id: 'c-coin',
+  name: 'Gain Coin',
+  icons: [],
+  verbs: [{ type: 'gainCoin', amount: 1 }],
   asset: { path: '/cards/coin.svg', size: { width: 300, height: 420 }, iconSlot: { x: 24, y: 320, width: 252, height: 72 } },
 };
 const tuckOpponentCard: Card = {
@@ -83,8 +83,8 @@ const redrawCard: Card = {
 
 // Add multiple coins/daggers for tuck testing
 const extraCoins: Card[] = Array.from({ length: 8 }, (_, i) => ({
-  ...tuckSelfCard,
-  id: `c-tuck-${i + 1}`,
+  ...gainCoinCard,
+  id: `c-coin-${i + 1}`,
 }));
 const extraDaggers: Card[] = Array.from({ length: 8 }, (_, i) => ({
   ...tuckOpponentCard,
@@ -96,7 +96,7 @@ const deck1: Deck = { cards: [
   drawCard,
   recruitCard,
   destroyCard,
-  tuckSelfCard,
+  gainCoinCard,
   tuckOpponentCard,
   ...extraCoins,
   ...extraDaggers,

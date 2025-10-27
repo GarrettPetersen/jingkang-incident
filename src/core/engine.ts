@@ -131,6 +131,12 @@ function executeVerb(
       }
       break;
     }
+    case 'gainCoin': {
+      const self = state.players.find((p) => p.id === playerId)!;
+      self.coins = (self.coins ?? 0) + verb.amount;
+      state.log.push({ message: `${self.name} gains ${verb.amount} coin(s)` });
+      break;
+    }
     case 'move': {
       const steps = verb.steps ?? 1;
       // Prompt to select a piece owned by the player

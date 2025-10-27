@@ -78,6 +78,7 @@ export type VerbSpec =
   | { type: 'move'; steps?: number }
   | { type: 'recruit'; pieceTypeId: PieceTypeId }
   | { type: 'destroy' }
+  | { type: 'gainCoin'; amount: number }
   | { type: 'endGame'; winner?: 'self' | 'none' };
 
 // Player & Game state
@@ -87,6 +88,7 @@ export interface PlayerState {
   hand: Card[];
   tucked: Card[]; // cards tucked for icons
   color?: string;
+  coins?: number;
 }
 
 export type Prompt =
