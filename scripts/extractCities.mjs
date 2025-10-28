@@ -76,8 +76,27 @@ function splitParentheticalZh(nameZh) {
 
 function keyFor(place) {
     const { base: zh } = splitParentheticalZh(place.name_zh);
-    const t = (place.type || '').toString().trim().toLowerCase();
-    return `${zh}|${t}`;
+    return zh; // dedupe by base city name only
+}
+
+function typeRank(t) {
+    const x = (t || '').toString().trim().toLowerCase();
+    switch (x) {
+        case 'capital': return 9;
+        case 'prefecture-capital': return 8;
+        case 'metropolis': return 7;
+        case 'city': return 6;
+        case 'port': return 6;
+        case 'prefecture': return 5;
+        case 'county': return 4;
+        case 'market': return 3;
+        case 'town': return 3;
+        case 'village': return 2;
+        case 'fort':
+        case 'fortress':
+        case 'garrison': return 2;
+        default: return 1;
+    }
 }
 
 function collectPlacesFromEvent(evt) {
@@ -123,16 +142,29 @@ function main() {
             totalMentions++;
             const existing = keyToCity.get(k);
             const { base, qualifier, original } = splitParentheticalZh(pl.name_zh);
-            const rec = existing || {
-                name_zh: base,
-                name_pinyin: normalizeName(pl.name_pinyin || pl.name_en_or_pinyin || ''),
-                type: (pl.type || '').toString().trim().toLowerCase(),
-                qualifier_zh: qualifier || undefined,
-                original_name_zh: original !== base ? original : undefined,
-                referenced_by: new Set(),
-            };
-            if (evt.id) rec.referenced_by.add(evt.id);
-            keyToCity.set(k, rec);
+            const incomingType = (pl.type || '').toString().trim().toLowerCase();
+            if (!existing) {
+                keyToCity.set(k, {
+                    name_zh: base,
+                    name_pinyin: normalizeName(pl.name_pinyin || pl.name_en_or_pinyin || ''),
+                    type: incomingType,
+                    alt_types: new Set([incomingType]),
+                    qualifier_zh: qualifier || undefined,
+                    original_name_zh: original !== base ? original : undefined,
+                    referenced_by: new Set(evt.id ? [evt.id] : []),
+                });
+            } else {
+                // Merge
+                existing.alt_types.add(incomingType);
+                if (typeRank(incomingType) > typeRank(existing.type)) {
+                    existing.type = incomingType;
+                }
+                const np = normalizeName(pl.name_pinyin || pl.name_en_or_pinyin || '');
+                if (!existing.name_pinyin && np) existing.name_pinyin = np;
+                if (!existing.qualifier_zh && qualifier) existing.qualifier_zh = qualifier;
+                if (!existing.original_name_zh && original !== base) existing.original_name_zh = original;
+                if (evt.id) existing.referenced_by.add(evt.id);
+            }
         }
     }
 
@@ -140,6 +172,7 @@ function main() {
         name_zh: c.name_zh,
         name_pinyin: c.name_pinyin,
         type: c.type,
+        alt_types: Array.from(c.alt_types || []).sort(),
         qualifier_zh: c.qualifier_zh,
         original_name_zh: c.original_name_zh,
         referenced_by: Array.from(c.referenced_by).sort(),
