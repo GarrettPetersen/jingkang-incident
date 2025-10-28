@@ -1,0 +1,199 @@
+{
+  "duplicate_clusters": [
+    {
+      "base_name": "開封",
+      "members": [
+        {
+          "name_zh": "汴京",
+          "name_pinyin": "Bianjing (Kaifeng)",
+          "type": "capital",
+          "referenced_by": [
+            "jin-1127-storm-kaifeng",
+            "jin-1129-collect-registers-and-maps",
+            "jin-1132-liu-yu-moves-to-bian",
+            "jin-1137-abolish-qi",
+            "song-1128-zong-ze-restores-order-kaifeng",
+            "song-1128-zong-ze-wang-shan-submission",
+            "song-1137-abolish-qi"
+          ]
+        },
+        {
+          "name_zh": "汴州",
+          "name_pinyin": "Bianzhou (Kaifeng)",
+          "type": "capital",
+          "referenced_by": [
+            "jin-1127-zonghan-joins-at-bian"
+          ]
+        }
+      ],
+      "suggested_canonical": {
+        "name_zh": "汴京",
+        "name_pinyin": "Bianjing (Kaifeng)",
+        "type": "capital",
+        "referenced_by": [
+          "jin-1127-storm-kaifeng",
+          "jin-1129-collect-registers-and-maps",
+          "jin-1132-liu-yu-moves-to-bian",
+          "jin-1137-abolish-qi",
+          "song-1128-zong-ze-restores-order-kaifeng",
+          "song-1128-zong-ze-wang-shan-submission",
+          "song-1137-abolish-qi"
+        ]
+      },
+      "suggested_merge": [
+        {
+          "name_zh": "汴州",
+          "name_pinyin": "Bianzhou (Kaifeng)",
+          "type": "capital",
+          "referenced_by": [
+            "jin-1127-zonghan-joins-at-bian"
+          ]
+        }
+      ]
+    },
+    {
+      "base_name": "臨安",
+      "members": [
+        {
+          "name_zh": "臨安府",
+          "name_pinyin": "Lin'an Fu",
+          "type": "capital",
+          "referenced_by": [
+            "jin-1142-investiture-envoy-protocol",
+            "song-1127-1142-market-taxation-baseline",
+            "song-1129-1142-commercial-tax-tuning",
+            "song-1129-army-monthly-payroll-fund",
+            "song-1137-foal-breeding-rules",
+            "song-1138-qinhui-restored-to-premiership",
+            "song-1141-punish-yue-fei-defenders",
+            "song-1141-qinhui-yuefei-case-moshiuyou",
+            "song-1141-wan-sixie-harsh-discipline-program",
+            "song-1141-wan-sixie-prosecutes-yue-fei-ring",
+            "song-1141-yuefei-recall-and-imprisonment",
+            "song-1142-coffins-arrival-longde",
+            "song-1142-escort-coffins-envoys",
+            "song-1142-postwar-award-treasury",
+            "song-1142-procedure-check-against-private-rescripts",
+            "song-1142-qin-hui-revises-tea-salt-law",
+            "song-1142-return-coffins-agreed",
+            "song-1142-return-coffins-oversight-wan-sixie"
+          ]
+        },
+        {
+          "name_zh": "臨安府",
+          "name_pinyin": "Lin'an (Hangzhou)",
+          "type": "prefecture",
+          "referenced_by": [
+            "song-1132-annual-prison-review",
+            "song-1132-comet-amnesty",
+            "song-1132-imperial-armory",
+            "song-1132-xiuzhengju-qin-hui",
+            "song-1135-zhao-ding-zhang-jun-chancellors",
+            "song-1138-qin-hui-premiership"
+          ]
+        },
+        {
+          "name_zh": "臨安府(越州)",
+          "name_pinyin": "Lin'an (Yuezhou)",
+          "type": "prefecture",
+          "referenced_by": [
+            "song-1131-death-of-dowager"
+          ]
+        }
+      ],
+      "suggested_canonical": {
+        "name_zh": "臨安府",
+        "name_pinyin": "Lin'an Fu",
+        "type": "capital",
+        "referenced_by": [
+          "jin-1142-investiture-envoy-protocol",
+          "song-1127-1142-market-taxation-baseline",
+          "song-1129-1142-commercial-tax-tuning",
+          "song-1129-army-monthly-payroll-fund",
+          "song-1137-foal-breeding-rules",
+          "song-1138-qinhui-restored-to-premiership",
+          "song-1141-punish-yue-fei-defenders",
+          "song-1141-qinhui-yuefei-case-moshiuyou",
+          "song-1141-wan-sixie-harsh-discipline-program",
+          "song-1141-wan-sixie-prosecutes-yue-fei-ring",
+          "song-1141-yuefei-recall-and-imprisonment",
+          "song-1142-coffins-arrival-longde",
+          "song-1142-escort-coffins-envoys",
+          "song-1142-postwar-award-treasury",
+          "song-1142-procedure-check-against-private-rescripts",
+          "song-1142-qin-hui-revises-tea-salt-law",
+          "song-1142-return-coffins-agreed",
+          "song-1142-return-coffins-oversight-wan-sixie"
+        ]
+      },
+      "suggested_merge": [
+        {
+          "name_zh": "臨安府",
+          "name_pinyin": "Lin'an (Hangzhou)",
+          "type": "prefecture",
+          "referenced_by": [
+            "song-1132-annual-prison-review",
+            "song-1132-comet-amnesty",
+            "song-1132-imperial-armory",
+            "song-1132-xiuzhengju-qin-hui",
+            "song-1135-zhao-ding-zhang-jun-chancellors",
+            "song-1138-qin-hui-premiership"
+          ]
+        },
+        {
+          "name_zh": "臨安府(越州)",
+          "name_pinyin": "Lin'an (Yuezhou)",
+          "type": "prefecture",
+          "referenced_by": [
+            "song-1131-death-of-dowager"
+          ]
+        }
+      ]
+    },
+    {
+      "base_name": "順昌",
+      "members": [
+        {
+          "name_zh": "順昌",
+          "name_pinyin": "Shunchang (Fengyang)",
+          "type": "prefecture",
+          "referenced_by": [
+            "jin-1140-shunchang-checked",
+            "song-1140-ying-river-bridges-and-denial"
+          ]
+        },
+        {
+          "name_zh": "順昌府(鳳陽一帶)",
+          "name_pinyin": "Shunchang Fu",
+          "type": "prefecture",
+          "referenced_by": [
+            "song-1140-shunchang-sheep-horse-wall",
+            "song-1140-shunchang-victory"
+          ]
+        }
+      ],
+      "suggested_canonical": {
+        "name_zh": "順昌",
+        "name_pinyin": "Shunchang (Fengyang)",
+        "type": "prefecture",
+        "referenced_by": [
+          "jin-1140-shunchang-checked",
+          "song-1140-ying-river-bridges-and-denial"
+        ]
+      },
+      "suggested_merge": [
+        {
+          "name_zh": "順昌府(鳳陽一帶)",
+          "name_pinyin": "Shunchang Fu",
+          "type": "prefecture",
+          "referenced_by": [
+            "song-1140-shunchang-sheep-horse-wall",
+            "song-1140-shunchang-victory"
+          ]
+        }
+      ]
+    }
+  ],
+  "total_clusters": 86,
+  "duplicate_cluster_count": 3
+}

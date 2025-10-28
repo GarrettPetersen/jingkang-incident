@@ -1,0 +1,830 @@
+[
+  {
+    "name_zh": "汴京",
+    "name_pinyin": "Bianjing (Kaifeng)",
+    "type": "capital",
+    "referenced_by": [
+      "jin-1127-storm-kaifeng",
+      "jin-1127-zonghan-joins-at-bian",
+      "jin-1129-collect-registers-and-maps",
+      "jin-1132-liu-yu-moves-to-bian",
+      "jin-1137-abolish-qi",
+      "song-1128-zong-ze-restores-order-kaifeng",
+      "song-1128-zong-ze-wang-shan-submission",
+      "song-1137-abolish-qi"
+    ]
+  },
+  {
+    "name_zh": "大名府",
+    "name_pinyin": "Daming (Beijing)",
+    "type": "capital",
+    "qualifier_zh": "北京",
+    "original_name_zh": "大名府(北京)",
+    "referenced_by": [
+      "jin-1130-liu-yu-enthroned-qi",
+      "jin-1130-talan-backs-liu-yu"
+    ]
+  },
+  {
+    "name_zh": "杭州",
+    "name_pinyin": "Hangzhou",
+    "type": "capital",
+    "referenced_by": [
+      "song-1138-capital-fixed-hangzhou",
+      "song-1141-execution-yue-fei",
+      "song-1141-shaoxing-treaty"
+    ]
+  },
+  {
+    "name_zh": "臨安府",
+    "name_pinyin": "Lin'an Fu",
+    "type": "capital",
+    "referenced_by": [
+      "jin-1142-investiture-envoy-protocol",
+      "song-1127-1142-market-taxation-baseline",
+      "song-1129-1142-commercial-tax-tuning",
+      "song-1129-army-monthly-payroll-fund",
+      "song-1137-foal-breeding-rules",
+      "song-1138-qinhui-restored-to-premiership",
+      "song-1141-punish-yue-fei-defenders",
+      "song-1141-qinhui-yuefei-case-moshiuyou",
+      "song-1141-wan-sixie-harsh-discipline-program",
+      "song-1141-wan-sixie-prosecutes-yue-fei-ring",
+      "song-1141-yuefei-recall-and-imprisonment",
+      "song-1142-coffins-arrival-longde",
+      "song-1142-escort-coffins-envoys",
+      "song-1142-postwar-award-treasury",
+      "song-1142-procedure-check-against-private-rescripts",
+      "song-1142-qin-hui-revises-tea-salt-law",
+      "song-1142-return-coffins-agreed",
+      "song-1142-return-coffins-oversight-wan-sixie"
+    ]
+  },
+  {
+    "name_zh": "建康府",
+    "name_pinyin": "Nanjing (Kaifeng)",
+    "type": "capital",
+    "referenced_by": [
+      "jin-1131-henan-military-governance-shift"
+    ]
+  },
+  {
+    "name_zh": "南京路",
+    "name_pinyin": "Nanjing Route (Kaifeng)",
+    "type": "capital",
+    "qualifier_zh": "汴京",
+    "original_name_zh": "南京路（汴京）",
+    "referenced_by": [
+      "jin-1130-1137-daqi-coinage-accepted"
+    ]
+  },
+  {
+    "name_zh": "上京",
+    "name_pinyin": "Shangjing",
+    "type": "capital",
+    "referenced_by": [
+      "jin-1128-depose-two-song-emperors"
+    ]
+  },
+  {
+    "name_zh": "行在",
+    "name_pinyin": "Xingzai (Traveling Court)",
+    "type": "capital",
+    "referenced_by": [
+      "song-1131-official-land-sale-shaoxing",
+      "song-1131-shaoxing-tax-remissions-registers-burned",
+      "song-1131-standardize-levy-forms-against-surcharges"
+    ]
+  },
+  {
+    "name_zh": "燕京",
+    "name_pinyin": "Yanjing",
+    "type": "capital",
+    "referenced_by": [
+      "jin-1128-hebei-garrison-disposition",
+      "jin-1128-shift-central-offices-to-yanjing",
+      "jin-1128-yanjing-appointment-authority",
+      "jin-1130-establish-han-bureaucratic-system",
+      "jin-1132-yinshuge-yanjing-governor"
+    ]
+  },
+  {
+    "name_zh": "昌國縣",
+    "name_pinyin": "Changguo County",
+    "type": "city",
+    "referenced_by": [
+      "song-1129-sea-flight-plan"
+    ]
+  },
+  {
+    "name_zh": "定海縣",
+    "name_pinyin": "Dinghai County",
+    "type": "city",
+    "referenced_by": [
+      "song-1129-sea-flight-plan"
+    ]
+  },
+  {
+    "name_zh": "臨平",
+    "name_pinyin": "Linping",
+    "type": "city",
+    "referenced_by": [
+      "song-1129-restoration-of-gaozong"
+    ]
+  },
+  {
+    "name_zh": "明州",
+    "name_pinyin": "Mingzhou (Ningbo)",
+    "type": "city",
+    "referenced_by": [
+      "song-1130-wang-yuan-ningbo-defense"
+    ]
+  },
+  {
+    "name_zh": "五國城",
+    "name_pinyin": "Wuguocheng",
+    "type": "city",
+    "referenced_by": [
+      "song-1135-huizong-dies-in-captivity"
+    ]
+  },
+  {
+    "name_zh": "顯寧寺",
+    "name_pinyin": "Xianning Si",
+    "type": "city",
+    "referenced_by": [
+      "song-1129-miao-liu-coup"
+    ]
+  },
+  {
+    "name_zh": "郾城",
+    "name_pinyin": "Yancheng (Yan City)",
+    "type": "city",
+    "referenced_by": [
+      "song-1140-yancheng-victory"
+    ]
+  },
+  {
+    "name_zh": "大儀",
+    "name_pinyin": "Dayi (Yangzhou area)",
+    "type": "county",
+    "referenced_by": [
+      "song-1134-hanshizhong-dayi-victory"
+    ]
+  },
+  {
+    "name_zh": "富平",
+    "name_pinyin": "Fuping",
+    "type": "county",
+    "referenced_by": [
+      "jin-1130-loushi-fuping-rightwing",
+      "song-1130-battle-of-fuping-defeat"
+    ]
+  },
+  {
+    "name_zh": "河池",
+    "name_pinyin": "Hechi",
+    "type": "county",
+    "referenced_by": [
+      "song-1141-zheng-gangzhong-move-hq-to-lizhou"
+    ]
+  },
+  {
+    "name_zh": "六合",
+    "name_pinyin": "Liuhe Xian",
+    "type": "county",
+    "referenced_by": [
+      "song-1130-han-shizhong-yangzi-actions",
+      "song-1130-yue-fei-defeats-zhang-yong-tielubu",
+      "song-1132-zhang-zongyan-liuhe-crossing"
+    ]
+  },
+  {
+    "name_zh": "沐陽",
+    "name_pinyin": "Muyang",
+    "type": "county",
+    "referenced_by": [
+      "song-1129-muyang-battle-zhang-yu-killed"
+    ]
+  },
+  {
+    "name_zh": "郾城",
+    "name_pinyin": "Yancheng",
+    "type": "county",
+    "referenced_by": [
+      "song-1140-yancheng-defeats-linked-cavalry"
+    ]
+  },
+  {
+    "name_zh": "柘皋",
+    "name_pinyin": "Zhegao",
+    "type": "county",
+    "referenced_by": [
+      "song-1141-zhegao-bridge-assault"
+    ]
+  },
+  {
+    "name_zh": "採石、宣化渡",
+    "name_pinyin": "Caishi and Xuanhua ferries",
+    "type": "fort",
+    "referenced_by": [
+      "song-1136-fortify-caishi-xuanhua"
+    ]
+  },
+  {
+    "name_zh": "金山",
+    "name_pinyin": "Jinshan",
+    "type": "fort",
+    "referenced_by": [
+      "song-1128-zhang-yu-submits-at-yangzhou"
+    ]
+  },
+  {
+    "name_zh": "江陰軍",
+    "name_pinyin": "Jiangyin Jun",
+    "type": "garrison",
+    "referenced_by": [
+      "song-1135-jiangyin-shibo-office"
+    ]
+  },
+  {
+    "name_zh": "定海縣",
+    "name_pinyin": "Dinghai",
+    "type": "port",
+    "referenced_by": [
+      "song-1130-mingzhou-naval-defense"
+    ]
+  },
+  {
+    "name_zh": "廣州",
+    "name_pinyin": "Guangzhou",
+    "type": "port",
+    "referenced_by": [
+      "song-1129-1142-guangzhou-maritime-customs"
+    ]
+  },
+  {
+    "name_zh": "明州",
+    "name_pinyin": "Mingzhou (Ningbo)",
+    "type": "port",
+    "referenced_by": [
+      "song-1129-1142-mingzhou-maritime-customs"
+    ]
+  },
+  {
+    "name_zh": "泉州",
+    "name_pinyin": "Quanzhou",
+    "type": "port",
+    "referenced_by": [
+      "song-1129-1142-quanzhou-maritime-customs"
+    ]
+  },
+  {
+    "name_zh": "寶坻",
+    "name_pinyin": "Baodi",
+    "type": "prefecture",
+    "referenced_by": [
+      "jin-1127-1142-salt-tea-tax-network"
+    ]
+  },
+  {
+    "name_zh": "滄州",
+    "name_pinyin": "Cangzhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "jin-1127-1142-salt-tea-tax-network"
+    ]
+  },
+  {
+    "name_zh": "長沙",
+    "name_pinyin": "Changsha",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1141-wan-sixie-frames-zhang-jun"
+    ]
+  },
+  {
+    "name_zh": "常州",
+    "name_pinyin": "Changzhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1131-1142-taihu-waterworks-yields"
+    ]
+  },
+  {
+    "name_zh": "承州",
+    "name_pinyin": "Chengzhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1134-xie-yuan-ambush-chengzhou"
+    ]
+  },
+  {
+    "name_zh": "楚州",
+    "name_pinyin": "Chuzhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1127-1142-huai-sea-salt-system"
+    ]
+  },
+  {
+    "name_zh": "磁州",
+    "name_pinyin": "Cizhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1127-zong-ze-hebei-militia-plan"
+    ]
+  },
+  {
+    "name_zh": "鼎州",
+    "name_pinyin": "Dingzhou (Hunan)",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1132-yang-tai-rebellion"
+    ]
+  },
+  {
+    "name_zh": "鄂州",
+    "name_pinyin": "Ezhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1134-yuefei-fortifies-yangzi-defenses"
+    ]
+  },
+  {
+    "name_zh": "鳳州",
+    "name_pinyin": "Fengzhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1133-recover-qinlong"
+    ]
+  },
+  {
+    "name_zh": "福州",
+    "name_pinyin": "Fuzhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1127-1142-fujian-sea-salt-markets"
+    ]
+  },
+  {
+    "name_zh": "海州",
+    "name_pinyin": "Haizhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1127-1142-huai-sea-salt-system"
+    ]
+  },
+  {
+    "name_zh": "杭州",
+    "name_pinyin": "Hangzhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "jin-1130-sack-hangzhou",
+      "song-1129-flight-to-hangzhou",
+      "song-1129-restoration-of-gaozong"
+    ]
+  },
+  {
+    "name_zh": "江寧府",
+    "name_pinyin": "Jiangning Fu",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1127-dismiss-li-gang",
+      "song-1127-execute-chen-dong",
+      "song-1129-jiangning-grand-tea-mart"
+    ]
+  },
+  {
+    "name_zh": "江州",
+    "name_pinyin": "Jiangzhou (Jiujiang)",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1131-jiangzhou-siege-li-cheng"
+    ]
+  },
+  {
+    "name_zh": "建康府",
+    "name_pinyin": "Jiankang Fu",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1129-battle-majiadu",
+      "song-1129-execute-miao-liu",
+      "song-1130-jiangnan-polder-rents-to-army",
+      "song-1130-yue-fei-jingan",
+      "song-1131-1133-jiangnan-weir-repairs-revenue"
+    ]
+  },
+  {
+    "name_zh": "建州",
+    "name_pinyin": "Jianzhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1131-build-mint-disruption-and-resumption",
+      "song-1131-fan-ruwei-rebellion-jianzhou"
+    ]
+  },
+  {
+    "name_zh": "臨安府",
+    "name_pinyin": "Lin'an (Yuezhou)",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1131-death-of-dowager",
+      "song-1132-annual-prison-review",
+      "song-1132-comet-amnesty",
+      "song-1132-imperial-armory",
+      "song-1132-xiuzhengju-qin-hui",
+      "song-1135-zhao-ding-zhang-jun-chancellors",
+      "song-1138-qin-hui-premiership"
+    ]
+  },
+  {
+    "name_zh": "利州",
+    "name_pinyin": "Lizhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1141-zheng-gangzhong-move-hq-to-lizhou"
+    ]
+  },
+  {
+    "name_zh": "隴州",
+    "name_pinyin": "Longzhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1133-recover-qinlong"
+    ]
+  },
+  {
+    "name_zh": "廬州",
+    "name_pinyin": "Luzhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1132-liangzhe-huai-seed-ox-loans",
+      "song-1136-zhang-zongyan-luzhou-defense"
+    ]
+  },
+  {
+    "name_zh": "明州",
+    "name_pinyin": "Mingzhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1129-sea-flight-plan",
+      "song-1130-mingzhou-naval-defense"
+    ]
+  },
+  {
+    "name_zh": "洺州",
+    "name_pinyin": "Mingzhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1127-zong-ze-hebei-militia-plan"
+    ]
+  },
+  {
+    "name_zh": "密州",
+    "name_pinyin": "Mizhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1129-zhang-shao-detained-for-defiance"
+    ]
+  },
+  {
+    "name_zh": "平江府",
+    "name_pinyin": "Pingjiang Fu",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1129-flight-to-hangzhou",
+      "song-1129-lu-yihao-sea-evacuation-strategy",
+      "song-1131-1142-taihu-waterworks-yields",
+      "song-1136-liu-qi-six-army-reorg"
+    ]
+  },
+  {
+    "name_zh": "平州",
+    "name_pinyin": "Pingzhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "jin-1125-phase-out-han-mengan-experiment"
+    ]
+  },
+  {
+    "name_zh": "秦州",
+    "name_pinyin": "Qinzhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1133-recover-qinlong"
+    ]
+  },
+  {
+    "name_zh": "祁州",
+    "name_pinyin": "Qizhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "jin-1139-talan-executed-qizhou"
+    ]
+  },
+  {
+    "name_zh": "泉州",
+    "name_pinyin": "Quanzhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1127-1142-fujian-sea-salt-markets"
+    ]
+  },
+  {
+    "name_zh": "饒州",
+    "name_pinyin": "Raozhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1131-yan-yao-duan-rout-zhang-qi-at-raozhou",
+      "song-1131-zhang-qi-musters-at-raozhou",
+      "song-1133-raozhou-pasture-office"
+    ]
+  },
+  {
+    "name_zh": "汝州",
+    "name_pinyin": "Ruzhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "jin-1130-recapture-ruzhou-after-song-incursion"
+    ]
+  },
+  {
+    "name_zh": "紹興府",
+    "name_pinyin": "Shaoxing Fu",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1132-reinstate-remonstrance-exam"
+    ]
+  },
+  {
+    "name_zh": "順昌",
+    "name_pinyin": "Shunchang (Fengyang)",
+    "type": "prefecture",
+    "referenced_by": [
+      "jin-1140-shunchang-checked",
+      "song-1140-shunchang-sheep-horse-wall",
+      "song-1140-shunchang-victory",
+      "song-1140-ying-river-bridges-and-denial"
+    ]
+  },
+  {
+    "name_zh": "泗州",
+    "name_pinyin": "Sizhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1130-aotang-yang-cunzhong-defeats-liu-ni"
+    ]
+  },
+  {
+    "name_zh": "宿州",
+    "name_pinyin": "Suzhou (Anhui)",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1140-liuzi-town-raid-fails-retreat-order"
+    ]
+  },
+  {
+    "name_zh": "太平州",
+    "name_pinyin": "Taipingzhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1131-1133-jiangnan-weir-repairs-revenue"
+    ]
+  },
+  {
+    "name_zh": "太原府",
+    "name_pinyin": "Taiyuan Fu",
+    "type": "prefecture",
+    "referenced_by": [
+      "jin-1127-zonghan-captures-taiyuan"
+    ]
+  },
+  {
+    "name_zh": "泰州",
+    "name_pinyin": "Taizhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1127-1142-huai-sea-salt-system"
+    ]
+  },
+  {
+    "name_zh": "潭州",
+    "name_pinyin": "Tanzhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1127-enforce-zhang-bangchang-suicide",
+      "song-1130-fall-of-tanzhou"
+    ]
+  },
+  {
+    "name_zh": "通州",
+    "name_pinyin": "Tongzhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1127-1142-huai-sea-salt-system"
+    ]
+  },
+  {
+    "name_zh": "武陵",
+    "name_pinyin": "Wuling",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1131-kong-yanzhou-seizes-wuling"
+    ]
+  },
+  {
+    "name_zh": "婺州",
+    "name_pinyin": "Wuzhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1127-wuzhou-guanzi-issue"
+    ]
+  },
+  {
+    "name_zh": "襄陽府",
+    "name_pinyin": "Xiangyang Fu",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1133-create-xiangyang-circuit",
+      "song-1133-yue-fei-recovers-xianghan"
+    ]
+  },
+  {
+    "name_zh": "相州",
+    "name_pinyin": "Xiangzhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1127-zong-ze-hebei-militia-plan"
+    ]
+  },
+  {
+    "name_zh": "興元府",
+    "name_pinyin": "Xingyuan Fu",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1141-zheng-gangzhong-split-lizhou-routes"
+    ]
+  },
+  {
+    "name_zh": "興州",
+    "name_pinyin": "Xingzhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1141-zheng-gangzhong-split-lizhou-routes"
+    ]
+  },
+  {
+    "name_zh": "邢州",
+    "name_pinyin": "Xingzhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1127-zong-ze-hebei-militia-plan"
+    ]
+  },
+  {
+    "name_zh": "宣州",
+    "name_pinyin": "Xuanzhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1130-jiangnan-polder-rents-to-army",
+      "song-1131-1133-jiangnan-weir-repairs-revenue"
+    ]
+  },
+  {
+    "name_zh": "揚州",
+    "name_pinyin": "Yangzhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1127-court-moves-to-huaiyang",
+      "song-1128-yangzhou-monopoly-office",
+      "song-1128-zhang-yu-submits-at-yangzhou",
+      "song-1129-miao-liu-coup"
+    ]
+  },
+  {
+    "name_zh": "燕山府",
+    "name_pinyin": "Yanshan Fu",
+    "type": "prefecture",
+    "referenced_by": [
+      "jin-1129-zongwang-seizes-yanshan"
+    ]
+  },
+  {
+    "name_zh": "穎昌",
+    "name_pinyin": "Yingchang",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1140-yingchang-victory-over-wuzhu-vanguard"
+    ]
+  },
+  {
+    "name_zh": "應天府",
+    "name_pinyin": "Yingtian Fu",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1127-yingtian-enthronement"
+    ]
+  },
+  {
+    "name_zh": "郢州",
+    "name_pinyin": "Yingzhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1133-yue-fei-recovers-xianghan"
+    ]
+  },
+  {
+    "name_zh": "邕州",
+    "name_pinyin": "Yongzhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1129-guangxi-horse-procurement"
+    ]
+  },
+  {
+    "name_zh": "越州",
+    "name_pinyin": "Yuezhou (Shaoxing)",
+    "type": "prefecture",
+    "qualifier_zh": "紹興",
+    "original_name_zh": "越州(紹興)",
+    "referenced_by": [
+      "song-1131-shaoxing-reforms"
+    ]
+  },
+  {
+    "name_zh": "筠州",
+    "name_pinyin": "Yunzhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1130-yulongguan-prisoner-policy-debate",
+      "song-1131-zhang-jun-yulongguan-breaks-li-cheng"
+    ]
+  },
+  {
+    "name_zh": "趙州",
+    "name_pinyin": "Zhaozhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1127-wang-yuan-zhao-zhou-revolt",
+      "song-1127-zong-ze-hebei-militia-plan"
+    ]
+  },
+  {
+    "name_zh": "鎮江府",
+    "name_pinyin": "Zhenjiang Fu",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1129-flight-to-hangzhou"
+    ]
+  },
+  {
+    "name_zh": "真州",
+    "name_pinyin": "Zhenzhou",
+    "type": "prefecture",
+    "referenced_by": [
+      "song-1127-zhenzhou-print-chits-for-tea-salt"
+    ]
+  },
+  {
+    "name_zh": "泇口鎮",
+    "name_pinyin": "Jiekou Zhen",
+    "type": "town",
+    "referenced_by": [
+      "song-1140-hanshizhong-jiekeou-victory"
+    ]
+  },
+  {
+    "name_zh": "靜安鎮",
+    "name_pinyin": "Jingan Zhen",
+    "type": "town",
+    "referenced_by": [
+      "song-1130-yue-fei-jingan"
+    ]
+  },
+  {
+    "name_zh": "柳子鎮",
+    "name_pinyin": "Liuzi Zhen",
+    "type": "town",
+    "referenced_by": [
+      "song-1140-liuzi-town-raid-fails-retreat-order"
+    ]
+  },
+  {
+    "name_zh": "朱仙鎮",
+    "name_pinyin": "Zhuxian Town",
+    "type": "town",
+    "referenced_by": [
+      "song-1140-advance-to-zhuxian-town",
+      "song-1140-yuefei-advance-zhuxianzhen"
+    ]
+  },
+  {
+    "name_zh": "劉冷莊",
+    "name_pinyin": "Liulangzhuang (Liulengzhuang)",
+    "type": "village",
+    "referenced_by": [
+      "song-1140-xie-yuan-liulangzhuang-charge"
+    ]
+  }
+]
