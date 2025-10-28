@@ -1,4 +1,6 @@
 import { load } from 'cheerio';
+import fs from 'node:fs';
+import path from 'node:path';
 
 function normalizeWhitespace(text) {
   return text.replace(/\u00A0/g, ' ').replace(/\s+/g, ' ').trim();
@@ -90,7 +92,7 @@ function inferBook(url) {
       if (u.pathname.includes('/songshi/')) return 'songshi';
       if (u.pathname.includes('/jinshi/')) return 'jinshi';
     }
-  } catch {}
+  } catch { }
   return undefined;
 }
 
@@ -113,12 +115,36 @@ async function main() {
     const book = inferBook(targetUrl);
     const paragraphs = extractParagraphs($);
 
+    // Cross-reference existing dataset for this chapter URL
+    const DATAFILE = path.resolve(process.cwd(), 'data/events-1127-1142.jsonl');
+    const existingIds = [];
+    try {
+      if (fs.existsSync(DATAFILE)) {
+        const lines = fs.readFileSync(DATAFILE, 'utf8').split(/\n+/).filter(Boolean);
+        for (const line of lines) {
+          try {
+            const evt = JSON.parse(line);
+            if (!evt) continue;
+            let match = false;
+            if (typeof evt.url === 'string' && evt.url === targetUrl) match = true;
+            if (!match && Array.isArray(evt.sources)) {
+              for (const s of evt.sources) {
+                if (s && typeof s.url === 'string' && s.url === targetUrl) { match = true; break; }
+              }
+            }
+            if (match && typeof evt.id === 'string') existingIds.push(evt.id);
+          } catch { }
+        }
+      }
+    } catch { }
+
     const result = {
       url: targetUrl,
       book,
       title,
       count: paragraphs.length,
-      paragraphs
+      paragraphs,
+      existing_event_ids: existingIds
     };
 
     console.log(JSON.stringify(result, null, 2));
