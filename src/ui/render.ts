@@ -187,25 +187,66 @@ function renderRightPanel(state: GameState): HTMLElement {
 
 function renderBoard(state: GameState, handlers: any): HTMLElement {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', '0 0 600 400');
+  svg.setAttribute('viewBox', '0 0 1200 800');
   svg.style.border = '1px solid #555';
   svg.style.background = '#111';
   svg.style.width = '100%';
   svg.style.height = '100%';
 
-  // edges
+  // edges with offsets per unordered pair and dashed style for paths
+  function pairKey(a: string, b: string) { return a < b ? `${a}|${b}` : `${b}|${a}`; }
+  const groups: Map<string, { a: string; b: string; kinds: string[] }> = new Map();
   for (const e of Object.values(state.map.edges)) {
-    const a = state.map.nodes[e.a];
-    const b = state.map.nodes[e.b];
-    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    line.setAttribute('x1', String(a.x));
-    line.setAttribute('y1', String(a.y));
-    line.setAttribute('x2', String(b.x));
-    line.setAttribute('y2', String(b.y));
-    line.setAttribute('stroke', e.kinds?.includes('river') ? '#4aa3' : '#aaa');
-    line.setAttribute('stroke-width', e.kinds?.includes('river') ? '6' : '2');
-    svg.appendChild(line);
+    const k = pairKey(e.a, e.b);
+    const set = new Set(groups.get(k)?.kinds ?? []);
+    (e.kinds ?? []).forEach(kind => set.add(kind));
+    groups.set(k, { a: e.a, b: e.b, kinds: Array.from(set) });
   }
+  const OFF = 6; // px between parallel edges
+  const ROAD_STROKE = '#b89';
+  const WATER_STROKE = '#4aa3';
+  groups.forEach(({ a, b, kinds }) => {
+    const na = state.map.nodes[a];
+    const nb = state.map.nodes[b];
+    if (!na || !nb) return;
+    // Sort so water renders under land
+    const order = kinds.slice().sort((x, y) => (x === 'river' ? -1 : 0) - (y === 'river' ? -1 : 0));
+    const dx = nb.x - na.x;
+    const dy = nb.y - na.y;
+    const dist = Math.hypot(dx, dy) || 1e-6;
+    const px = -dy / dist, py = dx / dist; // unit perpendicular
+    const m = order.length;
+    for (let idx = 0; idx < m; idx++) {
+      const kind = order[idx];
+      const offset = (idx - (m - 1) / 2) * OFF;
+      const ox = px * offset, oy = py * offset;
+      const x1 = na.x + ox, y1 = na.y + oy;
+      const x2 = nb.x + ox, y2 = nb.y + oy;
+      if (kind === 'river') {
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', String(x1));
+        line.setAttribute('y1', String(y1));
+        line.setAttribute('x2', String(x2));
+        line.setAttribute('y2', String(y2));
+        line.setAttribute('stroke', WATER_STROKE);
+        line.setAttribute('stroke-width', '6');
+        line.setAttribute('stroke-linecap', 'round');
+        svg.appendChild(line);
+      } else {
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', String(x1));
+        line.setAttribute('y1', String(y1));
+        line.setAttribute('x2', String(x2));
+        line.setAttribute('y2', String(y2));
+        line.setAttribute('stroke', ROAD_STROKE);
+        line.setAttribute('stroke-width', '2');
+        if (kind === 'path') {
+          line.setAttribute('stroke-dasharray', '6 4');
+        }
+        svg.appendChild(line);
+      }
+    }
+  });
 
   // nodes
   for (const n of Object.values(state.map.nodes)) {

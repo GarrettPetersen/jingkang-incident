@@ -412,7 +412,7 @@ function main() {
   const northIds = ['yanan','kaifeng','huaiyang','huaiyin'];
   const southIds = ['hangzhou','ningbo','nanchang','jianzhou-fj'];
   const eastIds  = ['ningbo','suzhou-js','jiaxing'];
-  const westIds  = ['yanan','jiujiang','chizhou'];
+  const westIds  = ['yanan','jiujiang','chengdu'];
 
   function indicesOf(arr) { return arr.map(id => idToIdx.get(id)).filter(i => i != null); }
   const northIdx = indicesOf(northIds);
