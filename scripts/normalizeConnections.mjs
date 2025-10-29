@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Normalize connections: make some edges pure river (river=true, no surface),
-// and for the rest remove river flag if a land route exists.
+// Normalize connections: make some edges pure water (water type, no surface),
+// and for the rest split combined land+water into separate edges.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -8,29 +8,16 @@ import path from 'node:path';
 const CONN_PATH = path.resolve(process.cwd(), 'data/connections.json');
 
 // Unordered pairs that should be pure river-only links (major crossings)
+// Use canonical latin ids only; avoid any Chinese id strings
 const riverOnlyPairs = new Set([
-    '揚州|鎮江府',
-    '建康府|真州',
-    '常州|揚州',
-    '泗州|楚州',
-    '明州|定海縣',
+    'zhenjiang|yangzhou',
+    'jiujiang|ezhou',
+    'jiujiang|yueyang',
 ]);
 
-// Pairs along navigable river/canal on the same bank — should have BOTH land and a pure river edge
-const riverAlsoPairs = new Set([
-    '鎮江府|建康府',
-    '鄂州|江州',
-    '江州|饒州',
-    '平江府|常州',
-    '平江府|杭州',
-    '杭州|越州',
-    '越州|明州',
-    '福州|泉州',
-    '泉州|廣州',
-    '揚州|泰州',
-    '泰州|通州',
-    '通州|海州',
-]);
+// Pairs along navigable rivers/canals that should have a parallel pure river edge in both directions
+// Keep this empty unless you explicitly add canonical-id pairs; prevents accidental Chinese-id edges
+const riverAlsoPairs = new Set([]);
 
 function key(a, b) {
     return a < b ? `${a}|${b}` : `${b}|${a}`;
@@ -44,34 +31,38 @@ function main() {
     const data = JSON.parse(fs.readFileSync(CONN_PATH, 'utf8'));
     let edges = Array.isArray(data.edges) ? data.edges : [];
 
-    let madePureRiver = 0;
-    let clearedRiverFlag = 0;
+    let madePureWater = 0;
+    let splitCombined = 0;
 
     for (const e of edges) {
         const k = key(e.from, e.to);
         if (riverOnlyPairs.has(k)) {
-            // force pure river; remove land edges by converting them
-            if (e.surface) madePureRiver++;
-            e.river = true;
+            // force pure water-only; remove land attributes
+            if (e.surface) madePureWater++;
+            if (!e.water && e.river === true) e.water = 'river';
+            if (!e.water) e.water = 'river';
             delete e.surface;
+            delete e.river;
         } else {
-            // if edge encodes both, split into land + pure river
-            if (e.river === true && e.surface) {
-                const riverCopy = { from: e.from, to: e.to, river: true };
-                e.river = false;
-                clearedRiverFlag++;
+            // if edge encodes both, split into land + pure water
+            if (e.surface && (e.river === true || e.water)) {
+                const waterType = e.water || 'river';
+                const riverCopy = { from: e.from, to: e.to, water: waterType };
+                delete e.river;
+                delete e.water;
+                splitCombined++;
                 edges.push(riverCopy);
             }
         }
     }
 
     // Ensure riverAlsoPairs have parallel pure river edges in both directions
-    const hasDirected = new Set(edges.map(e => `${e.from}|${e.to}|${e.river ? 'river' : e.surface || 'land'}`));
+    const hasDirected = new Set(edges.map(e => `${e.from}|${e.to}|${e.water ? 'water:' + e.water : (e.surface || 'land')}`));
     let addedRiverAlso = 0;
     function ensureRiverEdge(a, b) {
-        const sig = `${a}|${b}|river`;
+        const sig = `${a}|${b}|water:river`;
         if (!hasDirected.has(sig)) {
-            edges.push({ from: a, to: b, river: true });
+            edges.push({ from: a, to: b, water: 'river' });
             hasDirected.add(sig);
             addedRiverAlso++;
         }
@@ -83,7 +74,7 @@ function main() {
     }
 
     fs.writeFileSync(CONN_PATH, JSON.stringify({ edges }, null, 2), 'utf8');
-    console.log(`Normalized connections: ${madePureRiver} forced pure-river, ${clearedRiverFlag} split land+river, ${addedRiverAlso} added river-only edges.`);
+    console.log(`Normalized connections: ${madePureWater} forced pure-water, ${splitCombined} split land+water, ${addedRiverAlso} added river-only edges.`);
 }
 
 main();

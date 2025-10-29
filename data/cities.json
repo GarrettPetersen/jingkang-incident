@@ -7,7 +7,25 @@
       "杭州",
       "錢塘",
       "臨平",
-      "湧金門"
+      "湧金門",
+      "兩浙",
+      "江東西",
+      "江南東路",
+      "行在",
+      "江、浙沿流州軍",
+      "兩浙與福建",
+      "會稽",
+      "臨安、臨平",
+      "江東",
+      "兩浙路",
+      "越州(紹興)",
+      "江南東西",
+      "江南東西路",
+      "紹興府",
+      "上京(朝廷)與江南",
+      "行在都茶場",
+      "臨安與鄂州",
+      "龍德別宮"
     ],
     "name_zh": "臨安",
     "name_pinyin": "Lin'an",
@@ -20,7 +38,34 @@
     "aliases": [
       "東京",
       "汴",
-      "開封"
+      "開封",
+      "汴河沿線",
+      "諸路驛舍",
+      "黃汴河段與諸渠",
+      "中都與諸路倉場",
+      "諸路轉運司",
+      "浚州、滑州",
+      "杞、拱州一帶",
+      "中京等兩路",
+      "河南→河北",
+      "京西—淮南—河南—河北",
+      "顯寧寺",
+      "汝州",
+      "河北、山東、河南、河東等路",
+      "河南路",
+      "河南三京",
+      "燕京與河南、陝西",
+      "河南三京等地",
+      "河南與關中",
+      "諸州",
+      "東京(開封)等",
+      "朱仙鎮",
+      "朱仙鎮至南撤",
+      "諸路州縣與猛安謀克部",
+      "汴城近郊",
+      "燕京/汴京往來",
+      "兩界邊境",
+      "京西"
     ],
     "name_zh": "汴京",
     "name_pinyin": "Bianjing",
@@ -32,7 +77,21 @@
     "pinyin": "Jiankang",
     "aliases": [
       "江寧",
-      "南京"
+      "南京",
+      "沿河、沿淮、沿江諸路",
+      "六合",
+      "靜安鎮",
+      "太平州",
+      "江東西",
+      "江南東路",
+      "江東",
+      "江南東西",
+      "江南東西路",
+      "鎮江府、太平州、建康府",
+      "上京(朝廷)與江南",
+      "馬家渡",
+      "採石、宣化渡",
+      "鐵路步"
     ],
     "name_zh": "建康",
     "name_pinyin": "Jiankang",
@@ -61,7 +120,16 @@
       "金山",
       "黃天蕩",
       "江陰",
-      "鎮江府"
+      "鎮江府",
+      "沿河、沿淮、沿江諸路",
+      "揚子江",
+      "黃天蕩、金山",
+      "黃天蕩—秦淮",
+      "江渡(鎮江一帶)",
+      "江陰軍",
+      "沿江諸郡",
+      "真州",
+      "Zhenzhou"
     ],
     "name_zh": "鎮江",
     "name_pinyin": "Zhenjiang",
@@ -74,7 +142,32 @@
     "aliases": [
       "大儀",
       "高郵",
-      "廣陵"
+      "廣陵",
+      "江東西",
+      "淮南路",
+      "淮甸",
+      "沿河、沿淮、沿江諸路",
+      "沿河諸路",
+      "江、浙沿流州軍",
+      "京西—淮南—河南—河北",
+      "藕塘",
+      "揚子江",
+      "黃天蕩—秦淮",
+      "淮西",
+      "淮東",
+      "淮浙與四川",
+      "江、淮邊防",
+      "淮南",
+      "兩淮",
+      "淮東、濠州",
+      "臨安—淮水中流",
+      "臨安—淮水",
+      "沿江諸郡",
+      "壽春、藕塘一帶",
+      "順昌",
+      "壽、鄧、鳳翔等州",
+      "通州",
+      "Tongzhou"
     ],
     "name_zh": "揚州",
     "name_pinyin": "Yangzhou",
@@ -87,7 +180,25 @@
     "aliases": [
       "淮安",
       "承州",
-      "漣水"
+      "漣水",
+      "漣水軍",
+      "淮甸",
+      "沿河、沿淮、沿江諸路",
+      "沿河諸路",
+      "沐陽",
+      "泗州",
+      "淮南路",
+      "京西—淮南—河南—河北",
+      "黃天蕩—秦淮",
+      "淮西",
+      "淮東",
+      "淮浙與四川",
+      "江、淮邊防",
+      "淮南",
+      "兩淮",
+      "淮東、濠州",
+      "臨安—淮水中流",
+      "臨安—淮水"
     ],
     "name_zh": "楚州",
     "name_pinyin": "Chuzhou",
@@ -98,21 +209,19 @@
     "zh": "淮陽",
     "pinyin": "Huaiyang",
     "aliases": [
-      "泇口鎮"
+      "泇口鎮",
+      "浚州、滑州",
+      "應天府",
+      "汝州",
+      "順昌",
+      "壽、鄧、鳳翔等州",
+      "宿州",
+      "Su Prefecture",
+      "亳州",
+      "柳子鎮"
     ],
     "name_zh": "淮陽",
     "name_pinyin": "Huaiyang",
-    "type": "city"
-  },
-  {
-    "id": "suzhou-anhui",
-    "zh": "宿州",
-    "pinyin": "Su Prefecture",
-    "aliases": [
-      "亳州"
-    ],
-    "name_zh": "宿州",
-    "name_pinyin": "Su Prefecture",
     "type": "city"
   },
   {
@@ -125,7 +234,8 @@
       "巢縣",
       "昭關",
       "柘皋",
-      "含山"
+      "含山",
+      "和州—柘皋"
     ],
     "name_zh": "廬州",
     "name_pinyin": "Luzhou",
@@ -137,7 +247,15 @@
     "pinyin": "Mingzhou",
     "aliases": [
       "余姚",
-      "寧波"
+      "寧波",
+      "定海縣",
+      "昌國縣",
+      "昌國縣與寧波海道",
+      "兩浙",
+      "兩浙與福建",
+      "兩浙路",
+      "石港、料角、崇明鎮",
+      "石樑河"
     ],
     "name_zh": "明州",
     "name_pinyin": "Mingzhou",
@@ -150,7 +268,11 @@
     "aliases": [
       "豫章",
       "筠州",
-      "臨江"
+      "臨江",
+      "江西路",
+      "玉隆觀",
+      "饒州",
+      "虔州、饒州等監"
     ],
     "name_zh": "南昌",
     "name_pinyin": "Nanchang",
@@ -162,7 +284,16 @@
     "pinyin": "Jiujiang",
     "aliases": [
       "九江",
-      "黃梅"
+      "黃梅",
+      "揚子江",
+      "洛陽、襄陽、穎昌等",
+      "襄陽、隨、郢",
+      "襄漢",
+      "江西路",
+      "襄陽府",
+      "郢州",
+      "襄陽府路",
+      "沿江諸郡"
     ],
     "name_zh": "江州",
     "name_pinyin": "Jiujiang",
@@ -184,7 +315,33 @@
     "id": "yanjing",
     "zh": "燕京",
     "pinyin": "Yanjing",
-    "aliases": [],
+    "aliases": [
+      "平州",
+      "燕山等八路",
+      "河北東西路、山東東西路",
+      "中都路",
+      "河北路",
+      "中都與諸路倉場",
+      "寶坻",
+      "中都、上京等路",
+      "燕京及所屬",
+      "河南→河北",
+      "京畿與河北等路",
+      "京西—淮南—河南—河北",
+      "河北、河東",
+      "河北、青齊一路",
+      "南京路（燕京）及河北諸鎮",
+      "河北",
+      "白河",
+      "河北、山東、河南、河東等路",
+      "西京、北京、遼東等路",
+      "金國元帥府",
+      "諸路州縣與猛安謀克部",
+      "安肅 雄州 霸州 廣信",
+      "燕山府",
+      "燕山",
+      "燕京/汴京往來"
+    ],
     "name_zh": "燕京",
     "name_pinyin": "Yanjing",
     "type": "city"
@@ -193,7 +350,16 @@
     "id": "daming",
     "zh": "大名",
     "pinyin": "Daming",
-    "aliases": [],
+    "aliases": [
+      "邢州",
+      "洺州",
+      "相州",
+      "河北、青齊一路",
+      "北京(大名府一帶)",
+      "祁州",
+      "磁州",
+      "Cizhou"
+    ],
     "name_zh": "大名",
     "name_pinyin": "Daming",
     "type": "city"
@@ -202,7 +368,17 @@
     "id": "taiyuan",
     "zh": "太原",
     "pinyin": "Taiyuan",
-    "aliases": [],
+    "aliases": [
+      "解州鹽池",
+      "太行山",
+      "西京至太原諸路",
+      "太原—文水—榆次",
+      "河北、河東",
+      "長水（西京）",
+      "西京、北京、遼東等路",
+      "雲中",
+      "解州、安邑池"
+    ],
     "name_zh": "太原",
     "name_pinyin": "Taiyuan",
     "type": "city"
@@ -211,25 +387,25 @@
     "id": "cangzhou",
     "zh": "滄州",
     "pinyin": "Cangzhou",
-    "aliases": [],
+    "aliases": [
+      "河北東西路、山東東西路",
+      "山東路",
+      "河北、青齊一路",
+      "密州",
+      "山東鹽使司",
+      "河北、山東、河南、河東等路"
+    ],
     "name_zh": "滄州",
     "name_pinyin": "Cangzhou",
-    "type": "city"
-  },
-  {
-    "id": "zhenzhou",
-    "zh": "真州",
-    "pinyin": "Zhenzhou",
-    "aliases": [],
-    "name_zh": "真州",
-    "name_pinyin": "Zhenzhou",
     "type": "city"
   },
   {
     "id": "taizhou",
     "zh": "泰州",
     "pinyin": "Taizhou",
-    "aliases": [],
+    "aliases": [
+      "興化軍"
+    ],
     "name_zh": "泰州",
     "name_pinyin": "Taizhou",
     "type": "city"
@@ -238,43 +414,37 @@
     "id": "haizhou",
     "zh": "海州",
     "pinyin": "Haizhou",
-    "aliases": [],
+    "aliases": [
+      "山東路",
+      "山東鹽使司",
+      "河北東西路、山東東西路",
+      "河北、山東、河南、河東等路"
+    ],
     "name_zh": "海州",
     "name_pinyin": "Haizhou",
-    "type": "city"
-  },
-  {
-    "id": "tongzhou",
-    "zh": "通州",
-    "pinyin": "Tongzhou",
-    "aliases": [],
-    "name_zh": "通州",
-    "name_pinyin": "Tongzhou",
     "type": "city"
   },
   {
     "id": "xuanzhou",
     "zh": "宣州",
     "pinyin": "Xuanzhou",
-    "aliases": [],
+    "aliases": [
+      "採石、宣化渡"
+    ],
     "name_zh": "宣州",
     "name_pinyin": "Xuanzhou",
-    "type": "city"
-  },
-  {
-    "id": "wuzhou",
-    "zh": "婺州",
-    "pinyin": "Wuzhou",
-    "aliases": [],
-    "name_zh": "婺州",
-    "name_pinyin": "Wuzhou",
     "type": "city"
   },
   {
     "id": "fuzhou",
     "zh": "福州",
     "pinyin": "Fuzhou",
-    "aliases": [],
+    "aliases": [
+      "兩浙與福建",
+      "兩浙",
+      "兩浙路",
+      "福建路"
+    ],
     "name_zh": "福州",
     "name_pinyin": "Fuzhou",
     "type": "city"
@@ -283,7 +453,12 @@
     "id": "quanzhou",
     "zh": "泉州",
     "pinyin": "Quanzhou",
-    "aliases": [],
+    "aliases": [
+      "兩浙",
+      "兩浙與福建",
+      "兩浙路",
+      "福建路"
+    ],
     "name_zh": "泉州",
     "name_pinyin": "Quanzhou",
     "type": "city"
@@ -292,18 +467,22 @@
     "id": "tanzhou",
     "zh": "潭州",
     "pinyin": "Tanzhou",
-    "aliases": [],
+    "aliases": [
+      "荊湖",
+      "武陵",
+      "鄂渚—洞庭湖一帶",
+      "鼎州",
+      "江、浙、荊湖諸郡",
+      "沅、湘",
+      "夔路",
+      "荊南",
+      "荊南府一帶",
+      "湖湘",
+      "湖南",
+      "長沙"
+    ],
     "name_zh": "潭州",
     "name_pinyin": "Tanzhou",
-    "type": "city"
-  },
-  {
-    "id": "cizhou",
-    "zh": "磁州",
-    "pinyin": "Cizhou",
-    "aliases": [],
-    "name_zh": "磁州",
-    "name_pinyin": "Cizhou",
     "type": "city"
   },
   {
@@ -314,5 +493,179 @@
     "name_zh": "趙州",
     "name_pinyin": "Zhaozhou",
     "type": "city"
+  },
+  {
+    "id": "chengdu",
+    "zh": "成都",
+    "pinyin": "Chengdu",
+    "aliases": [
+      "四川"
+    ],
+    "name_zh": "成都",
+    "name_pinyin": "Chengdu",
+    "type": "city"
+  },
+  {
+    "id": "xingyuan",
+    "zh": "興元",
+    "pinyin": "Xingyuan",
+    "aliases": [
+      "漢中",
+      "陝西、四川邊路",
+      "富平",
+      "和尚原",
+      "陝西五路",
+      "興州",
+      "兩界邊境",
+      "陝西",
+      "鳳州",
+      "Fengzhou"
+    ],
+    "name_zh": "興元",
+    "name_pinyin": "Xingyuan",
+    "type": "city"
+  },
+  {
+    "id": "lizhou",
+    "zh": "利州",
+    "pinyin": "Lizhou",
+    "aliases": [
+      "廣元",
+      "陝西、四川邊路",
+      "河池",
+      "利州東西路"
+    ],
+    "name_zh": "利州",
+    "name_pinyin": "Lizhou",
+    "type": "city"
+  },
+  {
+    "id": "shangjing",
+    "zh": "上京",
+    "pinyin": "Shangjing",
+    "aliases": [
+      "中都、上京等路",
+      "上京",
+      "上京路",
+      "五國城",
+      "Wuguocheng"
+    ],
+    "name_zh": "上京",
+    "name_pinyin": "Shangjing",
+    "type": "city"
+  },
+  {
+    "id": "yueyang",
+    "zh": "岳陽",
+    "pinyin": "Yueyang",
+    "aliases": [
+      "岳州",
+      "荊湖",
+      "鄂渚—洞庭湖一帶",
+      "江、浙、荊湖諸郡",
+      "沅、湘",
+      "夔路",
+      "湖南"
+    ],
+    "name_zh": "岳陽",
+    "name_pinyin": "Yueyang",
+    "type": "city"
+  },
+  {
+    "id": "xiangyang",
+    "zh": "襄陽",
+    "pinyin": "Xiangyang",
+    "aliases": [
+      "洛陽、襄陽、穎昌等",
+      "襄陽、隨、郢",
+      "襄漢",
+      "襄陽府",
+      "郢州",
+      "襄陽府路"
+    ],
+    "name_zh": "襄陽",
+    "name_pinyin": "Xiangyang",
+    "type": "city"
+  },
+  {
+    "id": "shaoxing",
+    "zh": "紹興",
+    "pinyin": "Shaoxing",
+    "aliases": [
+      "越州",
+      "會稽",
+      "越州(紹興)",
+      "紹興府",
+      "婺州",
+      "Wuzhou"
+    ],
+    "name_zh": "紹興",
+    "name_pinyin": "Shaoxing",
+    "type": "city"
+  },
+  {
+    "id": "guangzhou",
+    "zh": "廣州",
+    "pinyin": "Guangzhou",
+    "aliases": [
+      "廣州",
+      "邕州",
+      "Yongzhou",
+      "南寧"
+    ],
+    "name_zh": "廣州",
+    "name_pinyin": "Guangzhou",
+    "type": "city"
+  },
+  {
+    "id": "yingchang",
+    "zh": "穎昌",
+    "pinyin": "Yingchang",
+    "aliases": [
+      "劉冷莊",
+      "郾城",
+      "穎昌",
+      "潁河",
+      "郾城、穎昌西",
+      "郾城—鄭州一線"
+    ],
+    "name_zh": "穎昌",
+    "name_pinyin": "Yingchang",
+    "type": "city"
+  },
+  {
+    "id": "ezhou",
+    "zh": "鄂州",
+    "pinyin": "Ezhou",
+    "aliases": [
+      "武昌",
+      "鄂渚",
+      "臨安與鄂州"
+    ],
+    "name_zh": "鄂州",
+    "name_pinyin": "Ezhou",
+    "type": "city"
+  },
+  {
+    "id": "yanan",
+    "zh": "延安",
+    "pinyin": "Yanan",
+    "aliases": [
+      "延州",
+      "渭州、延安",
+      "仙人關",
+      "陝西五路",
+      "陝西",
+      "大散關",
+      "壽、鄧、鳳翔等州",
+      "秦州",
+      "Qinzhou",
+      "隴州",
+      "Longzhou"
+    ],
+    "name_zh": "延安",
+    "name_pinyin": "Yanan",
+    "type": "city"
   }
+  
 ]

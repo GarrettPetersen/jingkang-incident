@@ -1,54 +1,19 @@
 {
   "edges": [
     {
-      "from": "hangzhou",
-      "to": "ningbo",
-      "river": true
-    },
-    {
-      "from": "hangzhou",
-      "to": "ningbo",
-      "surface": "path"
-    },
-    {
-      "from": "hangzhou",
-      "to": "yangzhou",
-      "river": true
-    },
-    {
-      "from": "hangzhou",
-      "to": "yangzhou",
-      "surface": "path"
-    },   
-    {
       "from": "zhenjiang",
       "to": "yangzhou",
-      "river": true
+      "water": "canal"
     },
     {
       "from": "zhenjiang",
       "to": "nanjing",
-      "river": true
-    },
-    {
-      "from": "zhenjiang",
-      "to": "nanjing",
-      "surface": "path"
-    },
-    {
-      "from": "zhenjiang",
-      "to": "huaiyin",
-      "river": true
-    },
-    {
-      "from": "nanjing",
-      "to": "hefei",
-      "surface": "path"
+      "water": "river"
     },
     {
       "from": "yangzhou",
       "to": "huaiyin",
-      "river": true
+      "water": "river"
     },
     {
       "from": "yangzhou",
@@ -56,54 +21,29 @@
       "surface": "road"
     },
     {
-      "from": "yangzhou",
-      "to": "suzhou-js",
-      "river": true
-    },
-    {
-      "from": "yangzhou",
-      "to": "suzhou-js",
-      "surface": "path"
+      "from": "huaiyin",
+      "to": "huaiyang",
+      "water": "river"
     },
     {
       "from": "huaiyin",
       "to": "huaiyang",
-      "river": true
-    },
-    {
-      "from": "huaiyin",
-      "to": "huaiyang",
-      "surface": "road"
-    },
-    {
-      "from": "huaiyin",
-      "to": "suzhou-anhui",
       "surface": "road"
     },
     {
       "from": "huaiyin",
       "to": "kaifeng",
-      "river": true
+      "water": "river"
     },
     {
       "from": "huaiyang",
-      "to": "suzhou-anhui",
-      "surface": "road"
-    },
-    {
-      "from": "suzhou-anhui",
       "to": "hefei",
-      "surface": "path"
-    },
-    {
-      "from": "ningbo",
-      "to": "jianzhou-fj",
       "surface": "path"
     },
     {
       "from": "nanchang",
       "to": "jiujiang",
-      "river": true
+      "water": "lake"
     },
     {
       "from": "nanchang",
@@ -123,7 +63,7 @@
     {
       "from": "kaifeng",
       "to": "huaiyang",
-      "river": true
+      "water": "river"
     },
     {
       "from": "kaifeng",
@@ -133,58 +73,492 @@
     {
       "from": "kaifeng",
       "to": "huaiyin",
-      "river": true
+      "water": "river"
     },
     {
       "from": "daming",
       "to": "kaifeng",
       "surface": "road"
     },
-    
     {
       "from": "yanjing",
       "to": "daming",
       "surface": "road"
+    },
+    {
+      "from": "cangzhou",
+      "to": "yanjing",
+      "surface": "road"
+    },
+    {
+      "from": "cangzhou",
+      "to": "daming",
+      "surface": "road"
+    },
+    {
+      "from": "zhaozhou",
+      "to": "daming",
+      "surface": "road"
+    },
+    {
+      "from": "zhenjiang",
+      "to": "yangzhou",
+      "water": "river"
+    },
+    {
+      "from": "taizhou",
+      "to": "yangzhou",
+      "water": "canal"
+    },
+    {
+      "from": "haizhou",
+      "to": "huaiyin",
+      "water": "river"
+    },
+    {
+      "from": "haizhou",
+      "to": "taizhou",
+      "water": "canal"
+    },
+    {
+      "from": "haizhou",
+      "to": "huaiyin",
+      "surface": "road"
+    },
+    {
+      "from": "xuanzhou",
+      "to": "nanjing",
+      "surface": "path"
+    },
+    {
+      "from": "xuanzhou",
+      "to": "jiujiang",
+      "surface": "path"
+    },
+    {
+      "from": "shaoxing",
+      "to": "hangzhou",
+      "surface": "path"
+    },
+    {
+      "from": "fuzhou",
+      "to": "jianzhou-fj",
+      "surface": "path"
+    },
+    {
+      "from": "fuzhou",
+      "to": "quanzhou",
+      "surface": "path"
+    },
+    {
+      "from": "quanzhou",
+      "to": "jianzhou-fj",
+      "surface": "path"
+    },
+    {
+      "from": "tanzhou",
+      "to": "nanchang",
+      "surface": "path"
+    },
+    {
+      "from": "tanzhou",
+      "to": "jiujiang",
+      "surface": "path"
+    },
+    {
+      "from": "taiyuan",
+      "to": "daming",
+      "surface": "path"
+    },
+    {
+      "from": "daming",
+      "to": "zhaozhou",
+      "surface": "road"
+    },
+    {
+      "from": "fuzhou",
+      "to": "quanzhou",
+      "water": "coast"
+    },
+    {
+      "from": "fuzhou",
+      "to": "ningbo",
+      "water": "coast"
+    },
+    {
+      "from": "yangzhou",
+      "to": "taizhou",
+      "water": "canal"
+    },
+    {
+      "from": "yanan",
+      "to": "xingyuan",
+      "surface": "path"
+    },
+    {
+      "from": "xingyuan",
+      "to": "yanan",
+      "surface": "path"
+    },
+    {
+      "from": "xingyuan",
+      "to": "lizhou",
+      "surface": "path"
+    },
+    {
+      "from": "lizhou",
+      "to": "xingyuan",
+      "surface": "path"
+    },
+    {
+      "from": "lizhou",
+      "to": "chengdu",
+      "surface": "path"
+    },
+    {
+      "from": "chengdu",
+      "to": "lizhou",
+      "surface": "path"
+    },
+    {
+      "from": "yueyang",
+      "to": "tanzhou",
+      "water": "river"
+    },
+    {
+      "from": "tanzhou",
+      "to": "yueyang",
+      "water": "river"
+    },
+    {
+      "from": "yueyang",
+      "to": "jiujiang",
+      "water": "river"
+    },
+    {
+      "from": "jiujiang",
+      "to": "yueyang",
+      "water": "river"
+    },
+    {
+      "from": "ezhou",
+      "to": "yueyang",
+      "surface": "road"
+    },
+    {
+      "from": "yueyang",
+      "to": "ezhou",
+      "surface": "road"
+    },
+    {
+      "from": "ezhou",
+      "to": "jiujiang",
+      "water": "river"
+    },
+    {
+      "from": "jiujiang",
+      "to": "ezhou",
+      "water": "river"
+    },
+    {
+      "from": "xiangyang",
+      "to": "ezhou",
+      "surface": "road"
+    },
+    {
+      "from": "ezhou",
+      "to": "xiangyang",
+      "surface": "road"
+    },
+    {
+      "from": "xiangyang",
+      "to": "yingchang",
+      "surface": "road"
+    },
+    {
+      "from": "yingchang",
+      "to": "xiangyang",
+      "surface": "road"
+    },
+    {
+      "from": "shaoxing",
+      "to": "ningbo",
+      "surface": "path"
+    },
+    {
+      "from": "ningbo",
+      "to": "shaoxing",
+      "surface": "path"
+    },
+    {
+      "from": "hangzhou",
+      "to": "shaoxing",
+      "water": "canal"
+    },
+    {
+      "from": "shaoxing",
+      "to": "hangzhou",
+      "water": "canal"
+    },
+    {
+      "from": "shaoxing",
+      "to": "ningbo",
+      "water": "canal"
+    },
+    {
+      "from": "ningbo",
+      "to": "shaoxing",
+      "water": "canal"
+    },
+    {
+      "from": "yingchang",
+      "to": "kaifeng",
+      "surface": "road"
+    },
+    {
+      "from": "kaifeng",
+      "to": "yingchang",
+      "surface": "road"
+    },
+    {
+      "from": "yingchang",
+      "to": "huaiyang",
+      "surface": "road"
+    },
+    {
+      "from": "huaiyang",
+      "to": "yingchang",
+      "surface": "road"
+    },
+    {
+      "from": "shangjing",
+      "to": "yanjing",
+      "surface": "path"
+    },
+    {
+      "from": "yanjing",
+      "to": "shangjing",
+      "surface": "path"
+    },
+    {
+      "from": "yanan",
+      "to": "taiyuan",
+      "surface": "path"
+    },
+    {
+      "from": "taiyuan",
+      "to": "yanan",
+      "surface": "path"
+    },
+    {
+      "from": "xingyuan",
+      "to": "xiangyang",
+      "surface": "path"
+    },
+    {
+      "from": "xiangyang",
+      "to": "xingyuan",
+      "surface": "path"
+    },
+    {
+      "from": "guangzhou",
+      "to": "quanzhou",
+      "water": "coast"
+    },
+    {
+      "from": "quanzhou",
+      "to": "guangzhou",
+      "water": "coast"
+    },
+    {
+      "from": "guangzhou",
+      "to": "nanchang",
+      "surface": "path"
+    },
+    {
+      "from": "nanchang",
+      "to": "guangzhou",
+      "surface": "path"
+    },
+    {
+      "from": "kaifeng",
+      "to": "daming",
+      "surface": "road"
+    },
+    {
+      "from": "huaiyang",
+      "to": "kaifeng",
+      "surface": "road"
+    },
+    {
+      "from": "huaiyin",
+      "to": "yangzhou",
+      "surface": "road"
+    },
+    {
+      "from": "huaiyin",
+      "to": "haizhou",
+      "surface": "road"
+    },
+    {
+      "from": "haizhou",
+      "to": "cangzhou",
+      "surface": "road"
+    },
+    {
+      "from": "cangzhou",
+      "to": "haizhou",
+      "surface": "road"
+    },
+    {
+      "from": "taiyuan",
+      "to": "zhaozhou",
+      "surface": "path"
+    },
+    {
+      "from": "zhaozhou",
+      "to": "taiyuan",
+      "surface": "path"
+    },
+    {
+      "from": "zhaozhou",
+      "to": "yanjing",
+      "surface": "road"
+    },
+    {
+      "from": "yanjing",
+      "to": "zhaozhou",
+      "surface": "road"
+    },
+    {
+      "from": "zhenjiang",
+      "to": "suzhou-js",
+      "water": "canal"
+    },
+    {
+      "from": "suzhou-js",
+      "to": "zhenjiang",
+      "water": "canal"
+    },
+    {
+      "from": "hangzhou",
+      "to": "suzhou-js",
+      "water": "canal"
+    },
+    {
+      "from": "suzhou-js",
+      "to": "hangzhou",
+      "water": "canal"
+    },
+    {
+      "from": "nanjing",
+      "to": "jiujiang",
+      "water": "river"
+    },
+    {
+      "from": "jiujiang",
+      "to": "nanjing",
+      "water": "river"
+    },
+    {
+      "from": "huaiyang",
+      "to": "huaiyin",
+      "surface": "road"
+    },
+    {
+      "from": "xuanzhou",
+      "to": "nanjing",
+      "water": "river"
+    },
+    {
+      "from": "nanjing",
+      "to": "xuanzhou",
+      "water": "river"
+    },
+    {
+      "from": "zhenjiang",
+      "to": "suzhou-js",
+      "surface": "road"
+    },
+    {
+      "from": "suzhou-js",
+      "to": "zhenjiang",
+      "surface": "road"
+    },
+    {
+      "from": "jianzhou-fj",
+      "to": "fuzhou",
+      "surface": "path"
+    },
+    {
+      "from": "suzhou-js",
+      "to": "nanjing",
+      "surface": "road"
+    },
+    {
+      "from": "nanjing",
+      "to": "suzhou-js",
+      "surface": "road"
+    },
+    {
+      "from": "yueyang",
+      "to": "tanzhou",
+      "surface": "path"
+    },
+    {
+      "from": "tanzhou",
+      "to": "yueyang",
+      "surface": "path"
+    },
+    {
+      "from": "ezhou",
+      "to": "yueyang",
+      "water": "river"
+    },
+    {
+      "from": "yueyang",
+      "to": "ezhou",
+      "water": "river"
+    },
+    {
+      "from": "ezhou",
+      "to": "xiangyang",
+      "water": "river"
+    },
+    {
+      "from": "xiangyang",
+      "to": "ezhou",
+      "water": "river"
+    },
+    {
+      "from": "nanjing",
+      "to": "zhenjiang",
+      "surface": "road"
+    },
+    {
+      "from": "zhenjiang",
+      "to": "nanjing",
+      "surface": "road"
+    },
+    {
+      "from": "hefei",
+      "to": "huaiyin",
+      "surface": "path"
+    },
+    {
+      "from": "huaiyin",
+      "to": "hefei",
+      "surface": "path"
+    },
+    {
+      "from": "hefei",
+      "to": "nanjing",
+      "water": "river"
+    },
+    {
+      "from": "nanjing",
+      "to": "hefei",
+      "water": "river"
     }
-    ,
-    { "from": "cangzhou", "to": "yanjing", "surface": "road" },
-    { "from": "cangzhou", "to": "daming", "surface": "road" },
-    { "from": "pingzhou", "to": "yanjing", "surface": "road" },
-    { "from": "pingzhou", "to": "cangzhou", "surface": "road" },
-    { "from": "zhaozhou", "to": "daming", "surface": "road" },
-
-    { "from": "zhenzhou", "to": "yangzhou", "river": true },
-    { "from": "zhenzhou", "to": "yangzhou", "surface": "road" },
-    { "from": "zhenzhou", "to": "zhenjiang", "river": true },
-    { "from": "taizhou", "to": "yangzhou", "river": true },
-    { "from": "taizhou", "to": "huaiyin", "river": true },
-    { "from": "haizhou", "to": "huaiyin", "river": true },
-    { "from": "haizhou", "to": "taizhou", "river": true },
-    { "from": "haizhou", "to": "huaiyin", "surface": "road" },
-    { "from": "haizhou", "to": "taizhou", "surface": "road" },
-    
-    { "from": "tongzhou", "to": "suzhou-js", "river": true },
-    { "from": "suzhou-js", "to": "taizhou", "river": true },
-
-    { "from": "xuanzhou", "to": "nanjing", "surface": "path" },
-    { "from": "xuanzhou", "to": "jiujiang", "surface": "path" },
-    { "from": "wuzhou", "to": "hangzhou", "surface": "path" },
-    { "from": "wuzhou", "to": "jianzhou-fj", "surface": "path" },
-    { "from": "fuzhou", "to": "jianzhou-fj", "surface": "path" },
-    { "from": "fuzhou", "to": "quanzhou", "surface": "path" },
-    { "from": "quanzhou", "to": "jianzhou-fj", "surface": "path" },
-    { "from": "tanzhou", "to": "nanchang", "surface": "path" },
-    { "from": "tanzhou", "to": "jiujiang", "surface": "path" },
-    { "from": "zhaozhou", "to": "huaiyang", "surface": "road" },
-    { "from": "taiyuan", "to": "cizhou", "surface": "path" },
-    { "from": "cizhou", "to": "zhaozhou", "surface": "road" },
-    { "from": "taiyuan", "to": "yanjing", "surface": "path" }
-    ,
-    { "from": "taiyuan", "to": "daming", "surface": "path" },
-    { "from": "fuzhou", "to": "quanzhou", "river": true },
-    { "from": "fuzhou", "to": "ningbo", "river": true },
-    { "from": "cangzhou", "to": "tongzhou", "river": true },
-    { "from": "tongzhou", "to": "taizhou", "surface": "path" },
-    { "from": "tongzhou", "to": "taizhou", "river": true }
   ]
 }

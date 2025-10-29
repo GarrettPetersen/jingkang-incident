@@ -26,7 +26,7 @@ function main() {
 
   const edges = connections.edges
     .filter(e => nodeIndex.has(e.from) && nodeIndex.has(e.to))
-    .map(e => ({ from: e.from, to: e.to, river: !!e.river, surface: e.surface || '' }));
+    .map(e => ({ from: e.from, to: e.to, water: e.water || (e.river ? 'river' : ''), surface: e.surface || '' }));
 
   // Group parallel edges between the same unordered pair to offset them visually
   function pairKey(a, b) { return a < b ? (a + '|' + b) : (b + '|' + a); }
@@ -51,6 +51,10 @@ function main() {
     .road { stroke: #8B4513; stroke-width: 1.6; fill: none; }
     .path { stroke: #8B4513; stroke-width: 1.6; fill: none; stroke-dasharray: 6 4; }
     .river { stroke: #1f77b4; stroke-width: 1.8; fill: none; }
+    .canal { stroke: #3fa3ff; stroke-width: 1.8; fill: none; }
+    .coast { stroke: #6dc3ff; stroke-width: 1.8; fill: none; }
+    .lake { stroke: #2a78c4; stroke-width: 1.8; fill: none; }
+    .lake-marker { fill: #2a78c4; stroke: none; opacity: 0.9; }
   </style>
 </head>
 <body>
@@ -212,10 +216,10 @@ function main() {
 
   // Multi-start: try several initializations and keep the one with fewest crossings
   let bestX = null, bestY = null, bestC = Infinity;
-  const tries = 30;
+  const tries = 140;
   for (let t = 0; t < tries; t++) {
     initPositions();
-    kkLayout(3200, 3e-4);
+    kkLayout(9000, 1.0e-4);
     const c = countCrossings();
     if (c < bestC) {
       bestC = c;
@@ -237,7 +241,7 @@ function main() {
 
   // Corridor straightening: ensure key chains lie between their endpoints
   const corridors = [
-    ['suzhou-js','taizhou','yangzhou']
+    ['yangzhou','taizhou','haizhou']
   ];
   function straighten(ids) {
     const idxs = ids.map(id => idToIdx.get(id)).filter(i => i != null);
@@ -301,8 +305,8 @@ function main() {
   })();
 
   // Local refinement: hill-climb to reduce crossings by nudging nodes
-  ;(function localRefineCrossings(maxIter = 1500) {
-    function tryMoveNode(i, radius, samples = 12) {
+  ;(function localRefineCrossings(maxIter = 2500) {
+    function tryMoveNode(i, radius, samples = 16) {
       const ox = X[i], oy = Y[i];
       let bestX = ox, bestY = oy;
       let bestC = countCrossings();
@@ -317,23 +321,35 @@ function main() {
       X[i] = bestX; Y[i] = bestY;
       return bestC;
     }
+    function crossingCounts() {
+      const counts = new Int32Array(n);
+      for (let i = 0; i < uniquePairs.length; i++) {
+        for (let j = i + 1; j < uniquePairs.length; j++) {
+          const [a1, a2] = uniquePairs[i];
+          const [b1, b2] = uniquePairs[j];
+          if (segsIntersect(a1, a2, b1, b2)) {
+            counts[a1]++; counts[a2]++; counts[b1]++; counts[b2]++;
+          }
+        }
+      }
+      return counts;
+    }
     let last = countCrossings();
     for (let it = 0; it < maxIter; it++) {
-      const radius = Math.max(2, 20 * (1 - it / maxIter));
-      // focus more often on the problematic Jiangnan cluster
-      const focus = ['suzhou-js','taizhou','zhenjiang','yangzhou','huaiyin'];
-      let i;
-      if (Math.random() < 0.6) {
-        const fid = focus[Math.floor(Math.random() * focus.length)];
-        i = idToIdx.get(fid);
-        if (i == null) i = Math.floor(Math.random() * n);
+      const radius = Math.max(2, 24 * (1 - it / maxIter));
+      const counts = crossingCounts();
+      // pick the worst node most of the time, otherwise random exploration
+      let i = 0;
+      if (Math.random() < 0.8) {
+        let maxC = -1, maxI = 0;
+        for (let k = 0; k < n; k++) { if (counts[k] > maxC) { maxC = counts[k]; maxI = k; } }
+        i = maxI;
       } else {
         i = Math.floor(Math.random() * n);
       }
-      const after = tryMoveNode(i, radius, 12);
+      const after = tryMoveNode(i, radius, 16);
       if (after === 0) break;
-      // simple stagnation break
-      if (it % 200 === 199) {
+      if (it % 250 === 249) {
         const now = countCrossings();
         if (now >= last) break;
         last = now;
@@ -341,12 +357,37 @@ function main() {
     }
   })();
 
-  // Targeted refinement: nudge Taizhou to reduce local edge congestion
+  // Targeted refinement: place Taizhou between Yangzhou and Haizhou, then fine-tune
   ;(function refineTaizhou() {
-    const i = idToIdx.get('taizhou');
-    if (i == null) return;
-    function bestAround(radiusList, samples = 32) {
-      let bx = X[i], by = Y[i];
+    const t = idToIdx.get('taizhou');
+    const y = idToIdx.get('yangzhou');
+    const h = idToIdx.get('haizhou');
+    if (t == null || y == null || h == null) return;
+
+    // Snap Taizhou near the midpoint of Yangzhou–Haizhou, with perpendicular offset chosen to reduce crossings
+    const mx = (X[y] + X[h]) / 2;
+    const my = (Y[y] + Y[h]) / 2;
+    const dx = X[h] - X[y], dy = Y[h] - Y[y];
+    const len = Math.hypot(dx, dy) || 1e-6;
+    const px = -dy / len, py = dx / len; // perpendicular unit
+    const off = 14; // small visual separation from the straight line
+
+    const curC = countCrossings();
+    // Try both perpendicular sides and keep the better
+    let cand = [ [mx + px * off, my + py * off], [mx - px * off, my - py * off] ];
+    let bestX = X[t], bestY = Y[t], bestC = curC;
+    for (const [nx, ny] of cand) {
+      const ox = X[t], oy = Y[t];
+      X[t] = nx; Y[t] = ny;
+      const c = countCrossings();
+      if (c < bestC) { bestC = c; bestX = nx; bestY = ny; }
+      X[t] = ox; Y[t] = oy;
+    }
+    X[t] = bestX; Y[t] = bestY;
+
+    // Local micro search around the chosen spot
+    function bestAround(radiusList, samples = 28) {
+      let bx = X[t], by = Y[t];
       let bc = countCrossings();
       for (const r of radiusList) {
         let improved = false;
@@ -354,17 +395,17 @@ function main() {
           const ang = (2 * Math.PI * s) / samples;
           const nx = bx + r * Math.cos(ang);
           const ny = by + r * Math.sin(ang);
-          const ox = X[i], oy = Y[i];
-          X[i] = nx; Y[i] = ny;
+          const ox = X[t], oy = Y[t];
+          X[t] = nx; Y[t] = ny;
           const c = countCrossings();
           if (c < bc) { bc = c; bx = nx; by = ny; improved = true; }
-          X[i] = ox; Y[i] = oy;
+          X[t] = ox; Y[t] = oy;
         }
-        X[i] = bx; Y[i] = by;
+        X[t] = bx; Y[t] = by;
         if (!improved) break;
       }
     }
-    bestAround([20, 14, 10, 7, 5, 3, 2]);
+    bestAround([10, 7, 5, 3, 2]);
   })();
 
   // Global orientation: search over 4 rotations x optional mirror to maximize N-S and E-W separation
@@ -456,29 +497,52 @@ function main() {
   const OFF = 6; // px between parallel edges
   for (const [k, group] of groups.entries()) {
     // sort so we render river beneath roads/paths
-    group.sort((a, b) => (a.river === b.river) ? 0 : (a.river ? -1 : 1));
-    const aId = group[0].from, bId = group[0].to;
+    group.sort((a, b) => {
+      const aw = a.water ? 1 : 0, bw = b.water ? 1 : 0; return bw - aw; // draw water first
+    });
+    // Deduplicate within an unordered pair: render at most one edge per kind (water type or surface)
+    const seenKinds = new Set();
+    const uniq = [];
+    for (const e of group) {
+      const kind = e.water ? ('water:' + e.water) : ('surface:' + (e.surface || 'road'));
+      if (seenKinds.has(kind)) continue;
+      seenKinds.add(kind);
+      uniq.push(e);
+    }
+    const aId = (uniq[0] || group[0]).from, bId = (uniq[0] || group[0]).to;
     const i = idToIdx.get(aId), j = idToIdx.get(bId);
     if (i == null || j == null) continue;
     const dx = X[j] - X[i], dy = Y[j] - Y[i];
     const dist = Math.hypot(dx, dy) || 1e-6;
     const px = -dy / dist, py = dx / dist; // unit perpendicular
-    const m = group.length;
+    const m = uniq.length;
     for (let idx = 0; idx < m; idx++) {
-      const e = group[idx];
+      const e = uniq[idx];
       const offset = (idx - (m - 1) / 2) * OFF;
       const ox = px * offset, oy = py * offset;
       const x1 = X[i] + ox, y1 = Y[i] + oy;
       const x2 = X[j] + ox, y2 = Y[j] + oy;
-      if (e.river && !e.surface) {
-        // Rivers as straight lines
+       if (e.water && !e.surface) {
+         // Water edges as straight lines with different shades
         const line = document.createElementNS('http://www.w3.org/2000/svg','line');
         line.setAttribute('x1', x1);
         line.setAttribute('y1', y1);
         line.setAttribute('x2', x2);
         line.setAttribute('y2', y2);
-        line.setAttribute('class','river');
+         const cls = (e.water === 'canal') ? 'canal' : (e.water === 'coast') ? 'coast' : (e.water === 'lake') ? 'lake' : 'river';
+         line.setAttribute('class', cls);
         svg.appendChild(line);
+         // Lake marker at midpoint for lake edges
+         if (e.water === 'lake') {
+           const circ = document.createElementNS('http://www.w3.org/2000/svg','circle');
+           const mx = (x1 + x2) / 2;
+           const my = (y1 + y2) / 2;
+           circ.setAttribute('cx', mx);
+           circ.setAttribute('cy', my);
+           circ.setAttribute('r', 5);
+           circ.setAttribute('class', 'lake-marker');
+           svg.appendChild(circ);
+         }
       } else {
         // Land edges as gentle quadratic curves to reduce crossings
         const path = document.createElementNS('http://www.w3.org/2000/svg','path');

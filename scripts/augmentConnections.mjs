@@ -9,16 +9,25 @@ const CITIES_PATH = path.resolve(process.cwd(), 'data/cities.json');
 
 function twoWay(from, to, surface, river = false) {
     const a = { from, to }; const b = { from: to, to: from };
-    if (river) { a.river = true; b.river = true; }
+    if (river) { a.water = 'river'; b.water = 'river'; }
     if (surface) { a.surface = surface; b.surface = surface; }
     return [a, b];
 }
 
 function main() {
     const conns = JSON.parse(fs.readFileSync(CONN_PATH, 'utf8'));
-    const cities = new Set(JSON.parse(fs.readFileSync(CITIES_PATH, 'utf8')).map(c => c.name_zh));
+    const cityArr = JSON.parse(fs.readFileSync(CITIES_PATH, 'utf8'));
+    const idSet = new Set(cityArr.map(c => c.id));
+    const aliasToId = new Map();
+    for (const c of cityArr) {
+        aliasToId.set(c.id, c.id);
+        if (c.zh) aliasToId.set(c.zh, c.id);
+        if (Array.isArray(c.aliases)) for (const a of c.aliases) aliasToId.set(a, c.id);
+        if (c.name_zh) aliasToId.set(c.name_zh, c.id);
+        if (c.name_pinyin) aliasToId.set(c.name_pinyin, c.id);
+    }
     const edges = Array.isArray(conns.edges) ? conns.edges : [];
-    const sig = new Set(edges.map(e => `${e.from}|${e.to}|${e.river ? 'river' : e.surface || 'land'}`));
+    const sig = new Set(edges.map(e => `${e.from}|${e.to}|${e.water ? 'water:' + e.water : (e.surface || 'land')}`));
 
     // Planned augmentations
     const add = [
@@ -85,13 +94,18 @@ function main() {
     ];
 
     let added = 0, skipped = 0;
-    for (const e of add) {
-        if (!cities.has(e.from) || !cities.has(e.to)) { skipped++; continue; }
-        const s = `${e.from}|${e.to}|${e.river ? 'river' : e.surface || 'land'}`;
-        if (sig.has(s)) { continue; }
-        edges.push(e);
-        sig.add(s);
-        added++;
+    for (const raw of add) {
+        const fromId = aliasToId.get(raw.from);
+        const toId = aliasToId.get(raw.to);
+        if (!fromId || !toId) { skipped++; continue; }
+        if (!idSet.has(fromId) || !idSet.has(toId)) { skipped++; continue; }
+        const e = {};
+        e.from = fromId; e.to = toId;
+        if (raw.surface) e.surface = raw.surface;
+        if (raw.water || raw.river) e.water = raw.water || 'river';
+        const s = `${e.from}|${e.to}|${e.water ? 'water:' + e.water : (e.surface || 'land')}`;
+        if (sig.has(s)) continue;
+        edges.push(e); sig.add(s); added++;
     }
 
     fs.writeFileSync(CONN_PATH, JSON.stringify({ edges }, null, 2), 'utf8');

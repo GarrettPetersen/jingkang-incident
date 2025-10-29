@@ -11,12 +11,23 @@ const OUT_PATH = path.resolve(process.cwd(), 'data/connections.json');
 
 function loadCities() {
     const arr = JSON.parse(fs.readFileSync(CITIES_PATH, 'utf8'));
-    const names = new Set(arr.map(c => c.name_zh));
-    return { arr, names };
+    const ids = new Set(arr.map(c => c.id));
+    const aliasToId = new Map();
+    for (const c of arr) {
+        aliasToId.set(c.id, c.id);
+        if (c.zh) aliasToId.set(c.zh, c.id);
+        if (c.name_zh) aliasToId.set(c.name_zh, c.id);
+        if (c.name_pinyin) aliasToId.set(c.name_pinyin, c.id);
+        if (Array.isArray(c.aliases)) for (const a of c.aliases) aliasToId.set(a, c.id);
+    }
+    return { arr, ids, aliasToId };
 }
 
 function edge(from, to, surface, river = false) {
-    return { from, to, surface, river };
+    const e = { from, to };
+    if (surface) e.surface = surface;
+    if (river) e.water = 'river';
+    return e;
 }
 
 function twoWay(from, to, surface, river = false) {
@@ -28,7 +39,7 @@ function main() {
         console.error('Missing cities.json');
         process.exit(1);
     }
-    const { names } = loadCities();
+    const { ids, aliasToId } = loadCities();
 
     const planned = [
         // Central Plains & Kaifeng corridor
@@ -104,22 +115,24 @@ function main() {
         ...twoWay('饒州', '筠州', 'road', false),
     ];
 
-    // Validate endpoints exist; skip unknowns
+    // Validate endpoints via alias map and emit canonical-id edges only
     const edges = [];
-    let skipped = 0;
-    for (const e of planned) {
-        if (!names.has(e.from) || !names.has(e.to)) {
-            skipped++;
-            continue;
-        }
+    let skipped = 0, added = 0;
+    for (const raw of planned) {
+        const fromId = aliasToId.get(raw.from);
+        const toId = aliasToId.get(raw.to);
+        if (!fromId || !toId) { skipped++; continue; }
+        if (!ids.has(fromId) || !ids.has(toId)) { skipped++; continue; }
+        const e = edge(fromId, toId, raw.surface, raw.river);
         edges.push(e);
+        added++;
     }
 
     const out = { edges };
     const outDir = path.dirname(OUT_PATH);
     if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
     fs.writeFileSync(OUT_PATH, JSON.stringify(out, null, 2), 'utf8');
-    console.log(`Wrote ${edges.length} edges to ${OUT_PATH}. Skipped ${skipped} planned edges not present in cities.`);
+    console.log(`Wrote ${edges.length} id-based edges to ${OUT_PATH}. Skipped ${skipped}.`);
 }
 
 main();
