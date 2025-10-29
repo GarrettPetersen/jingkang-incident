@@ -9,7 +9,15 @@
     "preview": "vite preview",
     "scrape:songshi": "node scripts/scrapeSongshiHeadings.mjs songshi",
     "scrape:jinshi": "node scripts/scrapeSongshiHeadings.mjs jinshi",
-    "scrape:chapter": "node scripts/scrapeChapter.mjs"
+    "scrape:chapter": "node scripts/scrapeChapter.mjs",
+    "normalize:places": "node scripts/normalizePlaces.mjs data/events-1127-1142.jsonl data/cities.json data/connections.json",
+    "graph:planarity": "node scripts/checkPlanarity.mjs",
+    "graph:audit-surfaces": "node scripts/auditTerrainSurfaces.mjs",
+    "graph:fix-surfaces": "node scripts/auditTerrainSurfaces.mjs --fix",
+    "events:count-per-city": "node scripts/countEventsPerCity.mjs",
+    "events:audit-aliases": "node scripts/auditPlaceCoverage.mjs",
+    "cities:replace-zeros": "node scripts/replaceZeroCities.mjs",
+    "events:single-per-city": "node scripts/printSingleEventCities.mjs"
   },
   "devDependencies": {
     "cheerio": "^1.1.2",

@@ -16,25 +16,26 @@ function main() {
   const cities = JSON.parse(fs.readFileSync(CITIES_PATH, 'utf8'));
   const connections = JSON.parse(fs.readFileSync(CONN_PATH, 'utf8'));
 
-  // Deduplicate nodes by name_zh; prefer higher-rank admin types so edges land on a single node
-  const rank = new Map([
-    ['capital', 5], ['prefecture-capital', 4], ['city', 3], ['prefecture', 2], ['county', 1], ['town', 1], ['village', 1], ['port', 3], ['market', 2], ['fort', 1], ['fortress', 1], ['garrison', 1]
-  ]);
-  const unique = new Map();
-  for (const c of cities) {
-    const id = c.name_zh;
-    const r = rank.get((c.type || '').toLowerCase()) || 0;
-    const label = (c.name_pinyin && c.name_pinyin.trim()) ? c.name_pinyin.trim() : id;
-    if (!unique.has(id) || r > unique.get(id)._r) {
-      unique.set(id, { id, label, type: c.type, _r: r });
-    }
-  }
-  const nodes = Array.from(unique.values()).map(({ _r, ...n }) => n);
+  // Build nodes keyed by stable slug id; label from pinyin or zh
+  const nodes = cities.map(c => ({
+    id: c.id,
+    label: (c.name_pinyin && c.name_pinyin.trim()) ? c.name_pinyin.trim() : (c.zh || c.id),
+    type: c.type || 'city'
+  }));
   const nodeIndex = new Map(nodes.map((n, i) => [n.id, i]));
 
   const edges = connections.edges
     .filter(e => nodeIndex.has(e.from) && nodeIndex.has(e.to))
     .map(e => ({ from: e.from, to: e.to, river: !!e.river, surface: e.surface || '' }));
+
+  // Group parallel edges between the same unordered pair to offset them visually
+  function pairKey(a, b) { return a < b ? (a + '|' + b) : (b + '|' + a); }
+  const groups = new Map();
+  for (const e of edges) {
+    const k = pairKey(e.from, e.to);
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(e);
+  }
 
   const data = { nodes, edges };
   const html = `<!doctype html>
@@ -56,6 +57,15 @@ function main() {
   <svg id="g"></svg>
   <script>
   const data = ${JSON.stringify(data)};
+
+  // Build grouped parallel edges per unordered city pair for visual offsets
+  function pairKey(a, b) { return a < b ? (a + '|' + b) : (b + '|' + a); }
+  const groups = new Map();
+  for (const e of data.edges) {
+    const k = pairKey(e.from, e.to);
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(e);
+  }
 
   // Build undirected graph distances for Kamada-Kawai
   const n = data.nodes.length;
@@ -88,8 +98,8 @@ function main() {
 
   const D = floydWarshall();
   const INF = 1e9;
-  const L0 = 40; // spring natural length scale
-  const K0 = 1.0;
+  const L0 = 42; // slightly longer springs for more separation
+  const K0 = 1.2; // a bit stiffer to stabilize
   const L = Array.from({ length: n }, () => Array(n).fill(0));
   const K = Array.from({ length: n }, () => Array(n).fill(0));
   for (let i = 0; i < n; i++) {
@@ -103,16 +113,20 @@ function main() {
     }
   }
 
-  // Init positions on a circle
+  // Init positions on a circle (function for multi-start)
   let X = new Float64Array(n), Y = new Float64Array(n);
-  const R = 250;
-  for (let i = 0; i < n; i++) {
-    const t = 2 * Math.PI * i / n;
-    X[i] = R * Math.cos(t);
-    Y[i] = R * Math.sin(t);
+  function initPositions(jitter = 0.15) {
+    const R = 250;
+    for (let i = 0; i < n; i++) {
+      const base = 2 * Math.PI * i / n;
+      const t = base + (Math.random() - 0.5) * jitter; // small angular jitter
+      const r = R * (1 + (Math.random() - 0.5) * jitter * 0.5);
+      X[i] = r * Math.cos(t);
+      Y[i] = r * Math.sin(t);
+    }
   }
 
-  function kkLayout(maxOuter = 50, eps = 1e-2) {
+  function kkLayout(maxOuter = 4500, eps = 8e-5) {
     function dE(i) {
       let dEx = 0, dEy = 0, d2Exx = 0, d2Eyy = 0, d2Exy = 0;
       const xi = X[i], yi = Y[i];
@@ -157,23 +171,268 @@ function main() {
     }
   }
 
-  kkLayout(1000, 5e-4);
+  // Build unique undirected edges for crossing checks
+  const uniquePairs = [];
+  const seenPairs = new Set();
+  for (const e of data.edges) {
+    const a = idToIdx.get(e.from), b = idToIdx.get(e.to);
+    if (a == null || b == null || a === b) continue;
+    const key = pairKey(a, b);
+    if (!seenPairs.has(key)) { seenPairs.add(key); uniquePairs.push([a, b]); }
+  }
 
-  // Orientation heuristics: bring 燕京 to top; place 杭州 east of 汴京 if needed
-  const idxYJ = idToIdx.get('燕京');
-  const idxGZ = idToIdx.get('廣州');
-  if (idxYJ != null && idxGZ != null) {
-    if (Y[idxYJ] > Y[idxGZ]) { // flip vertically
-      for (let i = 0; i < n; i++) Y[i] = -Y[i];
+  function segsIntersect(a1, a2, b1, b2) {
+    // exclude shared endpoints
+    if (a1 === b1 || a1 === b2 || a2 === b1 || a2 === b2) return false;
+    const x1 = X[a1], y1 = Y[a1], x2 = X[a2], y2 = Y[a2];
+    const x3 = X[b1], y3 = Y[b1], x4 = X[b2], y4 = Y[b2];
+    function orient(ax, ay, bx, by, cx, cy) {
+      const v = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
+      return Math.sign(v);
+    }
+    const o1 = orient(x1, y1, x2, y2, x3, y3);
+    const o2 = orient(x1, y1, x2, y2, x4, y4);
+    const o3 = orient(x3, y3, x4, y4, x1, y1);
+    const o4 = orient(x3, y3, x4, y4, x2, y2);
+    if (o1 === 0 || o2 === 0 || o3 === 0 || o4 === 0) return false; // treat colinear as non-crossing
+    return (o1 !== o2) && (o3 !== o4);
+  }
+
+  function countCrossings() {
+    let c = 0;
+    for (let i = 0; i < uniquePairs.length; i++) {
+      for (let j = i + 1; j < uniquePairs.length; j++) {
+        const [a1, a2] = uniquePairs[i];
+        const [b1, b2] = uniquePairs[j];
+        if (segsIntersect(a1, a2, b1, b2)) c++;
+      }
+    }
+    return c;
+  }
+
+  // Multi-start: try several initializations and keep the one with fewest crossings
+  let bestX = null, bestY = null, bestC = Infinity;
+  const tries = 30;
+  for (let t = 0; t < tries; t++) {
+    initPositions();
+    kkLayout(3200, 3e-4);
+    const c = countCrossings();
+    if (c < bestC) {
+      bestC = c;
+      bestX = new Float64Array(X);
+      bestY = new Float64Array(Y);
+      if (c === 0) break;
     }
   }
-  const idxHZ = idToIdx.get('杭州');
-  const idxKF = idToIdx.get('汴京');
+  if (bestX) { X = bestX; Y = bestY; }
+
+  // Orientation heuristics (optional): place hangzhou east of kaifeng if ids present
+  const idxHZ = idToIdx.get('hangzhou');
+  const idxKF = idToIdx.get('kaifeng');
   if (idxHZ != null && idxKF != null) {
     if (X[idxHZ] < X[idxKF]) {
       for (let i = 0; i < n; i++) X[i] = -X[i];
     }
   }
+
+  // Corridor straightening: ensure key chains lie between their endpoints
+  const corridors = [
+    ['suzhou-js','taizhou','yangzhou']
+  ];
+  function straighten(ids) {
+    const idxs = ids.map(id => idToIdx.get(id)).filter(i => i != null);
+    if (idxs.length < 3) return;
+    const a = idxs[0], b = idxs[idxs.length - 1];
+    const dx = X[b] - X[a], dy = Y[b] - Y[a];
+    const len = Math.hypot(dx, dy) || 1e-6;
+    const px = -dy / len, py = dx / len; // perpendicular unit for tiny offsets
+    for (let k = 1; k < idxs.length - 1; k++) {
+      const t = k / (idxs.length - 1);
+      // For a 3-node corridor like suzhou-js — taizhou — yangzhou, push the middle node further off-line
+      const off = (idxs.length === 3 ? 12 : ((k % 2) ? 4 : -4));
+      const i = idxs[k];
+      X[i] = X[a] + t * dx + px * off;
+      Y[i] = Y[a] + t * dy + py * off;
+    }
+  }
+  for (const c of corridors) straighten(c);
+
+  // Soft constraint: keep changzhou between suzhou-js and taizhou (if present)
+  (function alignChangzhou() {
+    const a = idToIdx.get('suzhou-js');
+    const b = idToIdx.get('taizhou');
+    const m = idToIdx.get('changzhou');
+    if (a == null || b == null || m == null) return;
+    const dx = X[b] - X[a], dy = Y[b] - Y[a];
+    const len = Math.hypot(dx, dy) || 1e-6;
+    const ux = dx / len, uy = dy / len;
+    // place at midpoint with tiny perpendicular offset to separate visuals
+    const mx = (X[a] + X[b]) / 2, my = (Y[a] + Y[b]) / 2;
+    const px = -uy, py = ux; // perpendicular
+    const off = 8; // small offset
+    X[m] = mx + px * off;
+    Y[m] = my + py * off;
+  })();
+
+  // Targeted refinement: nudge Suzhou specifically to reduce crossings
+  ;(function refineSuzhou() {
+    const i = idToIdx.get('suzhou-js');
+    if (i == null) return;
+    function bestAround(radiusList, samples = 36) {
+      let bx = X[i], by = Y[i];
+      let bc = countCrossings();
+      for (const r of radiusList) {
+        let improved = false;
+        for (let s = 0; s < samples; s++) {
+          const ang = (2 * Math.PI * s) / samples;
+          const nx = bx + r * Math.cos(ang);
+          const ny = by + r * Math.sin(ang);
+          const ox = X[i], oy = Y[i];
+          X[i] = nx; Y[i] = ny;
+          const c = countCrossings();
+          if (c < bc) { bc = c; bx = nx; by = ny; improved = true; }
+          X[i] = ox; Y[i] = oy;
+        }
+        X[i] = bx; Y[i] = by;
+        if (!improved) break;
+      }
+    }
+    bestAround([24, 16, 12, 8, 6, 4, 3, 2]);
+  })();
+
+  // Local refinement: hill-climb to reduce crossings by nudging nodes
+  ;(function localRefineCrossings(maxIter = 1500) {
+    function tryMoveNode(i, radius, samples = 12) {
+      const ox = X[i], oy = Y[i];
+      let bestX = ox, bestY = oy;
+      let bestC = countCrossings();
+      for (let s = 0; s < samples; s++) {
+        const ang = (2 * Math.PI * s) / samples;
+        const nx = ox + radius * Math.cos(ang);
+        const ny = oy + radius * Math.sin(ang);
+        X[i] = nx; Y[i] = ny;
+        const c = countCrossings();
+        if (c < bestC) { bestC = c; bestX = nx; bestY = ny; }
+      }
+      X[i] = bestX; Y[i] = bestY;
+      return bestC;
+    }
+    let last = countCrossings();
+    for (let it = 0; it < maxIter; it++) {
+      const radius = Math.max(2, 20 * (1 - it / maxIter));
+      // focus more often on the problematic Jiangnan cluster
+      const focus = ['suzhou-js','taizhou','zhenjiang','yangzhou','huaiyin'];
+      let i;
+      if (Math.random() < 0.6) {
+        const fid = focus[Math.floor(Math.random() * focus.length)];
+        i = idToIdx.get(fid);
+        if (i == null) i = Math.floor(Math.random() * n);
+      } else {
+        i = Math.floor(Math.random() * n);
+      }
+      const after = tryMoveNode(i, radius, 12);
+      if (after === 0) break;
+      // simple stagnation break
+      if (it % 200 === 199) {
+        const now = countCrossings();
+        if (now >= last) break;
+        last = now;
+      }
+    }
+  })();
+
+  // Targeted refinement: nudge Taizhou to reduce local edge congestion
+  ;(function refineTaizhou() {
+    const i = idToIdx.get('taizhou');
+    if (i == null) return;
+    function bestAround(radiusList, samples = 32) {
+      let bx = X[i], by = Y[i];
+      let bc = countCrossings();
+      for (const r of radiusList) {
+        let improved = false;
+        for (let s = 0; s < samples; s++) {
+          const ang = (2 * Math.PI * s) / samples;
+          const nx = bx + r * Math.cos(ang);
+          const ny = by + r * Math.sin(ang);
+          const ox = X[i], oy = Y[i];
+          X[i] = nx; Y[i] = ny;
+          const c = countCrossings();
+          if (c < bc) { bc = c; bx = nx; by = ny; improved = true; }
+          X[i] = ox; Y[i] = oy;
+        }
+        X[i] = bx; Y[i] = by;
+        if (!improved) break;
+      }
+    }
+    bestAround([20, 14, 10, 7, 5, 3, 2]);
+  })();
+
+  // Global orientation: search over 4 rotations x optional mirror to maximize N-S and E-W separation
+  const northIds = ['yanan','kaifeng','huaiyang','huaiyin'];
+  const southIds = ['hangzhou','ningbo','nanchang','jianzhou-fj'];
+  const eastIds  = ['ningbo','suzhou-js','jiaxing'];
+  const westIds  = ['yanan','jiujiang','chizhou'];
+
+  function indicesOf(arr) { return arr.map(id => idToIdx.get(id)).filter(i => i != null); }
+  const northIdx = indicesOf(northIds);
+  const southIdx = indicesOf(southIds);
+  const eastIdx  = indicesOf(eastIds);
+  const westIdx  = indicesOf(westIds);
+
+  function avg(vals) { if (!vals.length) return 0; let s = 0; for (const v of vals) s += v; return s / vals.length; }
+
+  function scoreOrientation(x, y) {
+    const northY = avg(northIdx.map(i => y[i]));
+    const southY = avg(southIdx.map(i => y[i]));
+    const eastX  = avg(eastIdx.map(i => x[i]));
+    const westX  = avg(westIdx.map(i => x[i]));
+    // Larger is better: south below north (higher y), east to the right of west (higher x)
+    return (southY - northY) + (eastX - westX);
+  }
+
+  function applyTransform(theta, mirrorX) {
+    const ct = Math.cos(theta), st = Math.sin(theta);
+    const tx = new Float64Array(n), ty = new Float64Array(n);
+    for (let i = 0; i < n; i++) {
+      let nx =  ct * X[i] - st * Y[i];
+      let ny =  st * X[i] + ct * Y[i];
+      if (mirrorX) nx = -nx;
+      tx[i] = nx; ty[i] = ny;
+    }
+    return { tx, ty };
+  }
+
+  (function orientBest() {
+    let best = -Infinity, bestX = X, bestY = Y;
+    const steps = 360; // try 1-degree increments
+    for (let k = 0; k < steps; k++) {
+      const th = (2 * Math.PI * k) / steps;
+      for (const mirror of [false, true]) {
+        const { tx, ty } = applyTransform(th, mirror);
+        const s = scoreOrientation(tx, ty);
+        if (s > best) { best = s; bestX = tx; bestY = ty; }
+      }
+    }
+    X = bestX; Y = bestY;
+  })();
+
+  // Pull certain nodes slightly inland to avoid edge crossings around Changzhou
+  (function pullInland() {
+    const inlandIds = ['tongzhou','suzhou-js'];
+    // centroid
+    let cx = 0, cy = 0;
+    for (let i = 0; i < n; i++) { cx += X[i]; cy += Y[i]; }
+    cx /= n; cy /= n;
+    for (const id of inlandIds) {
+      const idx = idToIdx.get(id);
+      if (idx == null) continue;
+      X[idx] = cx + (X[idx] - cx) * 0.8;
+      Y[idx] = cy + (Y[idx] - cy) * 0.8;
+    }
+  })();
+
+  // Orientation heuristics (optional): place hangzhou east of kaifeng if ids present
+  // (already applied before straightening)
 
   // Normalize to viewport
   function normalizePositions(width, height, margin = 60) {
@@ -181,32 +440,64 @@ function main() {
     for (let i = 0; i < n; i++) { minX = Math.min(minX, X[i]); maxX = Math.max(maxX, X[i]); minY = Math.min(minY, Y[i]); maxY = Math.max(maxY, Y[i]); }
     const sx = (width - 2*margin) / (maxX - minX || 1);
     const sy = (height - 2*margin) / (maxY - minY || 1);
+    const s = Math.min(sx, sy); // uniform scale to avoid axis squish
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
     for (let i = 0; i < n; i++) {
-      X[i] = margin + (X[i] - minX) * sx;
-      Y[i] = margin + (Y[i] - minY) * sy;
+      X[i] = width/2 + (X[i] - cx) * s;
+      Y[i] = height/2 + (Y[i] - cy) * s;
     }
   }
   const width = window.innerWidth, height = window.innerHeight;
   normalizePositions(width, height);
 
   const svg = document.getElementById('g');
-  // Draw edges
-  for (const e of data.edges) {
-    const i = idToIdx.get(e.from), j = idToIdx.get(e.to);
+  // Draw edges with perpendicular offsets for parallel links
+  const OFF = 6; // px between parallel edges
+  for (const [k, group] of groups.entries()) {
+    // sort so we render river beneath roads/paths
+    group.sort((a, b) => (a.river === b.river) ? 0 : (a.river ? -1 : 1));
+    const aId = group[0].from, bId = group[0].to;
+    const i = idToIdx.get(aId), j = idToIdx.get(bId);
     if (i == null || j == null) continue;
-    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
-    line.setAttribute('x1', X[i]);
-    line.setAttribute('y1', Y[i]);
-    line.setAttribute('x2', X[j]);
-    line.setAttribute('y2', Y[j]);
-    if (e.river && !e.surface) {
-      line.setAttribute('class','river');
-    } else if (e.surface === 'path') {
-      line.setAttribute('class','path');
-    } else {
-      line.setAttribute('class','road');
+    const dx = X[j] - X[i], dy = Y[j] - Y[i];
+    const dist = Math.hypot(dx, dy) || 1e-6;
+    const px = -dy / dist, py = dx / dist; // unit perpendicular
+    const m = group.length;
+    for (let idx = 0; idx < m; idx++) {
+      const e = group[idx];
+      const offset = (idx - (m - 1) / 2) * OFF;
+      const ox = px * offset, oy = py * offset;
+      const x1 = X[i] + ox, y1 = Y[i] + oy;
+      const x2 = X[j] + ox, y2 = Y[j] + oy;
+      if (e.river && !e.surface) {
+        // Rivers as straight lines
+        const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+        line.setAttribute('x1', x1);
+        line.setAttribute('y1', y1);
+        line.setAttribute('x2', x2);
+        line.setAttribute('y2', y2);
+        line.setAttribute('class','river');
+        svg.appendChild(line);
+      } else {
+        // Land edges as gentle quadratic curves to reduce crossings
+        const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+        // control point at midpoint offset further along perpendicular
+        const mx = (x1 + x2) / 2;
+        const my = (y1 + y2) / 2;
+        const CURVE = 0.35 * Math.hypot(dx, dy); // scale with length
+        const cx = mx + px * offset * 1.8; // amplify separation
+        const cy = my + py * offset * 1.8;
+        path.setAttribute('d', 'M ' + x1 + ' ' + y1 + ' Q ' + cx + ' ' + cy + ' ' + x2 + ' ' + y2);
+        if (e.surface === 'path') {
+          path.setAttribute('class','path');
+        } else {
+          path.setAttribute('class','road');
+        }
+        path.setAttribute('fill','none');
+        svg.appendChild(path);
+      }
     }
-    svg.appendChild(line);
   }
 
   // Draw nodes
