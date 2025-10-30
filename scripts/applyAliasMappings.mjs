@@ -131,6 +131,14 @@ const aliasMap = new Map([
     ['安肅 雄州 霸州 廣信', ['yanjing']],
     ['陝西五路', ['xingyuan', 'yanan']],
     ['燕山府', ['yanjing']],
+  // Liao corridor prefectures near Yanjing
+  ['涿州', ['yanjing']],
+  ['易州', ['yanjing']],
+  ['檀州', ['yanjing']],
+  ['順州', ['yanjing']],
+  ['薊州', ['yanjing']],
+  // 景州 sits further south on the Hebei plain; map to Cangzhou hub
+  ['景州', ['cangzhou']],
     ['湖南', ['tanzhou', 'yueyang']],
     ['汴城近郊', ['kaifeng']],
     ['行在都茶場', ['hangzhou']],
