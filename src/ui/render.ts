@@ -1,5 +1,5 @@
 import type { GameState, NodeId, Piece } from '../core/types';
-import { viewingPlayer } from '../core/types';
+import { viewingPlayer, FactionColor } from '../core/types';
 
 // FLIP animation utilities for cards/pieces moving between zones
 const cardKeyMap: WeakMap<any, string> = new WeakMap();
@@ -376,7 +376,8 @@ function drawPieceAt(svg: SVGSVGElement, piece: Piece, state: GameState, x: numb
   rect.setAttribute('width', '16');
   rect.setAttribute('height', '16');
   const owner = state.players.find((p) => p.id === piece.ownerId);
-  rect.setAttribute('fill', owner?.color ?? '#f44');
+  const fill = owner?.faction ? FactionColor[owner.faction] : (owner?.color ?? '#f44');
+  rect.setAttribute('fill', fill);
   (rect as any).setAttribute('data-key', `piece:${piece.id}`);
 
   // If selecting a piece to move

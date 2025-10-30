@@ -91,6 +91,7 @@ const players: PlayerState[] = [
     hand: [redrawCard],
     tucked: [],
     color: '#d33',
+    faction: 'song',
   },
   {
     id: 'P2',
@@ -98,6 +99,7 @@ const players: PlayerState[] = [
     hand: [redrawCard],
     tucked: [],
     color: '#33d',
+    faction: 'jin',
   },
 ];
 

@@ -89,6 +89,7 @@ export interface PlayerState {
   tucked: Card[]; // cards tucked for icons
   color?: string;
   coins?: number;
+  faction?: FactionId;
 }
 
 export type Prompt =
@@ -187,5 +188,15 @@ export function findAdjacentNodes(map: MapGraph, nodeId: NodeId): NodeId[] {
   }
   return Array.from(adjacent);
 }
+
+// Factions
+export type FactionId = 'song' | 'jin' | 'daqi' | 'rebel';
+
+export const FactionColor: Record<FactionId, string> = {
+  song: '#d33',   // Song: Red
+  jin: '#f0c419', // Jin: Gold
+  daqi: '#2ecc71', // Da Qi: Green
+  rebel: '#000',  // Rebel: Black
+};
 
 
