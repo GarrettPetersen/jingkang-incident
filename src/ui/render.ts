@@ -1,6 +1,9 @@
 import type { GameState, NodeId, Piece } from '../core/types';
 import { viewingPlayer, FactionColor } from '../core/types';
 
+// Visual constants
+const SHIP_H = 8; // ship visual height (about half of the 16px cube/horse slot)
+
 // FLIP animation utilities for cards/pieces moving between zones
 const cardKeyMap: WeakMap<any, string> = new WeakMap();
 let cardKeyCounter = 0;
@@ -187,37 +190,103 @@ function renderRightPanel(state: GameState): HTMLElement {
 
 function renderBoard(state: GameState, handlers: any): HTMLElement {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', '0 0 1200 800');
-  svg.style.border = '1px solid #555';
-  svg.style.background = '#111';
+  const VIEW_W = 1200;
+  const VIEW_H = 800;
+  svg.setAttribute('viewBox', `0 0 ${VIEW_W} ${VIEW_H}`);
+  svg.style.border = 'none';
+  svg.style.background = '#fff';
   svg.style.width = '100%';
   svg.style.height = '100%';
 
+  // Pan/zoom container
+  let scale = 1;
+  let tx = 0, ty = 0;
+  const scene = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  function applyTransform() {
+    scene.setAttribute('transform', `translate(${tx},${ty}) scale(${scale})`);
+  }
+  function clampPan() {
+    const w = svg.clientWidth || 0;
+    const h = svg.clientHeight || 0;
+    const contentW = VIEW_W * scale;
+    const contentH = VIEW_H * scale;
+    if (contentW <= w) {
+      tx = Math.round((w - contentW) / 2);
+    } else {
+      const minTx = w - contentW;
+      const maxTx = 0;
+      if (tx < minTx) tx = minTx;
+      if (tx > maxTx) tx = maxTx;
+    }
+    if (contentH <= h) {
+      ty = Math.round((h - contentH) / 2);
+    } else {
+      const minTy = h - contentH;
+      const maxTy = 0;
+      if (ty < minTy) ty = minTy;
+      if (ty > maxTy) ty = maxTy;
+    }
+  }
+  applyTransform();
+
   // Color tint filters for capital markers (use SourceAlpha to flood with a color)
   const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-  function makeTintFilter(id: string, color: string) {
+  function makeTintFilter(id: string, color: string, stroke: string) {
     const f = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
     f.setAttribute('id', id);
-    const flood = document.createElementNS('http://www.w3.org/2000/svg', 'feFlood');
-    flood.setAttribute('flood-color', color);
-    flood.setAttribute('result', 'flood');
-    const comp = document.createElementNS('http://www.w3.org/2000/svg', 'feComposite');
-    comp.setAttribute('in', 'flood');
-    comp.setAttribute('in2', 'SourceAlpha');
-    comp.setAttribute('operator', 'in');
-    comp.setAttribute('result', 'mask');
+    // Outline: dilate SourceAlpha then color it with stroke
+    const morph = document.createElementNS('http://www.w3.org/2000/svg', 'feMorphology');
+    morph.setAttribute('in', 'SourceAlpha');
+    morph.setAttribute('operator', 'dilate');
+    morph.setAttribute('radius', '1.5');
+    morph.setAttribute('result', 'outline');
+    const floodOutline = document.createElementNS('http://www.w3.org/2000/svg', 'feFlood');
+    floodOutline.setAttribute('flood-color', stroke);
+    floodOutline.setAttribute('result', 'strokeColor');
+    const compOutline = document.createElementNS('http://www.w3.org/2000/svg', 'feComposite');
+    compOutline.setAttribute('in', 'strokeColor');
+    compOutline.setAttribute('in2', 'outline');
+    compOutline.setAttribute('operator', 'in');
+    compOutline.setAttribute('result', 'strokeLayer');
+    // Fill: mask original shape and color
+    const floodFill = document.createElementNS('http://www.w3.org/2000/svg', 'feFlood');
+    floodFill.setAttribute('flood-color', color);
+    floodFill.setAttribute('result', 'fillColor');
+    const compFill = document.createElementNS('http://www.w3.org/2000/svg', 'feComposite');
+    compFill.setAttribute('in', 'fillColor');
+    compFill.setAttribute('in2', 'SourceAlpha');
+    compFill.setAttribute('operator', 'in');
+    compFill.setAttribute('result', 'fillLayer');
+    // Merge outline below, fill above
     const merge = document.createElementNS('http://www.w3.org/2000/svg', 'feMerge');
-    const node = document.createElementNS('http://www.w3.org/2000/svg', 'feMergeNode');
-    node.setAttribute('in', 'mask');
-    merge.appendChild(node);
-    f.appendChild(flood);
-    f.appendChild(comp);
+    const n1 = document.createElementNS('http://www.w3.org/2000/svg', 'feMergeNode');
+    n1.setAttribute('in', 'strokeLayer');
+    const n2 = document.createElementNS('http://www.w3.org/2000/svg', 'feMergeNode');
+    n2.setAttribute('in', 'fillLayer');
+    merge.appendChild(n1);
+    merge.appendChild(n2);
+    f.appendChild(morph);
+    f.appendChild(floodOutline);
+    f.appendChild(compOutline);
+    f.appendChild(floodFill);
+    f.appendChild(compFill);
     f.appendChild(merge);
     defs.appendChild(f);
   }
-  makeTintFilter('tint-red', '#d33');
-  makeTintFilter('tint-gold', '#f0c419');
+  function tone(hex: string, factor: number): string {
+    let h = hex.replace('#',''); if (h.length === 3) h = h.split('').map(c=>c+c).join('');
+    const r = Math.max(0, Math.min(255, Math.round(parseInt(h.slice(0,2),16) * factor)));
+    const g = Math.max(0, Math.min(255, Math.round(parseInt(h.slice(2,4),16) * factor)));
+    const b = Math.max(0, Math.min(255, Math.round(parseInt(h.slice(4,6),16) * factor)));
+    const toHex = (v: number) => v.toString(16).padStart(2,'0');
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+  }
+  makeTintFilter('tint-red', '#d33', tone('#d33', 0.8));
+  makeTintFilter('tint-gold', '#f0c419', tone('#f0c419', 0.8));
+  makeTintFilter('tint-green', '#2ecc71', tone('#2ecc71', 0.8));
+  makeTintFilter('tint-black', '#000', tone('#000', 1.6));
   svg.appendChild(defs);
+  svg.appendChild(scene);
 
   // edges with offsets per unordered pair and dashed style for paths
   function pairKey(a: string, b: string) { return a < b ? `${a}|${b}` : `${b}|${a}`; }
@@ -229,8 +298,8 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
     groups.set(k, { a: e.a, b: e.b, kinds: Array.from(set) });
   }
   const OFF = 6; // px between parallel edges
-  const ROAD_STROKE = '#b89';
-  const WATER_STROKE = '#4aa3';
+  const ROAD_STROKE = '#8b5a2b'; // brown
+  const WATER_STROKE = '#2e86de'; // blue
   groups.forEach(({ a, b, kinds }) => {
     const na = state.map.nodes[a];
     const nb = state.map.nodes[b];
@@ -249,7 +318,7 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
       const x1 = na.x + ox, y1 = na.y + oy;
       const x2 = nb.x + ox, y2 = nb.y + oy;
       if (kind === 'river') {
-        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         line.setAttribute('x1', String(x1));
         line.setAttribute('y1', String(y1));
         line.setAttribute('x2', String(x2));
@@ -257,7 +326,7 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
         line.setAttribute('stroke', WATER_STROKE);
         line.setAttribute('stroke-width', '6');
         line.setAttribute('stroke-linecap', 'round');
-        svg.appendChild(line);
+        scene.appendChild(line);
       } else {
         const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         line.setAttribute('x1', String(x1));
@@ -269,18 +338,21 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
         if (kind === 'path') {
           line.setAttribute('stroke-dasharray', '6 4');
         }
-        svg.appendChild(line);
+        scene.appendChild(line);
       }
     }
   });
 
   // nodes
+  // Determine controlling factions per node
+  const controllersByNode: Record<string, string[]> = computeControllers(state);
+
   for (const n of Object.values(state.map.nodes)) {
     const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     circle.setAttribute('cx', String(n.x));
     circle.setAttribute('cy', String(n.y));
     circle.setAttribute('r', '10');
-    circle.setAttribute('fill', '#ddd');
+    circle.setAttribute('fill', '#bbb');
 
     if (state.prompt?.kind === 'selectNode') {
       if (state.prompt.nodeOptions.includes(n.id)) {
@@ -295,17 +367,51 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
       circle.style.cursor = 'pointer';
       circle.addEventListener('click', () => handlers.onSelectNode(n.id));
     }
-    svg.appendChild(circle);
+    scene.appendChild(circle);
+
+    // Overlay control coloring (faded). Supports any number of controlling factions by slicing the circle.
+    const ctrls = controllersByNode[n.id] ?? [];
+    if (ctrls.length === 1) {
+      const fill = FactionColor[ctrls[0] as keyof typeof FactionColor] ?? '#888';
+      const top = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      top.setAttribute('cx', String(n.x));
+      top.setAttribute('cy', String(n.y));
+      top.setAttribute('r', '10');
+      top.setAttribute('fill', fill);
+      top.setAttribute('fill-opacity', '0.35');
+      scene.appendChild(top);
+    } else if (ctrls.length > 1) {
+      const k = ctrls.length;
+      for (let i = 0; i < k; i++) {
+        const c = FactionColor[ctrls[i] as keyof typeof FactionColor] ?? '#888';
+        const start = (i / k) * Math.PI * 2;
+        const end = ((i + 1) / k) * Math.PI * 2;
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        const r = 10;
+        const x1 = n.x + r * Math.cos(start);
+        const y1 = n.y + r * Math.sin(start);
+        const x2 = n.x + r * Math.cos(end);
+        const y2 = n.y + r * Math.sin(end);
+        const large = end - start > Math.PI ? 1 : 0;
+        const d = `M ${n.x} ${n.y} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`;
+        path.setAttribute('d', d);
+        path.setAttribute('fill', c);
+        path.setAttribute('fill-opacity', '0.35');
+        scene.appendChild(path);
+      }
+    }
 
     const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     label.setAttribute('x', String(n.x + 12));
     label.setAttribute('y', String(n.y + 4));
-    label.setAttribute('fill', '#eee');
+    label.setAttribute('fill', '#222');
     label.textContent = n.label ?? n.id;
-    svg.appendChild(label);
+    scene.appendChild(label);
   }
 
-  // pieces (group by node and spread so they don't overlap)
+  // pieces (group by node and pack into 3-column rows with width-aware packing)
+  // Track the top-most pixel of any drawn piece per node for capital placement
+  const pieceTopByNode: Record<string, number> = {};
   const byNode: Record<string, Piece[]> = {};
   for (const piece of Object.values(state.pieces)) {
     if (piece.location.kind === 'node') {
@@ -313,27 +419,144 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
       (byNode[nid] ??= []).push(piece);
     }
   }
-  for (const [nodeId, pieces] of Object.entries(byNode)) {
-    const node = state.map.nodes[nodeId];
-    const count = pieces.length;
-    const cols = Math.ceil(Math.sqrt(count));
-    const rows = Math.ceil(count / cols);
-    const spacing = 14; // pixels between pieces in the grid
-    for (let i = 0; i < count; i++) {
-      const piece = pieces[i];
-      const row = Math.floor(i / cols);
-      const col = i % cols;
-      const dx = (col - (cols - 1) / 2) * spacing;
-      const dy = (row - (rows - 1) / 2) * spacing;
-      drawPieceAt(svg, piece, state, node.x + dx, node.y - 24 + dy);
-    }
+
+  function getPieceWidth(piece: Piece): number {
+    const t = (state.pieceTypes as any)[piece.typeId] as { width?: number; shape?: string } | undefined;
+    if (t?.width) return t.width;
+    // fallback heuristic by id/name if width not provided
+    const id = (state.pieceTypes as any)[piece.typeId]?.id?.toLowerCase?.() ?? '';
+    const name = (state.pieceTypes as any)[piece.typeId]?.name?.toLowerCase?.() ?? '';
+    if (id.includes('ship') || name.includes('ship') || id.includes('capital') || name.includes('capital')) return 3;
+    return 1;
   }
 
-  // Capital markers: render special SVGs at specified cities
-  const capitals: Array<{ nodeId: string; filterId: string }> = [
-    { nodeId: 'huaiyang', filterId: 'tint-red' },
-    { nodeId: 'yanjing', filterId: 'tint-gold' },
-  ];
+  function inferShape(piece: Piece): 'cube' | 'horse' | 'ship' {
+    const t = (state.pieceTypes as any)[piece.typeId] as { shape?: string } | undefined;
+    const s = (t?.shape ?? 'cube').toLowerCase();
+    if (s === 'horse') return 'horse';
+    if (s === 'ship') return 'ship';
+    return 'cube';
+  }
+
+  function isCapitalPiece(piece: Piece): boolean {
+    const t = (state.pieceTypes as any)[piece.typeId] as { shape?: string } | undefined;
+    const s = (t?.shape ?? '').toLowerCase();
+    return s === 'capital' || piece.typeId === 'capital';
+  }
+
+
+  type LayoutItem = { piece: Piece; row: number; col: number; span: number };
+  function packPieces3Wide(pieces: Piece[]): LayoutItem[] {
+    // Exclude capitals from layout packing; they are drawn as overlays and should not reserve space
+    pieces = pieces.filter(p => !isCapitalPiece(p));
+    const ones: Piece[] = [];
+    const threeShips: Piece[] = [];
+    const threeOthers: Piece[] = [];
+    for (const p of pieces) {
+      if (getPieceWidth(p) >= 3) {
+        if (inferShape(p) === 'ship') threeShips.push(p);
+        else threeOthers.push(p);
+      } else ones.push(p);
+    }
+
+    // Build bands with variable heights: 1.0 for full row, 0.5 for a single ship
+    type Band = { height: number; items: Array<{ piece: Piece; span: number; col?: number; vslot?: number }>; };
+    const bands: Band[] = [];
+
+    // 3-wide non-ships: each takes a full band
+    for (const p of threeOthers) bands.push({ height: 1, items: [{ piece: p, span: 3 }] });
+
+    // Pair ships: two ships per full band; leftover single ship takes a half band
+    for (let i = 0; i < threeShips.length; ) {
+      if (i + 1 < threeShips.length) {
+        bands.push({ height: 1, items: [
+          { piece: threeShips[i++], span: 3, vslot: 0 },
+          { piece: threeShips[i++], span: 3, vslot: 1 },
+        ]});
+      } else {
+        bands.push({ height: 0.5, items: [ { piece: threeShips[i++], span: 3, vslot: 0 } ] });
+      }
+    }
+
+    // 1-wide pieces: rows of up to 3, centered pattern (2 -> cols 0 & 2, 1 -> col 1)
+    for (let i = 0; i < ones.length; ) {
+      const remaining = ones.length - i;
+      if (remaining >= 3) {
+        bands.push({ height: 1, items: [
+          { piece: ones[i++], span: 1, col: 0 },
+          { piece: ones[i++], span: 1, col: 1 },
+          { piece: ones[i++], span: 1, col: 2 },
+        ]});
+      } else if (remaining === 2) {
+        bands.push({ height: 1, items: [
+          { piece: ones[i++], span: 1, col: 0 },
+          { piece: ones[i++], span: 1, col: 2 },
+        ]});
+      } else { // 1 remaining
+        bands.push({ height: 1, items: [ { piece: ones[i++], span: 1, col: 1 } ] });
+      }
+    }
+
+    // Convert bands into layout items with fractional row indices; bottom anchored at row 0
+    // totalHeight could be used for future vertical metrics
+    // const totalHeight = bands.reduce((s, b) => s + b.height, 0);
+    const layout: LayoutItem[] = [];
+    let cursor = 0; // accumulated height from bottom
+    bands.forEach((band) => {
+      if (band.height === 1 && band.items.length === 2 && band.items[0].span === 3 && band.items[1].span === 3) {
+        // two ships in one band: place at cursor and cursor+0.5
+        layout.push({ piece: band.items[0].piece, row: cursor, col: 1, span: 3 });
+        layout.push({ piece: band.items[1].piece, row: cursor + 0.5, col: 1, span: 3 });
+      } else {
+        // all others: place at this band start
+        const r = cursor;
+        for (const it of band.items) {
+          layout.push({ piece: it.piece, row: r, col: it.col ?? 1, span: it.span });
+        }
+      }
+      cursor += band.height;
+    });
+    return layout;
+  }
+
+  for (const [nodeId, pieces] of Object.entries(byNode)) {
+    const node = state.map.nodes[nodeId];
+    if (!node) continue;
+    const layout = packPieces3Wide(pieces);
+    if (layout.length === 0) continue;
+    const spacing = 14; // pixel spacing between rows
+    let minTop = Infinity;
+    for (const it of layout) {
+      const dy = -it.row * spacing;
+      let dx = 0;
+      if (it.span === 3) dx = 0; else dx = (it.col - 1) * spacing;
+      const slotTopY = node.y - 24 + dy;
+      // Estimate visual top of the piece for capital placement
+      const shape = inferShape(it.piece);
+      const visualTopY = shape === 'ship' ? (slotTopY + (16 - SHIP_H) / 2) : slotTopY;
+      if (visualTopY < minTop) minTop = visualTopY;
+      drawPieceAt(scene as unknown as SVGSVGElement, it.piece, state, node.x + dx, slotTopY);
+    }
+    if (minTop !== Infinity) pieceTopByNode[nodeId] = minTop;
+  }
+
+  // Capital markers: derive from pieces of type 'capital' and tint by piece faction
+  function factionFilterId(f: string | undefined): string {
+    if (f === 'song') return 'tint-red';
+    if (f === 'jin') return 'tint-gold';
+    if (f === 'daqi') return 'tint-green';
+    return 'tint-black';
+  }
+  const capitals: Array<{ nodeId: string; filterId: string }> = [];
+  for (const piece of Object.values(state.pieces)) {
+    if (piece.location.kind !== 'node') continue;
+    const t = (state.pieceTypes as any)[piece.typeId] as { shape?: string } | undefined;
+    const shape = (t?.shape ?? '').toLowerCase();
+    if (shape === 'capital' || piece.typeId === 'capital') {
+      const fac = piece.faction ?? (piece.ownerId ? state.players.find(p => p.id === piece.ownerId)?.faction : undefined);
+      capitals.push({ nodeId: piece.location.nodeId, filterId: factionFilterId(fac) });
+    }
+  }
   const CAPITAL_SIZE = 48; // ~ three cubes wide (each cube is 16px)
   const CAPITAL_GAP = 0; // pixels between capital bottom and top of piece grid
   for (const cap of capitals) {
@@ -341,7 +564,7 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
     if (!node) continue;
     // Position so the icon is centered horizontally; vertical will be adjusted after load
     const x = node.x - CAPITAL_SIZE / 2;
-    // Start with a conservative guess; we'll snap the bottom flush with the piece grid once loaded
+    // Initial guess; will be snapped after load using measured height
     const y = node.y - 24 - CAPITAL_SIZE - CAPITAL_GAP;
 
     const img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
@@ -359,36 +582,201 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
       try {
         const bbox = (img as unknown as SVGGraphicsElement).getBBox();
         const h = bbox?.height ?? CAPITAL_SIZE;
-        img.setAttribute('y', String(node.y - 24 - CAPITAL_GAP - h));
+        // If there are pieces, sit capital flush above the topmost piece. Otherwise, sit on the city circle (no gap)
+        const topOfStack = pieceTopByNode[cap.nodeId];
+        const circleTop = node.y - 10; // node circle radius is 10
+        const bottom = (topOfStack !== undefined) ? topOfStack - CAPITAL_GAP : circleTop;
+        img.setAttribute('y', String(bottom - h));
       } catch {}
     });
-    svg.appendChild(img);
+    scene.appendChild(img);
   }
+
+  // Enable zoom & pan
+  svg.style.cursor = 'grab';
+  svg.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const rect = svg.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const prevScale = scale;
+    const delta = -Math.sign(e.deltaY) * 0.1;
+    scale = Math.min(3, Math.max(0.5, scale + delta));
+    const k = scale / prevScale;
+    tx = mx - k * (mx - tx);
+    ty = my - k * (my - ty);
+    clampPan();
+    applyTransform();
+  }, { passive: false });
+  let panning = false; let sx = 0; let sy = 0; let stx = 0; let sty = 0;
+  svg.addEventListener('mousedown', (e) => {
+    panning = true; sx = e.clientX; sy = e.clientY; stx = tx; sty = ty; svg.style.cursor = 'grabbing';
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (!panning) return;
+    tx = stx + (e.clientX - sx);
+    ty = sty + (e.clientY - sy);
+    clampPan();
+    applyTransform();
+  });
+  window.addEventListener('mouseup', () => { if (panning) { panning = false; svg.style.cursor = 'grab'; } });
 
   return svg as unknown as HTMLElement;
 }
 
+function computeControllers(state: GameState): Record<string, string[]> {
+  const controllers: Record<string, string[]> = {};
+  const landKinds = new Set(['road', 'path']);
+  const waterKinds = new Set(['river', 'canal', 'coast', 'lake']);
+
+  // Pieces by node and faction
+  const piecesByNode: Record<string, Record<string, number>> = {};
+  for (const piece of Object.values(state.pieces)) {
+    if (piece.location.kind !== 'node') continue;
+    const nodeId = piece.location.nodeId;
+    const faction = piece.faction ?? (piece.ownerId ? state.players.find(p => p.id === piece.ownerId)?.faction : undefined);
+    if (!faction) continue;
+    piecesByNode[nodeId] ??= {};
+    piecesByNode[nodeId][faction] = (piecesByNode[nodeId][faction] ?? 0) + 1;
+  }
+
+  const playerFactions = Array.from(new Set(Object.values(state.players).map(p => p.faction).filter(Boolean) as string[]));
+  const pieceFactions = Array.from(new Set(Object.values(state.pieces).map(pc => (pc.faction ?? (pc.ownerId ? state.players.find(p => p.id === pc.ownerId)?.faction : undefined))).filter(Boolean) as string[]));
+  const factions = Array.from(new Set([...playerFactions, ...pieceFactions]));
+
+  // Precompute adjacency per piece (one-edge reach) by movement type
+  function neighborsByKinds(nodeId: string, kinds: Set<string>): string[] {
+    const out: string[] = [];
+    for (const e of Object.values(state.map.edges)) {
+      if (!e.kinds || e.kinds.length === 0) continue;
+      const has = e.kinds.some(k => kinds.has(k));
+      if (!has) continue;
+      if (e.a === nodeId) out.push(e.b);
+      else if (e.b === nodeId) out.push(e.a);
+    }
+    return out;
+  }
+
+  // Index neighbors per node for both land and water
+  const landNeighbors: Record<string, string[]> = {};
+  const waterNeighbors: Record<string, string[]> = {};
+  for (const nid of Object.keys(state.map.nodes)) {
+    landNeighbors[nid] = neighborsByKinds(nid, landKinds);
+    waterNeighbors[nid] = neighborsByKinds(nid, waterKinds);
+  }
+
+  // Pieces grouped by faction
+  const piecesByFaction: Record<string, Array<{ nodeId: string; typeId: string }>> = {};
+  for (const piece of Object.values(state.pieces)) {
+    if (piece.location.kind !== 'node') continue;
+    const faction = piece.faction ?? (piece.ownerId ? state.players.find(p => p.id === piece.ownerId)?.faction : undefined);
+    if (!faction) continue;
+    (piecesByFaction[faction] ??= []).push({ nodeId: piece.location.nodeId, typeId: piece.typeId });
+  }
+
+  for (const nodeId of Object.keys(state.map.nodes)) {
+    // Rule (1): presence
+    const present = piecesByNode[nodeId];
+    if (present) {
+      controllers[nodeId] = Object.keys(present);
+      continue;
+    }
+
+    // Rule (2): single-faction adjacency by correct movement type
+    const contenders: Set<string> = new Set();
+    for (const faction of factions) {
+      const ps = piecesByFaction[faction] ?? [];
+      let qualifies = false;
+      for (const { nodeId: from, typeId } of ps) {
+        const isShip = typeId === 'ship';
+        const neigh = isShip ? waterNeighbors[from] : landNeighbors[from];
+        if (neigh.includes(nodeId)) { qualifies = true; break; }
+      }
+      if (qualifies) contenders.add(faction);
+      if (contenders.size > 1) break;
+    }
+    if (contenders.size === 1) controllers[nodeId] = Array.from(contenders);
+  }
+
+  return controllers;
+}
+
+function darken(hex: string, factor: number): string {
+  // factor < 1 darkens, > 1 lightens
+  let h = hex.replace('#','');
+  if (h.length === 3) h = h.split('').map(c => c + c).join('');
+  const r = Math.max(0, Math.min(255, Math.round(parseInt(h.slice(0,2),16) * factor)));
+  const g = Math.max(0, Math.min(255, Math.round(parseInt(h.slice(2,4),16) * factor)));
+  const b = Math.max(0, Math.min(255, Math.round(parseInt(h.slice(4,6),16) * factor)));
+  const toHex = (v: number) => v.toString(16).padStart(2,'0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
 function drawPieceAt(svg: SVGSVGElement, piece: Piece, state: GameState, x: number, y: number): void {
   if (piece.location.kind !== 'node') return;
+  const owner = piece.ownerId ? state.players.find((p) => p.id === piece.ownerId) : undefined;
+  const faction = piece.faction ?? owner?.faction;
+  const fill = faction ? FactionColor[faction as keyof typeof FactionColor] : (owner?.color ?? '#f44');
+  const stroke = faction === 'rebel' ? darken(fill, 1.6) : darken(fill, 0.8);
+
+  const type = (state.pieceTypes as any)[piece.typeId] as { shape?: string; width?: number } | undefined;
+  const shape = type?.shape ?? 'cube';
+
+  let el: SVGElement;
+  if (shape === 'ship' || (type?.width ?? 1) >= 3) {
+    // Long rectangle spanning 3 columns: width = 2*spacing + 16
+    const spacing = 14;
+    const W = 2 * spacing + 16;
+    const H = shape === 'ship' ? SHIP_H : 10;
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', String(x - W / 2));
+    rect.setAttribute('y', String(y + (16 - H) / 2));
+    rect.setAttribute('width', String(W));
+    rect.setAttribute('height', String(H));
+    rect.setAttribute('rx', '3');
+    rect.setAttribute('ry', '3');
+    rect.setAttribute('fill', fill);
+    rect.setAttribute('stroke', stroke);
+    rect.setAttribute('stroke-width', '2');
+    // Do not render actual capital rectangles; handled by overlay
+    if ((type?.shape ?? '').toLowerCase() === 'capital' || piece.typeId === 'capital') {
+      return;
+    }
+    el = rect;
+  } else if (shape === 'horse') {
+    // Up-pointing triangle within 16x16 box
+    const tri = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    const p1 = `${x},${y}`;            // top center
+    const p2 = `${x - 8},${y + 16}`;   // bottom left
+    const p3 = `${x + 8},${y + 16}`;   // bottom right
+    tri.setAttribute('points', `${p1} ${p2} ${p3}`);
+    tri.setAttribute('fill', fill);
+    tri.setAttribute('stroke', stroke);
+    tri.setAttribute('stroke-width', '2');
+    el = tri;
+  } else {
+    // cube (default): 16x16 square centered horizontally, y is top
   const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
   rect.setAttribute('x', String(x - 8));
   rect.setAttribute('y', String(y));
   rect.setAttribute('width', '16');
   rect.setAttribute('height', '16');
-  const owner = state.players.find((p) => p.id === piece.ownerId);
-  const fill = owner?.faction ? FactionColor[owner.faction] : (owner?.color ?? '#f44');
-  rect.setAttribute('fill', fill);
-  (rect as any).setAttribute('data-key', `piece:${piece.id}`);
-
-  // If selecting a piece to move
-  if (state.prompt?.kind === 'selectPiece' && state.prompt.pieceIds.includes(piece.id)) {
-    rect.style.cursor = 'pointer';
-    rect.setAttribute('stroke', '#ff0');
+    rect.setAttribute('fill', fill);
+    rect.setAttribute('stroke', stroke);
     rect.setAttribute('stroke-width', '2');
-    rect.addEventListener('click', () => (window as any).onSelectPiece?.(piece.id));
+    el = rect;
   }
 
-  svg.appendChild(rect);
+  (el as any).setAttribute('data-key', `piece:${piece.id}`);
+
+  if (state.prompt?.kind === 'selectPiece' && state.prompt.pieceIds.includes(piece.id)) {
+    (el as any).style.cursor = 'pointer';
+    el.setAttribute('stroke', '#ff0');
+    el.setAttribute('stroke-width', '2');
+    el.addEventListener('click', () => (window as any).onSelectPiece?.(piece.id));
+  }
+
+  svg.appendChild(el);
 }
 
 // Legacy helper, no longer used
@@ -525,7 +913,7 @@ function renderOpponents(state: GameState): HTMLElement {
   bar.style.justifyContent = 'center';
   bar.style.gap = '16px';
   const viewer = viewingPlayer(state);
-  const opponents = state.players.filter((p) => p.id !== viewer.id);
+  const opponents = state.players.filter((p) => p.id !== viewer.id && p.faction !== 'rebel');
   for (const opp of opponents) {
     const panel = document.createElement('div');
     panel.style.display = 'flex';

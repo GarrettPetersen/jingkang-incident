@@ -10,8 +10,8 @@ const pieceTypes: Record<string, PieceType> = {
 };
 
 const pieces: Record<string, Piece> = {
-  p1: { id: 'p1', ownerId: 'P1', typeId: 'cubeRed', location: { kind: 'node', nodeId: 'hangzhou' } },
-  p2: { id: 'p2', ownerId: 'P2', typeId: 'cubeBlue', location: { kind: 'node', nodeId: 'kaifeng' } },
+  p1: { id: 'p1', faction: 'song', typeId: 'cubeRed', location: { kind: 'node', nodeId: 'hangzhou' } },
+  p2: { id: 'p2', faction: 'jin',  typeId: 'cubeBlue', location: { kind: 'node', nodeId: 'kaifeng' } },
 };
 
 const moveCard: Card = {

@@ -1,0 +1,42 @@
+{
+  "id": "first-jin-song-1127-1130",
+  "name": "First Jin–Song War Setup",
+  "version": 1,
+  "players": [
+    { "id": "yue-fei", "faction": "song", "name": "Yue Fei", "startingHand": [], "tucked": [], "coins": 0 },
+    { "id": "qin-hui", "faction": "song", "name": "Qin Hui", "startingHand": [], "tucked": [], "coins": 0 },
+    { "id": "wuzhu", "faction": "jin", "name": "Wuzhu", "startingHand": [], "tucked": [], "coins": 0 },
+    { "id": "talan", "faction": "jin", "name": "Talan", "startingHand": [], "tucked": [], "coins": 0 },
+    { "id": "liu-yu", "faction": "daqi", "name": "Liu Yu", "startingHand": [], "tucked": [], "coins": 0 }
+  ],
+  "global": {
+    "tucked": [],
+    "drawPile": [],
+    "discardPile": []
+  },
+  "decks": {
+    "event": { "cards": [] },
+    "ops": { "cards": [] }
+  },
+  "pieces": [
+    { "type": "capital", "faction": "jin",  "nodeId": "yanjing",  "count": 1 },
+    { "type": "horse",   "faction": "jin",  "nodeId": "yanjing",  "count": 4 },
+    { "type": "horse",   "faction": "jin",  "nodeId": "shangjing","count": 3 },
+
+    { "type": "capital", "faction": "song", "nodeId": "huaiyang","count": 1 },
+    { "type": "foot",    "faction": "song", "nodeId": "huaiyang","count": 1 },
+    { "type": "foot",    "faction": "song", "nodeId": "chengdu", "count": 1 },
+    { "type": "foot",    "faction": "song", "nodeId": "xiangyang","count": 1 },
+    { "type": "ship",    "faction": "song", "nodeId": "yangzhou","count": 1 },
+    { "type": "ship",    "faction": "song", "nodeId": "nanjing","count": 1 },
+    { "type": "ship",    "faction": "song", "nodeId": "jiujiang","count": 1 },
+    { "type": "foot",    "faction": "song", "nodeId": "nanchang","count": 1 },
+    { "type": "foot",    "faction": "song", "nodeId": "shaoxing","count": 1 },
+    { "type": "foot",    "faction": "song", "nodeId": "suzhou-js",  "count": 1 },
+    { "type": "ship",    "faction": "song", "nodeId": "quanzhou","count": 1 },
+
+    { "type": "foot",    "faction": "rebel","nodeId": "kaifeng","count": 1 }
+  ]
+}
+
+

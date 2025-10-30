@@ -36,6 +36,11 @@ export interface PieceType {
   name: string;
   svg?: string; // optional inline SVG path or asset key
   color?: string;
+  // Optional layout/rendering hints
+  // width in grid columns (defaults to 1; ships/capitals use 3)
+  width?: number;
+  // optional semantic shape for renderer
+  shape?: 'cube' | 'horse' | 'ship' | 'capital';
 }
 
 export type Location =
@@ -44,7 +49,9 @@ export type Location =
 
 export interface Piece {
   id: PieceId;
-  ownerId: PlayerId;
+  // Future: player-character standees may use ownerId; normal forces are faction-owned
+  ownerId?: PlayerId;
+  faction?: FactionId;
   typeId: PieceTypeId;
   location: Location;
 }
@@ -145,6 +152,7 @@ export interface GameState {
   gameOver: boolean;
   winnerId?: PlayerId;
   log: GameLogEntry[];
+  diplomacy?: DiplomacyMatrix;
 }
 
 export function getPlayerById(state: GameState, playerId: PlayerId): PlayerState | undefined {
@@ -198,5 +206,9 @@ export const FactionColor: Record<FactionId, string> = {
   daqi: '#2ecc71', // Da Qi: Green
   rebel: '#000',  // Rebel: Black
 };
+
+// Diplomacy
+export type Posture = 'neutral' | 'allied' | 'enemy';
+export type DiplomacyMatrix = Record<FactionId, Record<FactionId, Posture>>;
 
 
