@@ -3,7 +3,7 @@ import { initialState } from './sample/sampleData'
 import { renderApp } from './ui/render'
 import { endTurn, getTurnStartSnapshot } from './core/engine'
 import { inputSelectAdjacentNode, inputSelectNode, inputSelectPiece, playCard, startTurn } from './core/engine'
-import type { Card, GameState, Piece, PieceType, DiplomacyMatrix, FactionId } from './core/types'
+import type { Card, GameState, Piece, PieceType, DiplomacyMatrix, FactionId, Character } from './core/types'
 import { map as boardMap } from './map/board'
 
 let state: GameState = initialState
@@ -80,7 +80,7 @@ async function loadScenarioOrFallback() {
     state = initialState
   }
   startTurn(state)
-  rerender()
+rerender()
 }
 
 function asCards(arr: any[] | undefined): Card[] {
@@ -154,6 +154,29 @@ function buildStateFromScenario(scn: any): GameState {
     }
   }
 
+  // Characters (player standees)
+  const characters: Record<string, Character> = {}
+  let cCounter = 0
+  for (const ch of (scn.characters ?? [])) {
+    const id = ch.id ?? `ch${++cCounter}`
+    const playerId = String(ch.playerId ?? '')
+    const name = String((ch.name ?? playerId) || id)
+    const faction = (ch.faction !== undefined && ch.faction !== null) ? String(ch.faction) as FactionId : undefined
+    const nodeId = String(ch.nodeId ?? '')
+    if (!validNodes.has(nodeId)) {
+      console.warn(`[scenario] Skipping character at unknown nodeId: ${nodeId}`)
+      continue
+    }
+    characters[id] = {
+      id,
+      name,
+      playerId: playerId || id,
+      faction,
+      location: { kind: 'node', nodeId },
+      portrait: ch.portrait ?? undefined,
+    }
+  }
+
   const drawPile = { cards: asCards(scn.global?.drawPile ?? []) }
   const discardPile = { cards: asCards(scn.global?.discardPile ?? []) }
 
@@ -161,6 +184,7 @@ function buildStateFromScenario(scn: any): GameState {
     map: boardMap,
     pieceTypes,
     pieces,
+    characters,
     players,
     drawPile,
     discardPile,

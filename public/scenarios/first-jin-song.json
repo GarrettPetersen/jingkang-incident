@@ -18,6 +18,13 @@
     "event": { "cards": [] },
     "ops": { "cards": [] }
   },
+  "characters": [
+    { "id": "char-yue-fei", "playerId": "yue-fei", "name": "Yue Fei", "nodeId": "ezhou",   "portrait": "/portraits/yue-fei.svg" },
+    { "id": "char-qin-hui", "playerId": "qin-hui", "name": "Qin Hui", "nodeId": "yanjing", "portrait": "/portraits/qin-hui.svg" },
+    { "id": "char-wuzhu",   "playerId": "wuzhu",   "name": "Wuzhu",   "nodeId": "yanjing", "portrait": "/portraits/wuzhu.svg" },
+    { "id": "char-talan",   "playerId": "talan",   "name": "Talan",   "nodeId": "yanjing", "portrait": "/portraits/talan.svg" },
+    { "id": "char-liu-yu",  "playerId": "liu-yu",  "name": "Liu Yu",  "nodeId": "kaifeng", "portrait": "/portraits/liu-yu.svg" }
+  ],
   "pieces": [
     { "type": "capital", "faction": "jin",  "nodeId": "yanjing",  "count": 1 },
     { "type": "horse",   "faction": "jin",  "nodeId": "yanjing",  "count": 4 },

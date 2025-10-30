@@ -192,6 +192,7 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   const VIEW_W = 1200;
   const VIEW_H = 800;
+  const MAP_SCALE = 1.4; // static scale to spread the map; pieces/characters keep pixel size
   svg.setAttribute('viewBox', `0 0 ${VIEW_W} ${VIEW_H}`);
   svg.style.border = 'none';
   svg.style.background = '#fff';
@@ -201,15 +202,22 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
   // Pan/zoom container
   let scale = 1;
   let tx = 0, ty = 0;
-  const scene = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  const scene = document.createElementNS('http://www.w3.org/2000/svg', 'g'); // world layer
+  const mapLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  const overlayLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g'); // pieces + characters
+  const capitalsLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g'); // capitals above characters
+  mapLayer.setAttribute('transform', `scale(${MAP_SCALE})`);
+  scene.appendChild(mapLayer);
+  scene.appendChild(overlayLayer);
+  scene.appendChild(capitalsLayer);
   function applyTransform() {
     scene.setAttribute('transform', `translate(${tx},${ty}) scale(${scale})`);
   }
   function clampPan() {
     const w = svg.clientWidth || 0;
     const h = svg.clientHeight || 0;
-    const contentW = VIEW_W * scale;
-    const contentH = VIEW_H * scale;
+    const contentW = VIEW_W * MAP_SCALE * scale;
+    const contentH = VIEW_H * MAP_SCALE * scale;
     if (contentW <= w) {
       tx = Math.round((w - contentW) / 2);
     } else {
@@ -318,7 +326,7 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
       const x1 = na.x + ox, y1 = na.y + oy;
       const x2 = nb.x + ox, y2 = nb.y + oy;
       if (kind === 'river') {
-    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         line.setAttribute('x1', String(x1));
         line.setAttribute('y1', String(y1));
         line.setAttribute('x2', String(x2));
@@ -326,7 +334,7 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
         line.setAttribute('stroke', WATER_STROKE);
         line.setAttribute('stroke-width', '6');
         line.setAttribute('stroke-linecap', 'round');
-        scene.appendChild(line);
+        mapLayer.appendChild(line);
       } else {
         const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         line.setAttribute('x1', String(x1));
@@ -338,7 +346,7 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
         if (kind === 'path') {
           line.setAttribute('stroke-dasharray', '6 4');
         }
-        scene.appendChild(line);
+        mapLayer.appendChild(line);
       }
     }
   });
@@ -367,7 +375,7 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
       circle.style.cursor = 'pointer';
       circle.addEventListener('click', () => handlers.onSelectNode(n.id));
     }
-    scene.appendChild(circle);
+    mapLayer.appendChild(circle);
 
     // Overlay control coloring (faded). Supports any number of controlling factions by slicing the circle.
     const ctrls = controllersByNode[n.id] ?? [];
@@ -379,7 +387,7 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
       top.setAttribute('r', '10');
       top.setAttribute('fill', fill);
       top.setAttribute('fill-opacity', '0.35');
-      scene.appendChild(top);
+      mapLayer.appendChild(top);
     } else if (ctrls.length > 1) {
       const k = ctrls.length;
       for (let i = 0; i < k; i++) {
@@ -397,7 +405,7 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
         path.setAttribute('d', d);
         path.setAttribute('fill', c);
         path.setAttribute('fill-opacity', '0.35');
-        scene.appendChild(path);
+        mapLayer.appendChild(path);
       }
     }
 
@@ -406,7 +414,7 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
     label.setAttribute('y', String(n.y + 4));
     label.setAttribute('fill', '#222');
     label.textContent = n.label ?? n.id;
-    scene.appendChild(label);
+    mapLayer.appendChild(label);
   }
 
   // pieces (group by node and pack into 3-column rows with width-aware packing)
@@ -530,12 +538,12 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
       const dy = -it.row * spacing;
       let dx = 0;
       if (it.span === 3) dx = 0; else dx = (it.col - 1) * spacing;
-      const slotTopY = node.y - 24 + dy;
+      const slotTopY = node.y * MAP_SCALE - 24 + dy;
       // Estimate visual top of the piece for capital placement
       const shape = inferShape(it.piece);
       const visualTopY = shape === 'ship' ? (slotTopY + (16 - SHIP_H) / 2) : slotTopY;
       if (visualTopY < minTop) minTop = visualTopY;
-      drawPieceAt(scene as unknown as SVGSVGElement, it.piece, state, node.x + dx, slotTopY);
+      drawPieceAt(overlayLayer as unknown as SVGSVGElement, it.piece, state, node.x * MAP_SCALE + dx, slotTopY);
     }
     if (minTop !== Infinity) pieceTopByNode[nodeId] = minTop;
   }
@@ -563,9 +571,9 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
     const node = state.map.nodes[cap.nodeId];
     if (!node) continue;
     // Position so the icon is centered horizontally; vertical will be adjusted after load
-    const x = node.x - CAPITAL_SIZE / 2;
+    const x = node.x * MAP_SCALE - CAPITAL_SIZE / 2;
     // Initial guess; will be snapped after load using measured height
-    const y = node.y - 24 - CAPITAL_SIZE - CAPITAL_GAP;
+    const y = node.y * MAP_SCALE - 24 - CAPITAL_SIZE - CAPITAL_GAP;
 
     const img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
     img.setAttribute('x', String(x));
@@ -584,12 +592,59 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
         const h = bbox?.height ?? CAPITAL_SIZE;
         // If there are pieces, sit capital flush above the topmost piece. Otherwise, sit on the city circle (no gap)
         const topOfStack = pieceTopByNode[cap.nodeId];
-        const circleTop = node.y - 10; // node circle radius is 10
+        const circleTop = node.y * MAP_SCALE - 10; // node circle radius is 10
         const bottom = (topOfStack !== undefined) ? topOfStack - CAPITAL_GAP : circleTop;
         img.setAttribute('y', String(bottom - h));
       } catch {}
     });
-    scene.appendChild(img);
+    capitalsLayer.appendChild(img);
+  }
+
+  // Player character standees (initials in circular badges), rendered above pieces and capitals
+  const charsByNode: Record<string, Array<{ id: string; name: string; faction?: string; portrait?: string }>> = {}
+  for (const ch of Object.values((state as any).characters ?? {}) as any[]) {
+    if (ch.location?.kind !== 'node') continue;
+    (charsByNode[ch.location.nodeId] ??= []).push({ id: ch.id, name: ch.name, faction: ch.faction, portrait: ch.portrait });
+  }
+  function characterOffsets(k: number): number[] {
+    // Return x-offsets (px) for k items centered around 0
+    const gap = 26;
+    if (k <= 1) return [0];
+    if (k === 2) return [-gap/2, gap/2];
+    const arr: number[] = [];
+    const start = -((k - 1) * gap) / 2;
+    for (let i = 0; i < k; i++) arr.push(start + i * gap);
+    return arr;
+  }
+  for (const [nodeId, chars] of Object.entries(charsByNode)) {
+    const node = state.map.nodes[nodeId];
+    if (!node) continue;
+    const R = 12; // portrait radius
+    const Y = node.y * MAP_SCALE - 52; // hover above top of piece grid and capital
+    const xs = characterOffsets(chars.length);
+    chars.forEach((ch, i) => {
+      const cx = node.x * MAP_SCALE + xs[i];
+      // Border + background
+      const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      const col = '#000';
+      ring.setAttribute('cx', String(cx));
+      ring.setAttribute('cy', String(Y));
+      ring.setAttribute('r', String(R + 2));
+      ring.setAttribute('fill', '#fff');
+      ring.setAttribute('stroke', col);
+      ring.setAttribute('stroke-width', '3');
+      overlayLayer.appendChild(ring);
+      // Initials
+      const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      label.setAttribute('x', String(cx));
+      label.setAttribute('y', String(Y + 4));
+      label.setAttribute('fill', '#000');
+      label.setAttribute('font-size', '10');
+      label.setAttribute('font-weight', '700');
+      label.setAttribute('text-anchor', 'middle');
+      label.textContent = (ch.name || '?').split(/\s+/).map(s => s[0]).join('').slice(0,2).toUpperCase();
+      overlayLayer.appendChild(label);
+    });
   }
 
   // Enable zoom & pan

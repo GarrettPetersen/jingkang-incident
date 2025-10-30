@@ -56,6 +56,17 @@ export interface Piece {
   location: Location;
 }
 
+// Player Characters (standees)
+export type CharacterId = Id;
+export interface Character {
+  id: CharacterId;
+  name: string;
+  playerId: PlayerId;
+  faction?: FactionId;
+  location: { kind: 'node'; nodeId: NodeId };
+  portrait?: string; // public path to image asset, e.g. /portraits/yue-fei.svg
+}
+
 // Cards & Decks
 export type CardId = Id;
 export type IconId = Id;
@@ -131,6 +142,7 @@ export interface GameState {
   map: MapGraph;
   pieceTypes: Record<PieceTypeId, PieceType>;
   pieces: Record<PieceId, Piece>;
+  characters: Record<CharacterId, Character>;
   players: PlayerState[];
   // Global decks shared by all players
   drawPile: Deck;

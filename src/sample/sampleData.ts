@@ -107,6 +107,7 @@ export const initialState: GameState = {
   map,
   pieceTypes,
   pieces,
+  characters: {},
   players,
   drawPile: { cards: [...deck1.cards, ...deck1.cards] },
   discardPile: { cards: [] },
