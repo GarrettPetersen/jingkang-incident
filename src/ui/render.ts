@@ -193,6 +193,32 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
   svg.style.width = '100%';
   svg.style.height = '100%';
 
+  // Color tint filters for capital markers (use SourceAlpha to flood with a color)
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  function makeTintFilter(id: string, color: string) {
+    const f = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
+    f.setAttribute('id', id);
+    const flood = document.createElementNS('http://www.w3.org/2000/svg', 'feFlood');
+    flood.setAttribute('flood-color', color);
+    flood.setAttribute('result', 'flood');
+    const comp = document.createElementNS('http://www.w3.org/2000/svg', 'feComposite');
+    comp.setAttribute('in', 'flood');
+    comp.setAttribute('in2', 'SourceAlpha');
+    comp.setAttribute('operator', 'in');
+    comp.setAttribute('result', 'mask');
+    const merge = document.createElementNS('http://www.w3.org/2000/svg', 'feMerge');
+    const node = document.createElementNS('http://www.w3.org/2000/svg', 'feMergeNode');
+    node.setAttribute('in', 'mask');
+    merge.appendChild(node);
+    f.appendChild(flood);
+    f.appendChild(comp);
+    f.appendChild(merge);
+    defs.appendChild(f);
+  }
+  makeTintFilter('tint-red', '#d33');
+  makeTintFilter('tint-gold', '#f0c419');
+  svg.appendChild(defs);
+
   // edges with offsets per unordered pair and dashed style for paths
   function pairKey(a: string, b: string) { return a < b ? `${a}|${b}` : `${b}|${a}`; }
   const groups: Map<string, { a: string; b: string; kinds: string[] }> = new Map();
@@ -301,6 +327,42 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
       const dy = (row - (rows - 1) / 2) * spacing;
       drawPieceAt(svg, piece, state, node.x + dx, node.y - 24 + dy);
     }
+  }
+
+  // Capital markers: render special SVGs at specified cities
+  const capitals: Array<{ nodeId: string; filterId: string }> = [
+    { nodeId: 'huaiyang', filterId: 'tint-red' },
+    { nodeId: 'yanjing', filterId: 'tint-gold' },
+  ];
+  const CAPITAL_SIZE = 48; // ~ three cubes wide (each cube is 16px)
+  const CAPITAL_GAP = 0; // pixels between capital bottom and top of piece grid
+  for (const cap of capitals) {
+    const node = state.map.nodes[cap.nodeId];
+    if (!node) continue;
+    // Position so the icon is centered horizontally; vertical will be adjusted after load
+    const x = node.x - CAPITAL_SIZE / 2;
+    // Start with a conservative guess; we'll snap the bottom flush with the piece grid once loaded
+    const y = node.y - 24 - CAPITAL_SIZE - CAPITAL_GAP;
+
+    const img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+    img.setAttribute('x', String(x));
+    img.setAttribute('y', String(y));
+    img.setAttribute('width', String(CAPITAL_SIZE));
+    // Let height follow intrinsic aspect ratio of the SVG
+    img.setAttribute('filter', `url(#${cap.filterId})`);
+    img.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    // xlink:href for wider compatibility
+    img.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '/assets/capital.svg');
+    img.style.pointerEvents = 'none';
+    // After the image loads, align its bottom edge flush with the piece grid
+    img.addEventListener('load', () => {
+      try {
+        const bbox = (img as unknown as SVGGraphicsElement).getBBox();
+        const h = bbox?.height ?? CAPITAL_SIZE;
+        img.setAttribute('y', String(node.y - 24 - CAPITAL_GAP - h));
+      } catch {}
+    });
+    svg.appendChild(img);
   }
 
   return svg as unknown as HTMLElement;
