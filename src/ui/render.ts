@@ -619,8 +619,13 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
   for (const [nodeId, chars] of Object.entries(charsByNode)) {
     const node = state.map.nodes[nodeId];
     if (!node) continue;
-    const R = 12; // portrait radius
-    const Y = node.y * MAP_SCALE - 52; // hover above top of piece grid and capital
+    const R = 12; // portrait radius (inner)
+    const outerR = R + 2; // include ring stroke radius
+    const CHAR_GAP = 2; // pixels between top of stack and bottom of ring
+    const topOfStack = pieceTopByNode[nodeId];
+    const circleTop = node.y * MAP_SCALE - 10; // top of city circle
+    const bottom = (topOfStack !== undefined) ? (topOfStack - CHAR_GAP) : circleTop;
+    const centerY = bottom - outerR;
     const xs = characterOffsets(chars.length);
     chars.forEach((ch, i) => {
       const cx = node.x * MAP_SCALE + xs[i];
@@ -628,8 +633,8 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
       const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       const col = '#000';
       ring.setAttribute('cx', String(cx));
-      ring.setAttribute('cy', String(Y));
-      ring.setAttribute('r', String(R + 2));
+      ring.setAttribute('cy', String(centerY));
+      ring.setAttribute('r', String(outerR));
       ring.setAttribute('fill', '#fff');
       ring.setAttribute('stroke', col);
       ring.setAttribute('stroke-width', '3');
@@ -637,7 +642,7 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
       // Initials
       const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       label.setAttribute('x', String(cx));
-      label.setAttribute('y', String(Y + 4));
+      label.setAttribute('y', String(centerY + 4));
       label.setAttribute('fill', '#000');
       label.setAttribute('font-size', '10');
       label.setAttribute('font-weight', '700');

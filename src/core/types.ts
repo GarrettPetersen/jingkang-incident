@@ -143,6 +143,8 @@ export interface GameState {
   pieceTypes: Record<PieceTypeId, PieceType>;
   pieces: Record<PieceId, Piece>;
   characters: Record<CharacterId, Character>;
+  // Catalog of tuckable tokens (e.g., character control markers, reminders)
+  tuckables?: Record<string, Tuckable>;
   players: PlayerState[];
   // Global decks shared by all players
   drawPile: Deck;
@@ -222,5 +224,13 @@ export const FactionColor: Record<FactionId, string> = {
 // Diplomacy
 export type Posture = 'neutral' | 'allied' | 'enemy';
 export type DiplomacyMatrix = Record<FactionId, Record<FactionId, Posture>>;
+// Tuckable token definitions
+export interface Tuckable {
+  id: string;
+  name: string;
+  kind: 'character' | 'token';
+  asset?: Card['asset'];
+}
+
 
 

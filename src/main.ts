@@ -3,7 +3,8 @@ import { initialState } from './sample/sampleData'
 import { renderApp } from './ui/render'
 import { endTurn, getTurnStartSnapshot } from './core/engine'
 import { inputSelectAdjacentNode, inputSelectNode, inputSelectPiece, playCard, startTurn } from './core/engine'
-import type { Card, GameState, Piece, PieceType, DiplomacyMatrix, FactionId, Character } from './core/types'
+import type { Card, GameState, Piece, PieceType, DiplomacyMatrix, FactionId, Character, Tuckable } from './core/types'
+import { FactionColor } from './core/types'
 import { map as boardMap } from './map/board'
 
 let state: GameState = initialState
@@ -81,6 +82,48 @@ async function loadScenarioOrFallback() {
   }
   startTurn(state)
 rerender()
+}
+
+function getFactionHan(f: FactionId): string { if (f === 'song') return '宋'; if (f === 'jin') return '金'; if (f === 'daqi') return '齊'; return '？'; }
+
+function makeCharacterCardDataUrl(name: string, title: string, factions: FactionId[]): string {
+  const width = 300; const height = 420;
+  const bandX = 24, bandY = 320, bandW = 252, bandH = 72;
+  const r = 16; const gap = 12;
+  const iconsCount = 1 + Math.max(0, factions.length); // include character initials + faction icons
+  const totalW = iconsCount * (r * 2) + (iconsCount - 1) * gap;
+  const startX = bandX + (bandW - totalW) / 2 + r;
+  const cy = bandY + bandH / 2;
+  let iconsMarkup = '';
+  // Character initials icon (leftmost)
+  const initials = name.split(/\s+/).map(s => s[0] || '').join('').slice(0,2).toUpperCase();
+  iconsMarkup += `<circle cx="${startX}" cy="${cy}" r="${r}" fill="#fff" stroke="#222" stroke-width="2"/>
+      <text x="${startX}" y="${cy + 5}" text-anchor="middle" font-size="16" font-weight="700" fill="#111">${initials}</text>`
+  // Faction icons to the right
+  factions.forEach((f, i) => {
+    const cx = startX + (i + 1) * (2 * r + gap);
+    const fill = (FactionColor as any)[f] || '#666';
+    const char = getFactionHan(f);
+    const textFill = (f === 'jin') ? '#111' : '#fff';
+    iconsMarkup += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" stroke="#222" stroke-width="2"/>
+      <text x="${cx}" y="${cy + 5}" text-anchor="middle" font-size="16" font-weight="700" fill="${textFill}">${char}</text>`;
+  });
+  const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+  <defs>
+    <linearGradient id="cardGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f6f6f6"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="${width}" height="${height}" fill="url(#cardGrad)" rx="12" ry="12"/>
+  <text x="50%" y="42" text-anchor="middle" font-size="20" font-weight="700" fill="#111">${name}</text>
+  <text x="50%" y="70" text-anchor="middle" font-size="16" fill="#333">${title}</text>
+  <rect x="${bandX}" y="${bandY}" width="${bandW}" height="${bandH}" fill="#eee" rx="8" ry="8"/>
+  ${iconsMarkup}
+</svg>`
+  const encoded = encodeURIComponent(svg).replace(/'/g, '%27').replace(/\(/g, '%28').replace(/\)/g, '%29')
+  return `data:image/svg+xml;charset=UTF-8,${encoded}`
 }
 
 function asCards(arr: any[] | undefined): Card[] {
@@ -177,6 +220,63 @@ function buildStateFromScenario(scn: any): GameState {
     }
   }
 
+  // Build tuckable token catalog (one per character)
+  const tuckables: Record<string, Tuckable> = {}
+  for (const ch of Object.values(characters)) {
+    const tokenId = `token-char-${ch.id}`
+    // Title by character at 1127 context
+    const lowerId = ch.id.toLowerCase()
+    let title = ''
+    if (lowerId.includes('yue-fei')) title = 'Loyal Song Officer'
+    else if (lowerId.includes('liu-yu')) title = 'Song Official'
+    else if (lowerId.includes('qin-hui')) title = 'Jin Captive'
+    else if (lowerId.includes('talan')) title = 'Jin General'
+    else if (lowerId.includes('wuzhu')) title = 'Jin General'
+    // Faction affiliations for icon row
+    const affils: FactionId[] = ((): FactionId[] => {
+      if (ch.faction) return [ch.faction]
+      if (lowerId.includes('yue-fei')) return ['song'] as FactionId[]
+      if (lowerId.includes('liu-yu')) return ['song'] as FactionId[]
+      if (lowerId.includes('qin-hui')) return ['jin'] as FactionId[]
+      if (lowerId.includes('talan')) return ['jin'] as FactionId[]
+      if (lowerId.includes('wuzhu')) return ['jin'] as FactionId[]
+      return []
+    })()
+    const path = makeCharacterCardDataUrl(ch.name, title, affils)
+    const asset = { path, size: { width: 300, height: 420 }, iconSlot: { x: 24, y: 320, width: 252, height: 72 } }
+    tuckables[tokenId] = { id: tokenId, name: `${ch.name}, ${title || ''}`.trim(), kind: 'character', asset }
+  }
+
+  // Ensure each player starts with a tucked token for their character (if present)
+  for (const pl of players) {
+    const ch = Object.values(characters).find(c => c.playerId === pl.id)
+    if (ch) {
+      const tokenId = `token-char-${ch.id}`
+      const t = tuckables[tokenId]
+      const displayName = t?.name ?? ch.name
+      const card: Card = {
+        id: tokenId,
+        name: displayName,
+        verbs: [],
+        icons: ((): FactionId[] | undefined => {
+          const lowerId = ch.id.toLowerCase()
+          if (ch.faction) return [ch.faction]
+          if (lowerId.includes('yue-fei')) return ['song'] as FactionId[]
+          if (lowerId.includes('liu-yu')) return ['song'] as FactionId[]
+          if (lowerId.includes('qin-hui')) return ['jin'] as FactionId[]
+          if (lowerId.includes('talan')) return ['jin'] as FactionId[]
+          if (lowerId.includes('wuzhu')) return ['jin'] as FactionId[]
+          return undefined
+        })(),
+        asset: t?.asset,
+        keepOnPlay: true,
+      }
+      if (!pl.tucked.some((c: Card) => c.id === card.id)) {
+        pl.tucked.push(card)
+      }
+    }
+  }
+
   const drawPile = { cards: asCards(scn.global?.drawPile ?? []) }
   const discardPile = { cards: asCards(scn.global?.discardPile ?? []) }
 
@@ -185,6 +285,7 @@ function buildStateFromScenario(scn: any): GameState {
     pieceTypes,
     pieces,
     characters,
+    tuckables,
     players,
     drawPile,
     discardPile,
