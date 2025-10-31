@@ -601,10 +601,10 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
   }
 
   // Player character standees (initials in circular badges), rendered above pieces and capitals
-  const charsByNode: Record<string, Array<{ id: string; name: string; faction?: string; portrait?: string }>> = {}
+  const charsByNode: Record<string, Array<{ id: string; name: string; playerId: string; faction?: string; portrait?: string }>> = {}
   for (const ch of Object.values((state as any).characters ?? {}) as any[]) {
     if (ch.location?.kind !== 'node') continue;
-    (charsByNode[ch.location.nodeId] ??= []).push({ id: ch.id, name: ch.name, faction: ch.faction, portrait: ch.portrait });
+    (charsByNode[ch.location.nodeId] ??= []).push({ id: ch.id, name: ch.name, playerId: ch.playerId, faction: ch.faction, portrait: ch.portrait });
   }
   function characterOffsets(k: number): number[] {
     // Return x-offsets (px) for k items centered around 0
@@ -626,12 +626,26 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
     const circleTop = node.y * MAP_SCALE - 10; // top of city circle
     const bottom = (topOfStack !== undefined) ? (topOfStack - CHAR_GAP) : circleTop;
     const centerY = bottom - outerR;
+    function factionFromTucked(playerId: string | undefined): string | undefined {
+      if (!playerId) return undefined;
+      const pl = (state.players as any[]).find(p => p.id === playerId);
+      if (!pl || !Array.isArray(pl.tucked)) return undefined;
+      for (const card of pl.tucked) {
+        const icons = (card && Array.isArray(card.icons)) ? card.icons : [];
+        for (const ic of icons) {
+          const s = String(ic);
+          if (s === 'song' || s === 'jin' || s === 'daqi') return s;
+        }
+      }
+      return undefined;
+    }
     const xs = characterOffsets(chars.length);
     chars.forEach((ch, i) => {
       const cx = node.x * MAP_SCALE + xs[i];
       // Border + background
       const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      const col = '#000';
+      const facId = factionFromTucked((ch as any).playerId);
+      const col = facId ? (FactionColor as any)[facId] ?? '#000' : '#000';
       ring.setAttribute('cx', String(cx));
       ring.setAttribute('cy', String(centerY));
       ring.setAttribute('r', String(outerR));
