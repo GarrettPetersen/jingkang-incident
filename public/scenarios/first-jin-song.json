@@ -2,12 +2,24 @@
   "id": "first-jin-song-1127-1130",
   "name": "First Jin–Song War Setup",
   "version": 1,
+  "cards": {
+    "card-character-yue-fei": { "template": "character", "name": "Yue Fei", "title": "Loyal Song Officer", "factions": ["song"],
+      "quote": { "text": "If civil officials don’t love money and military men don’t fear death, the realm will be at peace.", "cite": "Yue Fei, Songshi, Vol. 365" } },
+    "card-character-qin-hui": { "template": "character", "name": "Qin Hui", "title": "Jin Captive", "factions": ["jin"],
+      "quote": { "text": "Let the South keep to the South, the North to the North.", "cite": "Qin Hui, Songshi, Vol. 473" } },
+    "card-character-wuzhu": { "template": "character", "name": "Wuzhu", "title": "Jin General", "factions": ["jin"],
+      "quote": { "text": "He drove the Song ruler onto a sea island and, in the end, fixed the Huai as the boundary.", "cite": "Jinshi, Vol. 77" } },
+    "card-character-talan": { "template": "character", "name": "Talan", "title": "Jin General", "factions": ["jin"],
+      "quote": { "text": "Impulsive to the end, he fell into treason; when the plot failed he fled south—only confirming his dealings with the Song. Alas!", "cite": "Jinshi, Vol. 77" } },
+    "card-character-liu-yu": { "template": "character", "name": "Liu Yu", "title": "Song Official", "factions": ["song"],
+      "quote": { "text": "Liu Yu seized the moment for gain; the Jin sought to use him to claim credit—what sense is that?", "cite": "Jinshi, Vol. 77" } }
+  },
   "players": [
-    { "id": "yue-fei", "faction": "song", "name": "Yue Fei", "startingHand": [], "tucked": [], "coins": 0 },
-    { "id": "qin-hui", "faction": "song", "name": "Qin Hui", "startingHand": [], "tucked": [], "coins": 0 },
-    { "id": "wuzhu", "faction": "jin", "name": "Wuzhu", "startingHand": [], "tucked": [], "coins": 0 },
-    { "id": "talan", "faction": "jin", "name": "Talan", "startingHand": [], "tucked": [], "coins": 0 },
-    { "id": "liu-yu", "faction": "daqi", "name": "Liu Yu", "startingHand": [], "tucked": [], "coins": 0 }
+    { "id": "yue-fei", "name": "Yue Fei", "startingHand": [], "tucked": [ { "id": "card-character-yue-fei" } ], "coins": 0 },
+    { "id": "qin-hui", "name": "Qin Hui", "startingHand": [], "tucked": [ { "id": "card-character-qin-hui" } ], "coins": 0 },
+    { "id": "wuzhu", "name": "Wuzhu", "startingHand": [], "tucked": [ { "id": "card-character-wuzhu" } ], "coins": 0 },
+    { "id": "talan", "name": "Talan", "startingHand": [], "tucked": [ { "id": "card-character-talan" } ], "coins": 0 },
+    { "id": "liu-yu", "name": "Liu Yu", "startingHand": [], "tucked": [ { "id": "card-character-liu-yu" } ], "coins": 0 }
   ],
   "global": {
     "tucked": [],

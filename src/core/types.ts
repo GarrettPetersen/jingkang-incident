@@ -82,6 +82,11 @@ export interface Card {
     iconSlot?: { x: number; y: number; width: number; height: number }; // region to show when tucked
   };
   keepOnPlay?: boolean; // if true, card returns to hand after play
+  // Optional flavor quote rendered on the card face (above the icon slot)
+  quote?: {
+    text: string;   // localized/translated text to display
+    cite?: string;  // brief citation, e.g., "Songshi, Vol. 473"
+  };
 }
 
 export interface Deck {
@@ -230,6 +235,7 @@ export interface Tuckable {
   name: string;
   kind: 'character' | 'token';
   asset?: Card['asset'];
+  quote?: Card['quote'];
 }
 
 

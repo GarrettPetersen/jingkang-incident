@@ -941,8 +941,8 @@ function renderPile(label: string, imgPath: string, count: number, size: 'sm' | 
 }
 
 function renderCard(card: { name: string; asset?: { path: string; size: { width: number; height: number }; iconSlot?: { x: number; y: number; width: number; height: number } } }, onClick: () => void): HTMLElement {
-  const w = 150; // tarot-ish scaled width
-  const h = Math.round(w * (420 / 300));
+  const w = 150; // tarot scaled width
+  const h = Math.round(w * (570 / 330));
   const container = document.createElement('div');
   container.style.position = 'relative';
   container.style.width = `${w}px`;
@@ -952,7 +952,43 @@ function renderCard(card: { name: string; asset?: { path: string; size: { width:
   container.style.overflow = 'hidden';
   container.style.cursor = 'pointer';
   container.title = card.name;
-  container.addEventListener('click', onClick);
+  // Gesture handling: single-click to play; double-click or long-press to preview
+  let clickTimer: number | undefined;
+  let longPressTimer: number | undefined;
+  let suppressNextClick = false;
+  const CLICK_DELAY_MS = 220;
+  const LONG_PRESS_MS = 500;
+
+  function clearTimers() {
+    if (clickTimer) { clearTimeout(clickTimer); clickTimer = undefined; }
+    if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = undefined; }
+  }
+
+  container.addEventListener('click', (e) => {
+    if (suppressNextClick) { suppressNextClick = false; return; }
+    if (clickTimer) clearTimeout(clickTimer);
+    clickTimer = window.setTimeout(() => {
+      onClick();
+      clickTimer = undefined;
+    }, CLICK_DELAY_MS) as unknown as number;
+  });
+  container.addEventListener('dblclick', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (clickTimer) { clearTimeout(clickTimer); clickTimer = undefined; }
+    showCardPreview(card);
+  });
+  container.addEventListener('touchstart', () => {
+    clearTimers();
+    longPressTimer = window.setTimeout(() => {
+      suppressNextClick = true;
+      showCardPreview(card);
+      longPressTimer = undefined;
+    }, LONG_PRESS_MS) as unknown as number;
+  }, { passive: true });
+  const cancelLong = () => { if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = undefined; } };
+  container.addEventListener('touchend', cancelLong, { passive: true });
+  container.addEventListener('touchmove', cancelLong, { passive: true });
 
   const img = document.createElement('img');
   img.src = card.asset?.path ?? '/vite.svg';
@@ -962,6 +998,8 @@ function renderCard(card: { name: string; asset?: { path: string; size: { width:
   img.style.objectFit = 'cover';
   img.draggable = false;
   container.appendChild(img);
+
+  // Note: Flavor text is baked into the card asset SVG (for print & preview)
 
   // Always show the icon slot overlay if present
   if (card.asset?.iconSlot) {
@@ -1117,6 +1155,9 @@ function renderTuckSplay(cards: any[], orientation: 'self' | 'opponent'): HTMLEl
       img.style.objectFit = 'cover';
       img.draggable = false;
       img.style.transformOrigin = 'top left';
+      // Ensure predictable stacking: image below, overlay above
+      img.style.position = 'relative';
+      img.style.zIndex = '1';
 
       const tx = -asset.iconSlot.x * scale;
       const ty = -asset.iconSlot.y * scale;
@@ -1126,7 +1167,17 @@ function renderTuckSplay(cards: any[], orientation: 'self' | 'opponent'): HTMLEl
         el.style.transformOrigin = 'center';
       }
 
+      // Preview gestures for tucked cards
       el.addEventListener('click', () => showCardPreview(card));
+      el.addEventListener('dblclick', (e) => { e.preventDefault(); e.stopPropagation(); showCardPreview(card); });
+      let __lpTimer: number | undefined;
+      const __LP_MS = 500;
+      el.addEventListener('touchstart', () => {
+        __lpTimer = window.setTimeout(() => { showCardPreview(card); __lpTimer = undefined; }, __LP_MS) as unknown as number;
+      }, { passive: true });
+      const __cancelLP = () => { if (__lpTimer) { clearTimeout(__lpTimer); __lpTimer = undefined; } };
+      el.addEventListener('touchend', __cancelLP, { passive: true });
+      el.addEventListener('touchmove', __cancelLP, { passive: true });
       el.appendChild(img);
       area.appendChild(el);
     }

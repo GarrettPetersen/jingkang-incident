@@ -55,8 +55,17 @@ async function main() {
     const html = await res.text();
     const $ = load(html);
     const headings = extractHeadings($);
+    // Also extract anchor links for convenience (text + absolute href)
+    const links = [];
+    $('a').each((_, a) => {
+      const text = normalizeWhitespace($(a).text());
+      const href = $(a).attr('href') || '';
+      if (!text || !href) return;
+      const abs = /^https?:/i.test(href) ? href : new URL(href, targetUrl).href;
+      links.push({ text, href: abs });
+    });
     // Print JSON to stdout
-    console.log(JSON.stringify({ url: targetUrl, count: headings.length, headings }, null, 2));
+    console.log(JSON.stringify({ url: targetUrl, count: headings.length, headings, links }, null, 2));
   } catch (err) {
     console.error(err instanceof Error ? err.message : String(err));
     process.exit(1);
