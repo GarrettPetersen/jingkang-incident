@@ -1,6 +1,8 @@
 import { draw, mergeDecks, shuffleDeck, pushBottom } from './deck';
 import type { Card, Deck, GameState, PlayerId, VerbSpec, NodeId, PieceId } from './types';
 import { currentPlayer, findAdjacentNodes, nextPlayerId } from './types';
+import type { Effect, Condition, IconId, PlayerSelector, FactionSelector, NodeSelector } from './types';
+import type { Effect, Condition, IconId } from './types';
 
 export interface EngineConfig {
   handLimit: number;
@@ -65,9 +67,13 @@ export function playCard(state: GameState, cardId: string): void {
   if (idx === -1) return;
   const [card] = player.hand.splice(idx, 1);
   state.log.push({ message: `${player.name} plays ${card.name}` });
-  for (const verb of card.verbs) {
-    if (state.gameOver) break;
-    executeVerb(state, player.id, card, verb);
+  if (card.effect) {
+    executeEffect(state, player.id, card, card.effect);
+  } else {
+    for (const verb of card.verbs) {
+      if (state.gameOver) break;
+      executeVerb(state, player.id, card, verb);
+    }
   }
   // Discard or keep (do NOT auto-advance turn; End Turn is user-driven)
   if (!state.gameOver) {
@@ -85,6 +91,70 @@ export function playCard(state: GameState, cardId: string): void {
   }
 }
 
+// Effect execution (AND/OR/IF) with tucked-icon conditions
+function executeEffect(
+  state: GameState,
+  playerId: PlayerId,
+  card: Card,
+  effect: Effect,
+): void {
+  switch (effect.kind) {
+    case 'verb': {
+      executeVerb(state, playerId, card, effect.verb);
+      return;
+    }
+    case 'all': {
+      for (const e of effect.effects) {
+        if (state.gameOver) break;
+        executeEffect(state, playerId, card, e);
+      }
+      return;
+    }
+    case 'any': {
+      // TODO: prompt for choice; for now, choose the first available
+      const choice = effect.effects[0];
+      if (choice) executeEffect(state, playerId, card, choice);
+      return;
+    }
+    case 'if': {
+      const ok = evaluateCondition(state, playerId, effect.condition);
+      if (ok) executeEffect(state, playerId, card, effect.then);
+      else if (effect.else) executeEffect(state, playerId, card, effect.else);
+      return;
+    }
+  }
+}
+
+function evaluateCondition(state: GameState, playerId: PlayerId, cond: Condition): boolean {
+  switch (cond.kind) {
+    case 'hasTuckedIcon': {
+      const need = Math.max(1, cond.atLeast ?? 1);
+      if (cond.who === 'self') {
+        const have = countTuckedIcon(state, playerId, cond.icon);
+        return have >= need;
+      } else { // 'others'
+        for (const p of state.players) {
+          if (p.id === playerId) continue;
+          const have = countTuckedIcon(state, p.id, cond.icon);
+          if (have >= need) return true;
+        }
+        return false;
+      }
+    }
+  }
+}
+
+function countTuckedIcon(state: GameState, playerId: PlayerId, icon: IconId): number {
+  const p = state.players.find((pp) => pp.id === playerId);
+  if (!p) return 0;
+  let c = 0;
+  for (const card of p.tucked) {
+    const icons = (card?.icons ?? []) as IconId[];
+    for (const ic of icons) if (ic === icon) c += 1;
+  }
+  return c;
+}
+
 function executeVerb(
   state: GameState,
   playerId: PlayerId,
@@ -93,15 +163,16 @@ function executeVerb(
 ): void {
   switch (verb.type) {
     case 'draw': {
-      const player = state.players.find((p) => p.id === playerId)!;
+      const targetId = resolvePlayerSelector(state, playerId, verb.target ?? 'self');
+      const target = state.players.find((p) => p.id === targetId)!;
       if (state.drawPile.cards.length === 0 && state.discardPile.cards.length > 0) {
         state.drawPile = shuffleDeck(mergeDecks([state.discardPile]));
         state.discardPile = { cards: [] } as Deck;
       }
       const { drawn, deck } = draw(state.drawPile, verb.count);
       state.drawPile = deck;
-      player.hand.push(...drawn);
-      state.log.push({ message: `${player.name} draws ${drawn.length}` });
+      target.hand.push(...drawn);
+      state.log.push({ message: `${target.name} draws ${drawn.length}` });
       break;
     }
     case 'drawUpTo': {
@@ -153,13 +224,15 @@ function executeVerb(
       break;
     }
     case 'recruit': {
-      // Choose a node to place a piece
-      const nodeOptions = Object.keys(state.map.nodes);
+      // Resolve piece type
+      const pieceTypeId = (verb as any).pieceTypeId ?? (verb as any).pieceTypes?.anyOf?.[0];
+      // Resolve node options
+      const nodeOptions = resolveNodeSelector(state, playerId, (verb as any).at) ?? Object.keys(state.map.nodes);
       state.prompt = {
         kind: 'selectNode',
         playerId,
         nodeOptions,
-        next: { kind: 'forRecruit', pieceTypeId: verb.pieceTypeId },
+        next: { kind: 'forRecruit', pieceTypeId },
         message: 'Select a node to recruit',
       };
       break;
@@ -255,6 +328,42 @@ let __id = 0;
 function genId(prefix: string): string {
   __id += 1;
   return `${prefix}-${__id}`;
+}
+
+// Helpers for resolving selectors
+function resolvePlayerSelector(state: GameState, selfId: PlayerId, sel: PlayerSelector): PlayerId {
+  if (sel === 'self') return selfId;
+  if (sel === 'opponent') return findOpponent(state, selfId).id;
+  return (sel as any).playerId ?? selfId;
+}
+
+function resolveFactionSelector(state: GameState, selfId: PlayerId, sel: FactionSelector | undefined): string | undefined {
+  if (!sel) return undefined;
+  if (sel === 'selfFaction') return state.players.find(p => p.id === selfId)?.faction;
+  if (sel === 'opponentFaction') return findOpponent(state, selfId)?.faction;
+  return sel;
+}
+
+function resolveNodeSelector(state: GameState, selfId: PlayerId, sel: NodeSelector | undefined): string[] | undefined {
+  if (!sel) return undefined;
+  if ((sel as any).any) return Object.keys(state.map.nodes);
+  if ((sel as any).nodes) {
+    const ids = (sel as any).nodes as string[];
+    return ids.filter(id => !!state.map.nodes[id]);
+  }
+  if ((sel as any).controlledBy) {
+    const faction = resolveFactionSelector(state, selfId, (sel as any).controlledBy);
+    if (!faction) return [];
+    const byNode: Record<string, Set<string>> = {};
+    for (const pc of Object.values(state.pieces)) {
+      if (pc.location.kind !== 'node') continue;
+      const f = pc.faction ?? (pc.ownerId ? state.players.find(p => p.id === pc.ownerId)?.faction : undefined);
+      if (!f) continue;
+      (byNode[pc.location.nodeId] ??= new Set()).add(f);
+    }
+    return Object.keys(state.map.nodes).filter(nid => byNode[nid]?.has(faction));
+  }
+  return undefined;
 }
 
 

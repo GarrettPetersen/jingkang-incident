@@ -40,12 +40,12 @@ export interface PieceType {
   // width in grid columns (defaults to 1; ships/capitals use 3)
   width?: number;
   // optional semantic shape for renderer
-  shape?: 'cube' | 'horse' | 'ship' | 'capital';
+  shape?: "cube" | "horse" | "ship" | "capital";
 }
 
 export type Location =
-  | { kind: 'node'; nodeId: NodeId }
-  | { kind: 'edge'; edgeId: EdgeId };
+  | { kind: "node"; nodeId: NodeId }
+  | { kind: "edge"; edgeId: EdgeId };
 
 export interface Piece {
   id: PieceId;
@@ -63,7 +63,7 @@ export interface Character {
   name: string;
   playerId: PlayerId;
   faction?: FactionId;
-  location: { kind: 'node'; nodeId: NodeId };
+  location: { kind: "node"; nodeId: NodeId };
   portrait?: string; // public path to image asset, e.g. /portraits/yue-fei.svg
 }
 
@@ -76,6 +76,10 @@ export interface Card {
   name: string;
   icons?: IconId[];
   verbs: VerbSpec[];
+  // Preferred: composable effect tree (AND/OR/IF)
+  effect?: Effect;
+  // Optional human-readable override for rules text
+  rulesTextOverride?: string;
   asset?: {
     path: string; // public path to image (e.g., /cards/coin.svg)
     size: { width: number; height: number }; // pixel dimensions of the full card asset
@@ -84,8 +88,8 @@ export interface Card {
   keepOnPlay?: boolean; // if true, card returns to hand after play
   // Optional flavor quote rendered on the card face (above the icon slot)
   quote?: {
-    text: string;   // localized/translated text to display
-    cite?: string;  // brief citation, e.g., "Songshi, Vol. 473"
+    text: string; // localized/translated text to display
+    cite?: string; // brief citation, e.g., "Songshi, Vol. 473"
   };
 }
 
@@ -94,15 +98,48 @@ export interface Deck {
 }
 
 // Verb specs
+// Note: you can add new verbs by extending this union.
 export type VerbSpec =
-  | { type: 'draw'; count: number }
-  | { type: 'drawUpTo'; limit: number }
-  | { type: 'tuck'; target: 'self' | 'opponent' }
-  | { type: 'move'; steps?: number }
-  | { type: 'recruit'; pieceTypeId: PieceTypeId }
-  | { type: 'destroy' }
-  | { type: 'gainCoin'; amount: number }
-  | { type: 'endGame'; winner?: 'self' | 'none' };
+  | { type: "draw"; count: number; target?: PlayerSelector }
+  | { type: "drawUpTo"; limit: number }
+  | { type: "tuck"; target: "self" | "opponent" }
+  | { type: "move"; steps?: number }
+  | {
+      type: "recruit";
+      pieceTypeId?: PieceTypeId;
+      pieceTypes?: PieceTypeSelector;
+      at?: NodeSelector;
+      faction?: FactionSelector;
+    }
+  | { type: "destroy" }
+  | { type: "gainCoin"; amount: number }
+  | { type: "endGame"; winner?: "self" | "none" };
+
+// Effect composition and conditions (focused on tucked icons)
+export type Effect =
+  | { kind: "verb"; verb: VerbSpec }
+  | { kind: "all"; effects: Effect[] } // sequence / AND
+  | { kind: "any"; effects: Effect[] } // choice / OR (UI may prompt later)
+  | { kind: "if"; condition: Condition; then: Effect; else?: Effect };
+
+export type Condition = {
+  kind: "hasTuckedIcon";
+  who: "self" | "others";
+  icon: IconId;
+  atLeast?: number;
+};
+
+// Selectors and parameter helpers for verb arguments
+export type PlayerSelector = "self" | "opponent" | { playerId: PlayerId };
+
+export type FactionSelector = FactionId | "selfFaction" | "opponentFaction";
+
+export type PieceTypeSelector = { anyOf: PieceTypeId[] };
+
+export type NodeSelector =
+  | { nodes: NodeId[] }
+  | { controlledBy: FactionSelector }
+  | { any: true };
 
 // Player & Game state
 export interface PlayerState {
@@ -117,14 +154,14 @@ export interface PlayerState {
 
 export type Prompt =
   | {
-      kind: 'selectPiece';
+      kind: "selectPiece";
       playerId: PlayerId;
       pieceIds: PieceId[];
-      next: { kind: 'forMove'; steps: number } | { kind: 'forDestroy' };
+      next: { kind: "forMove"; steps: number } | { kind: "forDestroy" };
       message: string;
     }
   | {
-      kind: 'selectAdjacentNode';
+      kind: "selectAdjacentNode";
       playerId: PlayerId;
       pieceId: PieceId;
       nodeOptions: NodeId[];
@@ -132,10 +169,10 @@ export type Prompt =
       message: string;
     }
   | {
-      kind: 'selectNode';
+      kind: "selectNode";
       playerId: PlayerId;
       nodeOptions: NodeId[];
-      next: { kind: 'forRecruit'; pieceTypeId: PieceTypeId };
+      next: { kind: "forRecruit"; pieceTypeId: PieceTypeId };
       message: string;
     };
 
@@ -174,11 +211,17 @@ export interface GameState {
   diplomacy?: DiplomacyMatrix;
 }
 
-export function getPlayerById(state: GameState, playerId: PlayerId): PlayerState | undefined {
+export function getPlayerById(
+  state: GameState,
+  playerId: PlayerId
+): PlayerState | undefined {
   return state.players.find((p) => p.id === playerId);
 }
 
-export function getPlayerIndexById(state: GameState, playerId: PlayerId): number {
+export function getPlayerIndexById(
+  state: GameState,
+  playerId: PlayerId
+): number {
   return state.players.findIndex((p) => p.id === playerId);
 }
 
@@ -200,7 +243,8 @@ export function viewingPlayer(state: GameState): PlayerState {
 
 export function nextPlayerId(state: GameState): PlayerId {
   const order = state.seating?.order ?? state.players.map((p) => p.id);
-  const currentId = state.currentPlayerId ?? state.players[state.currentPlayerIndex].id;
+  const currentId =
+    state.currentPlayerId ?? state.players[state.currentPlayerIndex].id;
   const idx = order.indexOf(currentId);
   const nextIdx = (idx + 1) % order.length;
   return order[nextIdx];
@@ -217,26 +261,23 @@ export function findAdjacentNodes(map: MapGraph, nodeId: NodeId): NodeId[] {
 }
 
 // Factions
-export type FactionId = 'song' | 'jin' | 'daqi' | 'rebel';
+export type FactionId = "song" | "jin" | "daqi" | "rebel";
 
 export const FactionColor: Record<FactionId, string> = {
-  song: '#d33',   // Song: Red
-  jin: '#f0c419', // Jin: Gold
-  daqi: '#2ecc71', // Da Qi: Green
-  rebel: '#000',  // Rebel: Black
+  song: "#d33", // Song: Red
+  jin: "#f0c419", // Jin: Gold
+  daqi: "#2ecc71", // Da Qi: Green
+  rebel: "#000", // Rebel: Black
 };
 
 // Diplomacy
-export type Posture = 'neutral' | 'allied' | 'enemy';
+export type Posture = "neutral" | "allied" | "enemy";
 export type DiplomacyMatrix = Record<FactionId, Record<FactionId, Posture>>;
 // Tuckable token definitions
 export interface Tuckable {
   id: string;
   name: string;
-  kind: 'character' | 'token';
-  asset?: Card['asset'];
-  quote?: Card['quote'];
+  kind: "character" | "token";
+  asset?: Card["asset"];
+  quote?: Card["quote"];
 }
-
-
-

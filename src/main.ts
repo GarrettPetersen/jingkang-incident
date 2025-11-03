@@ -262,6 +262,10 @@ function materializeCardFromDef(def: any): Card {
   const c: Card = { id, name, verbs };
   if (def.icons) c.icons = def.icons;
   if (def.keepOnPlay !== undefined) c.keepOnPlay = !!def.keepOnPlay;
+  if (def.effect && typeof def.effect === "object") {
+    // Trust scenario to provide a valid Effect tree
+    (c as any).effect = def.effect;
+  }
   if (
     def.quote &&
     typeof def.quote === "object" &&
@@ -345,21 +349,7 @@ function buildStateFromScenario(scn: any): GameState {
     playersByFaction.set(f, arr);
   });
 
-  // Ensure every faction referenced in pieces has a player owner; auto-add NPC players if missing
-  const factionsInPieces = new Set<string>();
-  for (const spec of scn.pieces ?? []) {
-    if (spec && spec.faction) factionsInPieces.add(String(spec.faction));
-  }
-  for (const f of factionsInPieces) {
-    if (f === "rebel") continue; // rebels are not players
-    if (!playersByFaction.has(f)) {
-      const id = `NPC-${f}`;
-      players = players.concat([
-        { id, name: f, hand: [], tucked: [], coins: 0, faction: f },
-      ]);
-      playersByFaction.set(f, [id]);
-    }
-  }
+  // Do not auto-create players for factions present on pieces. Factions are independent of players.
 
   const pieces: Record<string, Piece> = {};
   let counter = 0;
@@ -426,6 +416,27 @@ function buildStateFromScenario(scn: any): GameState {
     cards: asCards(scn.global?.discardPile ?? [], cardDict),
   };
 
+  const seatingOrder =
+    scn.seating && Array.isArray(scn.seating.order)
+      ? (scn.seating.order as string[])
+      : players.map((p: any) => p.id as string);
+  const firstSeat = seatingOrder[0] ?? players[0]?.id;
+
+  // Build diplomacy across all factions present in players or pieces
+  const playerFactions = Array.from(
+    new Set(players.map((p: any) => p.faction).filter(Boolean))
+  ) as string[];
+  const pieceFactions = Array.from(
+    new Set(
+      Object.values(pieces)
+        .map((pc: any) => pc.faction)
+        .filter(Boolean)
+    )
+  ) as string[];
+  const allFactions = Array.from(
+    new Set([...playerFactions, ...pieceFactions])
+  ) as FactionId[];
+
   const state: GameState = {
     map: boardMap,
     pieceTypes,
@@ -436,17 +447,13 @@ function buildStateFromScenario(scn: any): GameState {
     drawPile,
     discardPile,
     currentPlayerIndex: 0,
-    currentPlayerId: players[0]?.id,
-    viewPlayerId: players[0]?.id,
-    seating: { order: players.map((p: any) => p.id as string) },
+    currentPlayerId: firstSeat,
+    viewPlayerId: firstSeat,
+    seating: { order: seatingOrder },
     prompt: null,
     gameOver: false,
     log: [],
-    diplomacy: buildNeutralDiplomacy(
-      players
-        .map((p: any) => p.faction as FactionId)
-        .filter(Boolean) as FactionId[]
-    ),
+    diplomacy: buildNeutralDiplomacy(allFactions),
   };
   return state;
 }
