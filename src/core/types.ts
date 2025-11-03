@@ -109,11 +109,25 @@ export type VerbSpec =
       pieceTypeId?: PieceTypeId;
       pieceTypes?: PieceTypeSelector;
       at?: NodeSelector;
+      // Optional number of times to place; if >1, repeats selection
+      count?: number;
+      // If true, prevent selecting the same node more than once within this verb
+      unique?: boolean;
+      // Allow overriding faction used for the placed piece(s)
       faction?: FactionSelector;
+      // If provided, exclude these nodes from selectable options (applied after 'at')
+      excludeNodes?: NodeId[];
     }
   | { type: "destroy" }
   | { type: "gainCoin"; amount: number }
-  | { type: "endGame"; winner?: "self" | "none" };
+  | { type: "endGame"; winner?: "self" | "none" }
+  | {
+      // Allow the current player to place/move their character to a chosen node
+      type: "placeCharacter";
+      // Provide explicit options, or use nearCurrent to derive options
+      options?: NodeId[];
+      nearCurrent?: boolean;
+    };
 
 // Effect composition and conditions (focused on tucked icons)
 export type Effect =
@@ -172,7 +186,9 @@ export type Prompt =
       kind: "selectNode";
       playerId: PlayerId;
       nodeOptions: NodeId[];
-      next: { kind: "forRecruit"; pieceTypeId: PieceTypeId };
+      next:
+        | { kind: "forRecruit"; pieceTypeId: PieceTypeId; remaining?: number; unique?: boolean; faction?: FactionId }
+        | { kind: "forPlaceCharacter"; characterId: CharacterId };
       message: string;
     };
 
@@ -205,6 +221,11 @@ export interface GameState {
   // Whether the player has taken any action this turn (enables Undo)
   hasActedThisTurn?: boolean;
   prompt: Prompt | null;
+  // Card currently being played (for UI lift and sequencing)
+  playingCardId?: CardId;
+  playingCard?: Card;
+  // Pending effect queue to resume after prompts
+  pending?: { playerId: PlayerId; card: Card; queue: Effect[] } | null;
   gameOver: boolean;
   winnerId?: PlayerId;
   log: GameLogEntry[];

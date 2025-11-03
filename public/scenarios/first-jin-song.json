@@ -3,16 +3,59 @@
   "name": "First Jin–Song War Setup",
   "version": 1,
   "cards": {
-    "card-character-yue-fei": { "template": "character", "name": "Yue Fei", "title": "Loyal Song Officer", "factions": ["song"],
-      "quote": { "text": "If civil officials don’t love money and military men don’t fear death, the realm will be at peace.", "cite": "Yue Fei, Songshi, Vol. 365" } },
-    "card-character-qin-hui": { "template": "character", "name": "Qin Hui", "title": "Jin Captive", "factions": ["jin"],
-      "quote": { "text": "Let the South keep to the South, the North to the North.", "cite": "Qin Hui, Songshi, Vol. 473" } },
-    "card-character-wuzhu": { "template": "character", "name": "Wuzhu", "title": "Jin General", "factions": ["jin"],
-      "quote": { "text": "He drove the Song ruler onto a sea island and, in the end, fixed the Huai as the boundary.", "cite": "Jinshi, Vol. 77" } },
-    "card-character-talan": { "template": "character", "name": "Talan", "title": "Jin General", "factions": ["jin"],
-      "quote": { "text": "Impulsive to the end, he fell into treason; when the plot failed he fled south—only confirming his dealings with the Song. Alas!", "cite": "Jinshi, Vol. 77" } },
-    "card-character-liu-yu": { "template": "character", "name": "Liu Yu", "title": "Song Official", "factions": ["song"],
-      "quote": { "text": "Liu Yu seized the moment for gain; the Jin sought to use him to claim credit—what sense is that?", "cite": "Jinshi, Vol. 77" } }
+    "card-character-yue-fei": {
+      "template": "character", "name": "Yue Fei", "title": "Loyal Song Officer", "factions": ["song"],
+      "icons": ["song"],
+      "quote": { "text": "If civil officials don’t love money and military men don’t fear death, the realm will be at peace.", "cite": "Yue Fei, Songshi, Vol. 365" },
+      "rulesTextOverride": "Recruit one :foot: in 5 separate cities without :dot: or :star:.\nPlace Yue Fei in Ezhou or a city adjacent to Ezhou.\nTuck this card.",
+      "effect": { "kind": "all", "effects": [
+        { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "foot", "count": 5, "unique": true, "faction": "selfFaction", "excludeNodes": ["kaifeng","yanjing","shangjing","zhaozhou","cangzhou"] } },
+        { "kind": "verb", "verb": { "type": "placeCharacter", "nearCurrent": true } },
+        { "kind": "verb", "verb": { "type": "tuck", "target": "self" } }
+      ]}
+    },
+    "card-character-qin-hui": {
+      "template": "character", "name": "Qin Hui", "title": "Jin Captive", "factions": ["jin"],
+      "icons": ["jin"],
+      "quote": { "text": "Let the South keep to the South, the North to the North.", "cite": "Qin Hui, Songshi, Vol. 473" },
+      "rulesTextOverride": "Place Qin Hui in any city with :dot:.\nRecruit one :rebel-foot: in Bianjing.\nTuck this card.",
+      "effect": { "kind": "all", "effects": [
+        { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "foot", "at": { "nodes": ["kaifeng"] }, "faction": "rebel" } },
+        { "kind": "verb", "verb": { "type": "placeCharacter", "options": ["yanjing","shangjing","zhaozhou","cangzhou"] } },
+        { "kind": "verb", "verb": { "type": "tuck", "target": "self" } }
+      ]}
+    },
+    "card-character-wuzhu": {
+      "template": "character", "name": "Wuzhu", "title": "Jin General", "factions": ["jin"],
+      "icons": ["jin"],
+      "quote": { "text": "He drove the Song ruler onto a sea island and, in the end, fixed the Huai as the boundary.", "cite": "Jinshi, Vol. 77" },
+      "effect": { "kind": "all", "effects": [
+        { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "horse", "count": 4, "at": { "nodes": ["yanjing","shangjing","zhaozhou","cangzhou"] }, "faction": "selfFaction" } },
+        { "kind": "verb", "verb": { "type": "placeCharacter", "nearCurrent": true } },
+        { "kind": "verb", "verb": { "type": "tuck", "target": "self" } }
+      ]}
+    },
+    "card-character-talan": {
+      "template": "character", "name": "Talan", "title": "Jin General", "factions": ["jin"],
+      "icons": ["jin"],
+      "quote": { "text": "Impulsive to the end, he fell into treason; when the plot failed he fled south—only confirming his dealings with the Song. Alas!", "cite": "Jinshi, Vol. 77" },
+      "effect": { "kind": "all", "effects": [
+        { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "horse", "count": 3, "at": { "nodes": ["yanjing","shangjing","zhaozhou","cangzhou"] }, "faction": "selfFaction" } },
+        { "kind": "verb", "verb": { "type": "placeCharacter", "nearCurrent": true } },
+        { "kind": "verb", "verb": { "type": "tuck", "target": "self" } }
+      ]}
+    },
+    "card-character-liu-yu": {
+      "template": "character", "name": "Liu Yu", "title": "Song Official", "factions": ["song"],
+      "icons": ["song"],
+      "quote": { "text": "Liu Yu seized the moment for gain; the Jin sought to use him to claim credit—what sense is that?", "cite": "Jinshi, Vol. 77" },
+      "effect": { "kind": "all", "effects": [
+        { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "capital", "at": { "nodes": ["huaiyang"] }, "faction": "selfFaction" } },
+        { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "ship", "count": 4, "unique": true, "at": { "nodes": ["yangzhou","nanjing","jiujiang","quanzhou","shaoxing","suzhou-js"] }, "faction": "selfFaction" } },
+        { "kind": "verb", "verb": { "type": "placeCharacter", "nearCurrent": true } },
+        { "kind": "verb", "verb": { "type": "tuck", "target": "self" } }
+      ]}
+    }
   },
   "players": [
     { "id": "yue-fei", "name": "Yue Fei", "startingHand": [], "tucked": [ { "id": "card-character-yue-fei" } ], "coins": 0 },
@@ -37,25 +80,7 @@
     { "id": "char-talan",   "playerId": "talan",   "name": "Talan",   "nodeId": "yanjing", "portrait": "/portraits/talan.svg" },
     { "id": "char-liu-yu",  "playerId": "liu-yu",  "name": "Liu Yu",  "nodeId": "yangzhou", "portrait": "/portraits/liu-yu.svg" }
   ],
-  "pieces": [
-    { "type": "capital", "faction": "jin",  "nodeId": "yanjing",  "count": 1 },
-    { "type": "horse",   "faction": "jin",  "nodeId": "yanjing",  "count": 4 },
-    { "type": "horse",   "faction": "jin",  "nodeId": "shangjing","count": 3 },
-
-    { "type": "capital", "faction": "song", "nodeId": "huaiyang","count": 1 },
-    { "type": "foot",    "faction": "song", "nodeId": "huaiyang","count": 1 },
-    { "type": "foot",    "faction": "song", "nodeId": "chengdu", "count": 1 },
-    { "type": "foot",    "faction": "song", "nodeId": "xiangyang","count": 1 },
-    { "type": "ship",    "faction": "song", "nodeId": "yangzhou","count": 1 },
-    { "type": "ship",    "faction": "song", "nodeId": "nanjing","count": 1 },
-    { "type": "ship",    "faction": "song", "nodeId": "jiujiang","count": 1 },
-    { "type": "foot",    "faction": "song", "nodeId": "nanchang","count": 1 },
-    { "type": "foot",    "faction": "song", "nodeId": "shaoxing","count": 1 },
-    { "type": "foot",    "faction": "song", "nodeId": "suzhou-js",  "count": 1 },
-    { "type": "ship",    "faction": "song", "nodeId": "quanzhou","count": 1 },
-
-    { "type": "foot",    "faction": "rebel","nodeId": "kaifeng","count": 1 }
-  ]
+  "pieces": []
 }
 
 

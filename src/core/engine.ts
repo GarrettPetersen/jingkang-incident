@@ -2,7 +2,6 @@ import { draw, mergeDecks, shuffleDeck, pushBottom } from './deck';
 import type { Card, Deck, GameState, PlayerId, VerbSpec, NodeId, PieceId } from './types';
 import { currentPlayer, findAdjacentNodes, nextPlayerId } from './types';
 import type { Effect, Condition, IconId, PlayerSelector, FactionSelector, NodeSelector } from './types';
-import type { Effect, Condition, IconId } from './types';
 
 export interface EngineConfig {
   handLimit: number;
@@ -27,6 +26,8 @@ export function getTurnStartSnapshot(): GameState | null {
 
 export function startTurn(state: GameState): void {
   state.prompt = null;
+  state.pending = null as any;
+  state.playingCardId = undefined;
   if (!state.currentPlayerId) {
     // Initialize using legacy index for hotseat
     state.currentPlayerId = state.players[state.currentPlayerIndex].id;
@@ -67,27 +68,25 @@ export function playCard(state: GameState, cardId: string): void {
   if (idx === -1) return;
   const [card] = player.hand.splice(idx, 1);
   state.log.push({ message: `${player.name} plays ${card.name}` });
+  state.playingCardId = card.id;
+  (state as any).playingCard = card;
   if (card.effect) {
     executeEffect(state, player.id, card, card.effect);
   } else {
     for (const verb of card.verbs) {
       if (state.gameOver) break;
       executeVerb(state, player.id, card, verb);
+      if (state.prompt) {
+        // pause and queue remaining implicit verbs
+        const remaining = card.verbs.slice(card.verbs.indexOf(verb) + 1).map((v) => ({ kind: 'verb', verb: v } as any));
+        state.pending = { playerId: player.id, card, queue: remaining as any };
+        break;
+      }
     }
   }
-  // Discard or keep (do NOT auto-advance turn; End Turn is user-driven)
-  if (!state.gameOver) {
-    const tuckedSomewhere = state.players.some((p) => p.tucked.includes(card));
-    if (card.keepOnPlay) {
-      player.hand.push(card);
-    } else if (tuckedSomewhere) {
-      // already moved to a tucked stack; do not discard
-    } else {
-      state.discardPile = pushBottom(state.discardPile, [card]);
-    }
-    state.hasPlayedThisTurn = true;
-    state.hasActedThisTurn = true;
-    state.lastPlayedCardId = card.id;
+  // Finalize only if no prompt/pending remains
+  if (!state.gameOver && !state.prompt && !(state.pending && state.pending.queue && state.pending.queue.length)) {
+    finalizeCardPlay(state, player.id, card);
   }
 }
 
@@ -101,12 +100,19 @@ function executeEffect(
   switch (effect.kind) {
     case 'verb': {
       executeVerb(state, playerId, card, effect.verb);
+      // If a prompt is opened by the verb, pause here (parent will queue if needed)
       return;
     }
     case 'all': {
-      for (const e of effect.effects) {
+      for (let i = 0; i < effect.effects.length; i++) {
+        const e = effect.effects[i];
         if (state.gameOver) break;
         executeEffect(state, playerId, card, e);
+        if (state.prompt) {
+          const rest = effect.effects.slice(i + 1);
+          state.pending = { playerId, card, queue: rest as any };
+          break;
+        }
       }
       return;
     }
@@ -227,13 +233,45 @@ function executeVerb(
       // Resolve piece type
       const pieceTypeId = (verb as any).pieceTypeId ?? (verb as any).pieceTypes?.anyOf?.[0];
       // Resolve node options
-      const nodeOptions = resolveNodeSelector(state, playerId, (verb as any).at) ?? Object.keys(state.map.nodes);
+      let nodeOptions = resolveNodeSelector(state, playerId, (verb as any).at) ?? Object.keys(state.map.nodes);
+      const excludes: string[] = Array.isArray((verb as any).excludeNodes) ? (verb as any).excludeNodes : [];
+      if (excludes.length > 0) nodeOptions = nodeOptions.filter((n) => !excludes.includes(n));
+      // Determine repeats and faction override
+      const remaining = Math.max(1, Number((verb as any).count ?? 1));
+      const faction = resolveFactionSelector(state, playerId, (verb as any).faction);
+      const unique = !!(verb as any).unique;
+      const pieceName = String(pieceTypeId);
+      const facLabel = faction ? ` (${faction})` : '';
       state.prompt = {
         kind: 'selectNode',
         playerId,
         nodeOptions,
-        next: { kind: 'forRecruit', pieceTypeId },
-        message: 'Select a node to recruit',
+        next: { kind: 'forRecruit', pieceTypeId, remaining, unique, faction: (faction as any) },
+        message: remaining > 1 ? `Select a city to place ${pieceName}${facLabel} (${remaining} left)` : `Select a city to place ${pieceName}${facLabel}`,
+      };
+      break;
+    }
+    case 'placeCharacter': {
+      // Find the current player's character (first one)
+      const ch = Object.values(state.characters).find((c) => c.playerId === playerId);
+      if (!ch) { state.log.push({ message: `No character to place.` }); break; }
+      let options: string[] | undefined;
+      if ((verb as any).options && Array.isArray((verb as any).options)) {
+        options = ((verb as any).options as string[]).filter((nid) => !!state.map.nodes[nid]);
+      } else if ((verb as any).nearCurrent) {
+        const here = ch.location.nodeId;
+        const adj = findAdjacentNodes(state.map, here);
+        // include current and all adjacents
+        options = [here, ...adj];
+      } else {
+        options = Object.keys(state.map.nodes);
+      }
+      state.prompt = {
+        kind: 'selectNode',
+        playerId,
+        nodeOptions: options!,
+        next: { kind: 'forPlaceCharacter', characterId: ch.id },
+        message: 'Select a city for your character',
       };
       break;
     }
@@ -277,6 +315,7 @@ export function inputSelectPiece(state: GameState, pieceId: PieceId): void {
     delete state.pieces[pieceId];
     state.log.push({ message: `Destroyed piece ${pieceId}` });
     state.prompt = null;
+    resumePendingIfAny(state);
   }
 }
 
@@ -299,6 +338,7 @@ export function inputSelectAdjacentNode(state: GameState, nodeId: NodeId): void 
     };
   } else {
     state.prompt = null;
+    resumePendingIfAny(state);
   }
 }
 
@@ -308,15 +348,44 @@ export function inputSelectNode(state: GameState, nodeId: NodeId): void {
   const next = state.prompt.next;
   if (next.kind === 'forRecruit') {
     const pieceId = genId('pc');
+    const ownerId = state.prompt.playerId;
+    const ownerFaction = state.players.find((p) => p.id === ownerId)?.faction;
     state.pieces[pieceId] = {
       id: pieceId,
-      ownerId: state.prompt.playerId,
+      ownerId,
+      faction: next.faction ?? (ownerFaction as any),
       typeId: next.pieceTypeId,
       location: { kind: 'node', nodeId },
     };
-    state.log.push({ message: `Recruited at ${nodeId}` });
+    const label = (state.map.nodes as any)[nodeId]?.label ?? nodeId;
+    const rem = Math.max(0, (next.remaining ?? 1) - 1);
+    state.log.push({ message: `Recruited at ${label}` });
+    if (rem > 0) {
+      const opts = next.unique ? state.prompt.nodeOptions.filter((n) => n !== nodeId) : state.prompt.nodeOptions;
+      const pieceName = String(next.pieceTypeId);
+      const facLabel = next.faction ? ` (${next.faction})` : '';
+      state.prompt = {
+        kind: 'selectNode',
+        playerId: state.prompt.playerId,
+        nodeOptions: opts,
+        next: { kind: 'forRecruit', pieceTypeId: next.pieceTypeId, remaining: rem, unique: next.unique, faction: next.faction },
+        message: `Select a city to place ${pieceName}${facLabel} (${rem} left)`,
+      };
+    } else {
+      state.prompt = null;
+      resumePendingIfAny(state);
+    }
+  } else if ((next as any).kind === 'forPlaceCharacter') {
+    const chId = (next as any).characterId as string;
+    const ch = state.characters[chId];
+    if (ch) {
+      ch.location = { kind: 'node', nodeId } as any;
+      const label = (state.map.nodes as any)[nodeId]?.label ?? nodeId;
+      state.log.push({ message: `Placed ${ch.name} at ${label}` });
+    }
+    state.prompt = null;
+    resumePendingIfAny(state);
   }
-  state.prompt = null;
 }
 
 function findOpponent(state: GameState, playerId: PlayerId) {
@@ -335,6 +404,39 @@ function resolvePlayerSelector(state: GameState, selfId: PlayerId, sel: PlayerSe
   if (sel === 'self') return selfId;
   if (sel === 'opponent') return findOpponent(state, selfId).id;
   return (sel as any).playerId ?? selfId;
+}
+
+function resumePendingIfAny(state: GameState) {
+  if (!state.pending) return;
+  const { playerId, card } = state.pending;
+  // If there is a queued list, play the next effect
+  while (!state.prompt && state.pending && state.pending.queue && state.pending.queue.length > 0) {
+    const nextEffect = state.pending.queue.shift()! as any as Effect;
+    executeEffect(state, playerId, card, nextEffect);
+    if (state.prompt) return; // paused again
+  }
+  // If no prompt and no more queue, finalize the card play
+  if (!state.prompt) {
+    finalizeCardPlay(state, playerId, card);
+    state.pending = null as any;
+  }
+}
+
+function finalizeCardPlay(state: GameState, playerId: PlayerId, card: Card) {
+  const player = state.players.find((p) => p.id === playerId)!;
+  const tuckedSomewhere = state.players.some((pl) => pl.tucked.includes(card));
+  if (card.keepOnPlay) {
+    player.hand.push(card);
+  } else if (tuckedSomewhere) {
+    // already moved to a tucked stack; do not discard
+  } else {
+    state.discardPile = pushBottom(state.discardPile, [card]);
+  }
+  state.hasPlayedThisTurn = true;
+  state.hasActedThisTurn = true;
+  state.lastPlayedCardId = card.id;
+  state.playingCardId = undefined;
+  (state as any).playingCard = undefined;
 }
 
 function resolveFactionSelector(state: GameState, selfId: PlayerId, sel: FactionSelector | undefined): string | undefined {

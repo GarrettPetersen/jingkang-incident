@@ -159,11 +159,66 @@ function wrapTextToLines(
   return lines;
 }
 
+function describeCardRules(card: { verbs?: any[]; effect?: any }): string {
+  if (!card) return '';
+  if (card.effect) return describeEffect(card.effect).join('\n');
+  if (Array.isArray(card.verbs)) return card.verbs.map(describeVerb).join('\n');
+  return '';
+}
+
+function describeEffect(effect: any): string[] {
+  if (!effect) return [];
+  if (effect.kind === 'all' && Array.isArray(effect.effects)) {
+    return effect.effects.flatMap((e: any) => describeEffect(e));
+  }
+  if (effect.kind === 'any' && Array.isArray(effect.effects)) {
+    const opts = effect.effects.flatMap((e: any) => describeEffect(e));
+    return ['Choose one:', ...opts.map((t: string) => `${t}`)];
+  }
+  if (effect.kind === 'verb') return [describeVerb(effect.verb)];
+  if (effect.kind === 'if') {
+    const cond = `If has ${effect?.condition?.icon ?? 'icon'} tucked`;
+    const thenLines = describeEffect(effect.then);
+    const elseLines = effect.else ? describeEffect(effect.else) : [];
+    return [
+      `${cond}:`,
+      ...thenLines.map((t: string) => `${t}`),
+      ...(elseLines.length ? ['Else:', ...elseLines.map((t: string) => `${t}`)] : []),
+    ];
+  }
+  return [];
+}
+
+function describeVerb(verb: any): string {
+  if (!verb || typeof verb !== 'object') return '';
+  switch (verb.type) {
+    case 'draw': return `Draw ${verb.count}`;
+    case 'drawUpTo': return `Draw up to ${verb.limit} in hand`;
+    case 'tuck': return verb.target === 'opponent' ? `Tuck this in front of the opponent` : `Tuck this in front of you`;
+    case 'gainCoin': return `Gain ${verb.amount} coin(s)`;
+    case 'destroy': return `Destroy any piece`;
+    case 'move': return `Move a piece ${verb.steps ?? 1} step(s)`;
+    case 'recruit': {
+      const kind = String(verb.pieceTypeId || (verb.pieceTypes?.anyOf?.[0] ?? 'piece'));
+      const count = Math.max(1, Number(verb.count ?? 1));
+      const pool = (verb.at && (verb.at as any).nodes && Array.isArray((verb.at as any).nodes)) ? (verb.at as any).nodes : undefined;
+      const excl = Array.isArray(verb.excludeNodes) && verb.excludeNodes.length ? ` except ${verb.excludeNodes.join(', ')}` : '';
+      if (pool && count > 1) return `Choose ${count} places to recruit 1 ${kind} each from [${pool.join(', ')}]${excl}`;
+      if (pool) return `Recruit 1 ${kind} in one of [${pool.join(', ')}]${excl}`;
+      return count > 1 ? `Recruit ${count} ${kind}` : `Recruit 1 ${kind}`;
+    }
+    case 'placeCharacter': return `Place your character in a nearby city`;
+    case 'endGame': return `End the game`;
+    default: return '';
+  }
+}
+
 function makeCharacterCardDataUrl(
   name: string,
   title: string,
   factions: FactionId[],
-  quote?: { text: string; cite?: string }
+  quote?: { text: string; cite?: string },
+  rulesText?: string
 ): string {
   const width = TAROT_CARD_WIDTH;
   const height = TAROT_CARD_HEIGHT;
@@ -200,11 +255,58 @@ function makeCharacterCardDataUrl(
       cy + 5
     }" text-anchor="middle" font-size="16" font-weight="700" fill="${textFill}">${char}</text>`;
   });
-  // Quote block above icon band (baked into SVG)
+  // Rules text block (baked into SVG) — place higher up under title
+  let rulesMarkup = "";
+  let rulesBottomY = 0;
+  if (rulesText && rulesText.trim()) {
+    // Replace tokens with emoji-like characters so text wraps naturally
+    function tokenToEmoji(tok: string): string {
+      if (tok === ':dot:') return '🟡';
+      if (tok === ':star:') return '★';
+      if (tok === ':rebel-foot:' || tok === ':black-foot:') return '⬛';
+      if (tok === ':song-foot:' || tok === ':red-foot:') return '🟥';
+      if (tok === ':jin-foot:' || tok === ':yellow-foot:') return '🟨';
+      if (tok === ':daqi-foot:' || tok === ':green-foot:') return '🟩';
+      if (tok === ':foot:') {
+        const f = factions[0];
+        if (f === 'jin') return '🟨';
+        if (f === 'daqi') return '🟩';
+        if (f === 'rebel') return '⬛';
+        return '🟥';
+      }
+      return tok;
+    }
+    const paragraphs = rulesText
+      .split(/\n+/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map((s) => s.replace(/:rebel-foot:|:black-foot:|:song-foot:|:red-foot:|:jin-foot:|:yellow-foot:|:daqi-foot:|:green-foot:|:foot:|:dot:|:star:/g, (m) => tokenToEmoji(m)));
+    const startY = 110;
+    const lineGap = 14;
+    const groupGap = 6;
+    let tspans: string[] = [];
+    let first = true;
+    for (const para of paragraphs) {
+      const lines = wrapTextToLines(para, bandW, 13, 10).map((s) =>
+        s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      );
+      lines.forEach((ln, i) => {
+        if (first && i === 0) tspans.push(`<tspan x="${bandX}" y="${startY}">${ln}</tspan>`);
+        else tspans.push(`<tspan x="${bandX}" dy="${lineGap}">${ln}</tspan>`);
+      });
+      first = false;
+      // add extra gap between paragraphs
+      tspans.push(`<tspan x="${bandX}" dy="${groupGap}"></tspan>`);
+    }
+    rulesBottomY = startY + (paragraphs.length * groupGap) + (paragraphs.reduce((sum, p) => sum + wrapTextToLines(p, bandW, 13, 10).length, 0) * lineGap);
+    rulesMarkup = `\n  <text text-anchor="start" font-size="13" fill="#222">${tspans.join('')}</text>`;
+  }
+
+  // Quote block above icon band — ensure no overlap with rules text
   let quoteMarkup = "";
   if (quote && quote.text) {
     const rawQ = quote.text;
-    const lines = wrapTextToLines(rawQ, bandW, 13, 8).map((s) =>
+    const qLines = wrapTextToLines(rawQ, bandW, 13, 8).map((s) =>
       s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
     );
     const c = quote.cite
@@ -213,13 +315,15 @@ function makeCharacterCardDataUrl(
           .replace(/</g, "&lt;")
           .replace(/>/g, "&gt;")
       : "";
-    const baseY = Math.max(90, bandY - 30 - (lines.length - 1) * 14);
-    const tspans = lines
+    const minY = (rulesBottomY ? rulesBottomY + 10 : 90);
+    const byBand = bandY - 30 - (qLines.length - 1) * 14;
+    const baseY = Math.max(minY, byBand);
+    const tspans = qLines
       .map(
         (ln, i) => `<tspan x="${bandX}" dy="${i === 0 ? 0 : 14}">${ln}</tspan>`
       )
       .join("");
-    const naturalCiteY = baseY + lines.length * 14 + 12;
+    const naturalCiteY = baseY + qLines.length * 14 + 12;
     const minClearance = 10;
     const maxCiteY = bandY - minClearance;
     const citeY = Math.min(maxCiteY, naturalCiteY);
@@ -245,6 +349,7 @@ function makeCharacterCardDataUrl(
   <text x="50%" y="42" text-anchor="middle" font-size="20" font-weight="700" fill="#111">${name}</text>
   <text x="50%" y="70" text-anchor="middle" font-size="16" fill="#333">${title}</text>
   ${quoteMarkup}
+  ${rulesMarkup}
   <rect x="${bandX}" y="${bandY}" width="${bandW}" height="${bandH}" fill="#eee" rx="8" ry="8"/>
   ${iconsMarkup}
 </svg>`;
@@ -261,6 +366,7 @@ function materializeCardFromDef(def: any): Card {
   const verbs = Array.isArray(def.verbs) ? (def.verbs as any) : [];
   const c: Card = { id, name, verbs };
   if (def.icons) c.icons = def.icons;
+  if (typeof def.rulesTextOverride === "string") (c as any).rulesTextOverride = String(def.rulesTextOverride);
   if (def.keepOnPlay !== undefined) c.keepOnPlay = !!def.keepOnPlay;
   if (def.effect && typeof def.effect === "object") {
     // Trust scenario to provide a valid Effect tree
@@ -284,7 +390,8 @@ function materializeCardFromDef(def: any): Card {
     const factions = Array.isArray(def.factions)
       ? (def.factions as FactionId[])
       : [];
-    const path = makeCharacterCardDataUrl(name, title, factions, c.quote);
+    const rulesText = (c as any).rulesTextOverride || describeCardRules({ verbs: c.verbs, effect: (c as any).effect });
+    const path = makeCharacterCardDataUrl(name, title, factions, c.quote, rulesText);
     c.asset = {
       path,
       size: { width: TAROT_CARD_WIDTH, height: TAROT_CARD_HEIGHT },
@@ -339,6 +446,12 @@ function buildStateFromScenario(scn: any): GameState {
     faction: p.faction,
   }));
 
+  // Move any initially tucked cards into hands; start with empty tucks
+  players = players.map((p: any) => {
+    const moved = { ...p, hand: [...p.hand, ...(p.tucked ?? [])], tucked: [] };
+    return moved;
+  });
+
   // Build mapping of faction -> players (supports 0,1,2+ players per faction)
   const playersByFaction = new Map<string, string[]>();
   players.forEach((p: any) => {
@@ -351,30 +464,9 @@ function buildStateFromScenario(scn: any): GameState {
 
   // Do not auto-create players for factions present on pieces. Factions are independent of players.
 
+  // Start with an empty board; initial setup will be enacted by setup cards
   const pieces: Record<string, Piece> = {};
-  let counter = 0;
   const validNodes = new Set(Object.keys(boardMap.nodes));
-  for (const spec of scn.pieces ?? []) {
-    const typeId = String(spec.type);
-    const nodeId = String(spec.nodeId);
-    const faction = String(spec.faction);
-    // Pieces are faction-owned; player ownership is optional (reserved for future standees)
-    if (!validNodes.has(nodeId)) {
-      console.warn(`[scenario] Skipping piece at unknown nodeId: ${nodeId}`);
-      continue;
-    }
-    const count = Number(spec.count ?? 1);
-    for (let i = 0; i < count; i++) {
-      // Represent capitals as logical pieces so overlays can detect them; renderer will skip drawing them as normal pieces
-      const id = `pz${++counter}`;
-      pieces[id] = {
-        id,
-        faction: faction as any,
-        typeId,
-        location: { kind: "node", nodeId },
-      };
-    }
-  }
 
   // Characters (player standees)
   const characters: Record<string, Character> = {};

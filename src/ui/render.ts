@@ -111,10 +111,16 @@ export function renderApp(root: HTMLElement, state: GameState, handlers: {
   root.appendChild(container);
   // Animate transitions
   runFLIP(root);
+
+  // Expose currently playing card id for modal logic (Undo vs Play)
+  try {
+    (window as any).__playingCardId = (state as any).playingCardId || (state as any).pending?.card?.id || undefined;
+  } catch {}
 }
 
 function renderLeftPanel(state: GameState, handlers: any): HTMLElement {
   const div = document.createElement('div');
+  div.style.position = 'relative';
   const player = viewingPlayer(state);
   const h = document.createElement('h3');
   h.textContent = `Viewing: ${player.name}`;
@@ -378,7 +384,9 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
     mapLayer.appendChild(circle);
 
     // Overlay control coloring (faded). Supports any number of controlling factions by slicing the circle.
-    const ctrls = controllersByNode[n.id] ?? [];
+    let ctrls = controllersByNode[n.id] ?? [];
+    // Do not tint for rebel control in setup overlays
+    ctrls = ctrls.filter(c => c !== 'rebel');
     if (ctrls.length === 1) {
       const fill = FactionColor[ctrls[0] as keyof typeof FactionColor] ?? '#888';
       const top = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -415,6 +423,43 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
     label.setAttribute('fill', '#222');
     label.textContent = n.label ?? n.id;
     mapLayer.appendChild(label);
+
+    // Setup markers: small yellow dot for early Jin-held cities; black star for Bianjing (Kaifeng)
+    const jinHeld = new Set(['yanjing', 'shangjing', 'zhaozhou', 'cangzhou']);
+    const isBianjing = n.id === 'kaifeng' || n.id === 'bianjing';
+    if (jinHeld.has(n.id) || isBianjing) {
+      const r = 10; // node radius
+      const offs = r * 0.7; // inset toward center
+      const cx = n.x + offs * Math.SQRT1_2; // cos(45°) = sin(45°) = sqrt(1/2)
+      const cy = n.y - offs * Math.SQRT1_2;
+      if (jinHeld.has(n.id)) {
+        const mark = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        mark.setAttribute('cx', String(cx));
+        mark.setAttribute('cy', String(cy));
+        mark.setAttribute('r', '3');
+        mark.setAttribute('fill', '#f0c419');
+        mark.setAttribute('stroke', '#b78900');
+        mark.setAttribute('stroke-width', '1');
+        mapLayer.appendChild(mark);
+      }
+      if (isBianjing) {
+        // small five-point star
+        const star = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        const R = 4, r2 = 1.6; // outer and inner radii
+        const pts: Array<[number, number]> = [];
+        for (let i = 0; i < 10; i++) {
+          const ang = -Math.PI / 2 + (i * Math.PI) / 5;
+          const rr = i % 2 === 0 ? R : r2;
+          pts.push([cx + rr * Math.cos(ang), cy + rr * Math.sin(ang)]);
+        }
+        const d = `M ${pts[0][0]} ${pts[0][1]} ` + pts.slice(1).map(p => `L ${p[0]} ${p[1]}`).join(' ') + ' Z';
+        star.setAttribute('d', d);
+        star.setAttribute('fill', '#000');
+        star.setAttribute('stroke', '#000');
+        star.setAttribute('stroke-width', '0.5');
+        mapLayer.appendChild(star);
+      }
+    }
   }
 
   // pieces (group by node and pack into 3-column rows with width-aware packing)
@@ -639,8 +684,10 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
       }
       return undefined;
     }
-    const xs = characterOffsets(chars.length);
-    chars.forEach((ch, i) => {
+    const visible = chars.filter((ch) => !!factionFromTucked((ch as any).playerId));
+    if (visible.length === 0) continue;
+    const xs = characterOffsets(visible.length);
+    visible.forEach((ch, i) => {
       const cx = node.x * MAP_SCALE + xs[i];
       // Border + background
       const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -869,10 +916,16 @@ function renderHand(state: GameState, handlers: any): HTMLElement {
   center.style.alignItems = 'center';
   center.style.justifyContent = 'center';
   center.style.gap = '10px';
+  center.id = 'hand-center';
   for (const card of player.hand) {
     const disabled = !!state.hasPlayedThisTurn;
     const cardEl = renderCard(card, () => handlers.onPlayCard(card.id));
     cardEl.setAttribute('data-key', `card:${getStableCardKey(card)}`);
+    if (state.playingCardId === card.id) {
+      cardEl.style.transform = 'translateY(-6px) scale(1.03)';
+      cardEl.style.boxShadow = '0 12px 24px rgba(0,0,0,0.4)';
+      cardEl.style.zIndex = '10';
+    }
     if (disabled) {
       cardEl.style.opacity = '0.5';
       (cardEl as any).style.pointerEvents = 'none';
@@ -888,6 +941,7 @@ function renderHand(state: GameState, handlers: any): HTMLElement {
   rightZone.style.alignItems = 'center';
   rightZone.style.gap = '16px';
   const tucks = renderTuckSplay(player.tucked, 'self');
+  tucks.setAttribute('data-zone', 'tucks-self');
   tucks.style.zIndex = '2';
   // Player coin inventory
   const coinRow = document.createElement('div');
@@ -906,6 +960,20 @@ function renderHand(state: GameState, handlers: any): HTMLElement {
   div.appendChild(leftStack);
   div.appendChild(center);
   div.appendChild(rightZone);
+
+  // Show currently playing card above the hand (clickable to reopen modal)
+  const playingCard = ((state as any).pending?.card) || ((state as any).playingCard);
+  if (playingCard && playingCard.asset) {
+    const inHand = player.hand.some((c: any) => c.id === playingCard.id);
+    if (!inHand) {
+      const ghost = renderCard(playingCard, () => {});
+      ghost.style.transform = 'translateY(-16px)';
+      ghost.style.boxShadow = '0 8px 16px rgba(0,0,0,0.35)';
+      ghost.style.zIndex = '2';
+      ghost.setAttribute('data-key', `playing:${getStableCardKey(playingCard)}`);
+      center.appendChild(ghost);
+    }
+  }
   return div;
 }
 
@@ -940,7 +1008,7 @@ function renderPile(label: string, imgPath: string, count: number, size: 'sm' | 
   return wrap;
 }
 
-function renderCard(card: { name: string; asset?: { path: string; size: { width: number; height: number }; iconSlot?: { x: number; y: number; width: number; height: number } } }, onClick: () => void): HTMLElement {
+function renderCard(card: { name: string; asset?: { path: string; size: { width: number; height: number }; iconSlot?: { x: number; y: number; width: number; height: number } }; rulesTextOverride?: string; verbs?: any[]; effect?: any }, onClick: () => void): HTMLElement {
   const w = 150; // tarot scaled width
   const h = Math.round(w * (570 / 330));
   const container = document.createElement('div');
@@ -952,43 +1020,20 @@ function renderCard(card: { name: string; asset?: { path: string; size: { width:
   container.style.overflow = 'hidden';
   container.style.cursor = 'pointer';
   container.title = card.name;
-  // Gesture handling: single-click to play; double-click or long-press to preview
-  let clickTimer: number | undefined;
-  let longPressTimer: number | undefined;
-  let suppressNextClick = false;
-  const CLICK_DELAY_MS = 220;
-  const LONG_PRESS_MS = 500;
-
-  function clearTimers() {
-    if (clickTimer) { clearTimeout(clickTimer); clickTimer = undefined; }
-    if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = undefined; }
+  // Gesture handling: open modal on click with simple animation
+  function __getAbsRect(el: HTMLElement) {
+    const r = el.getBoundingClientRect();
+    return { x: r.left + window.scrollX, y: r.top + window.scrollY, width: r.width, height: r.height };
   }
-
-  container.addEventListener('click', (e) => {
-    if (suppressNextClick) { suppressNextClick = false; return; }
-    if (clickTimer) clearTimeout(clickTimer);
-    clickTimer = window.setTimeout(() => {
-      onClick();
-      clickTimer = undefined;
-    }, CLICK_DELAY_MS) as unknown as number;
+  container.addEventListener('click', () => {
+    const origin = __getAbsRect(container);
+    showCardModal(card, onClick, origin);
   });
-  container.addEventListener('dblclick', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (clickTimer) { clearTimeout(clickTimer); clickTimer = undefined; }
-    showCardPreview(card);
+  container.addEventListener('dblclick', (ev) => {
+    ev.preventDefault(); ev.stopPropagation();
+    const origin = __getAbsRect(container);
+    showCardModal(card, onClick, origin);
   });
-  container.addEventListener('touchstart', () => {
-    clearTimers();
-    longPressTimer = window.setTimeout(() => {
-      suppressNextClick = true;
-      showCardPreview(card);
-      longPressTimer = undefined;
-    }, LONG_PRESS_MS) as unknown as number;
-  }, { passive: true });
-  const cancelLong = () => { if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = undefined; } };
-  container.addEventListener('touchend', cancelLong, { passive: true });
-  container.addEventListener('touchmove', cancelLong, { passive: true });
 
   const img = document.createElement('img');
   img.src = card.asset?.path ?? '/vite.svg';
@@ -1216,6 +1261,268 @@ function showCardPreview(card: any): void {
 
   overlay.appendChild(img);
   document.body.appendChild(overlay);
+}
+
+function showCardModal(card: any, onPlay: () => void, originRect?: { x: number; y: number; width: number; height: number }): void {
+  if (!card || !card.asset) return;
+  const existing = document.getElementById('card-preview-overlay');
+  if (existing) existing.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'card-preview-overlay';
+  overlay.style.position = 'fixed';
+  overlay.style.left = '0';
+  overlay.style.top = '0';
+  overlay.style.right = '0';
+  overlay.style.bottom = '0';
+  overlay.style.background = 'rgba(0,0,0,0.6)';
+  overlay.style.display = 'flex';
+  overlay.style.alignItems = 'center';
+  overlay.style.justifyContent = 'center';
+  overlay.style.zIndex = '9999';
+  overlay.addEventListener('click', () => overlay.remove());
+
+  const modal = document.createElement('div');
+  modal.style.background = '#111';
+  modal.style.color = '#eee';
+  modal.style.border = '1px solid #333';
+  modal.style.borderRadius = '10px';
+  modal.style.boxShadow = '0 10px 30px rgba(0,0,0,0.5)';
+  modal.style.maxWidth = '86vw';
+  modal.style.maxHeight = '86vh';
+  modal.style.display = 'flex';
+  modal.style.flexDirection = 'row';
+  modal.style.gap = '16px';
+  modal.style.padding = '16px';
+  modal.addEventListener('click', (ev) => ev.stopPropagation());
+
+  const img = document.createElement('img');
+  img.src = card.asset.path;
+  img.alt = card.name;
+  img.style.maxWidth = '55vw';
+  img.style.maxHeight = '80vh';
+  img.style.borderRadius = '8px';
+
+  const side = document.createElement('div');
+  side.style.display = 'flex';
+  side.style.flexDirection = 'column';
+  side.style.gap = '12px';
+  side.style.width = '28vw';
+  side.style.maxWidth = '420px';
+
+  const title = document.createElement('div');
+  title.textContent = card.name || 'Card';
+  title.style.fontSize = '18px';
+  title.style.fontWeight = '700';
+  side.appendChild(title);
+
+  const text = document.createElement('div');
+  text.style.fontSize = '14px';
+  text.style.lineHeight = '1.4';
+  text.style.whiteSpace = 'pre-wrap';
+  // Replace tokens with emoji-like symbols for modal display
+  function tokenToEmoji(tok: string): string {
+    if (tok === ':dot:') return '🟡';
+    if (tok === ':star:') return '★';
+    if (tok === ':rebel-foot:' || tok === ':black-foot:') return '⬛';
+    if (tok === ':song-foot:' || tok === ':red-foot:') return '🟥';
+    if (tok === ':jin-foot:' || tok === ':yellow-foot:') return '🟨';
+    if (tok === ':daqi-foot:' || tok === ':green-foot:') return '🟩';
+    if (tok === ':foot:') {
+      const ic = Array.isArray(card.icons) && card.icons[0];
+      if (ic === 'jin') return '🟨';
+      if (ic === 'daqi') return '🟩';
+      if (ic === 'rebel') return '⬛';
+      return '🟥';
+    }
+    return tok;
+  }
+  const raw = card.rulesTextOverride || describeCardRules(card);
+  const display = raw ? raw.replace(/:rebel-foot:|:black-foot:|:song-foot:|:red-foot:|:jin-foot:|:yellow-foot:|:daqi-foot:|:green-foot:|:foot:|:dot:|:star:/g, (m: string) => tokenToEmoji(m)) : '';
+  text.textContent = display;
+  side.appendChild(text);
+
+  const row = document.createElement('div');
+  row.style.display = 'flex';
+  row.style.gap = '10px';
+
+  const playBtn = document.createElement('button');
+  const isPlaying = ((window as any).__playingCardId === card.id);
+  playBtn.textContent = isPlaying ? 'Undo' : 'Play';
+  playBtn.style.padding = '8px 12px';
+  playBtn.style.background = '#2e86de';
+  playBtn.style.color = '#fff';
+  playBtn.style.border = 'none';
+  playBtn.style.borderRadius = '6px';
+  playBtn.style.cursor = 'pointer';
+
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = 'Close';
+  closeBtn.style.padding = '8px 12px';
+  closeBtn.style.background = '#444';
+  closeBtn.style.color = '#fff';
+  closeBtn.style.border = 'none';
+  closeBtn.style.borderRadius = '6px';
+  closeBtn.style.cursor = 'pointer';
+
+  row.appendChild(playBtn);
+  row.appendChild(closeBtn);
+  side.appendChild(row);
+
+  modal.appendChild(img);
+  modal.appendChild(side);
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  // Animate in from origin to modal
+  if (originRect) {
+    const ghost = document.createElement('img');
+    ghost.src = card.asset.path;
+    ghost.style.position = 'fixed';
+    ghost.style.left = `${originRect.x - window.scrollX}px`;
+    ghost.style.top = `${originRect.y - window.scrollY}px`;
+    ghost.style.width = `${originRect.width}px`;
+    ghost.style.height = `${originRect.height}px`;
+    ghost.style.borderRadius = '8px';
+    ghost.style.boxShadow = '0 10px 30px rgba(0,0,0,0.4)';
+    ghost.style.zIndex = '10000';
+    ghost.style.transition = 'all 180ms ease-in-out';
+    document.body.appendChild(ghost);
+    const r = img.getBoundingClientRect();
+    const target = { x: r.left, y: r.top, width: r.width, height: r.height };
+    requestAnimationFrame(() => {
+      ghost.style.left = `${target.x}px`;
+      ghost.style.top = `${target.y}px`;
+      ghost.style.width = `${target.width}px`;
+      ghost.style.height = `${target.height}px`;
+    });
+    setTimeout(() => ghost.remove(), 200);
+  }
+
+  playBtn.addEventListener('click', () => {
+    if (isPlaying && (window as any).onUndo) {
+      overlay.remove();
+      (window as any).onUndo();
+      return;
+    }
+    // Animate back to the card's original hand position (slightly raised), then play
+    if (originRect) {
+      const ir = img.getBoundingClientRect();
+      const source = { x: ir.left, y: ir.top, width: ir.width, height: ir.height };
+      const ghost = document.createElement('img');
+      ghost.src = card.asset.path;
+      ghost.style.position = 'fixed';
+      ghost.style.left = `${source.x}px`;
+      ghost.style.top = `${source.y}px`;
+      ghost.style.width = `${source.width}px`;
+      ghost.style.height = `${source.height}px`;
+      ghost.style.borderRadius = '8px';
+      ghost.style.boxShadow = '0 10px 30px rgba(0,0,0,0.4)';
+      ghost.style.zIndex = '10000';
+      ghost.style.transition = 'all 200ms ease-in-out';
+      document.body.appendChild(ghost);
+      // Keep overlay visible but non-interactive during the animation to avoid flicker
+      overlay.style.pointerEvents = 'none';
+      overlay.style.opacity = '0';
+      requestAnimationFrame(() => {
+        ghost.style.left = `${originRect.x - window.scrollX}px`;
+        ghost.style.top = `${originRect.y - window.scrollY - 16}px`;
+        ghost.style.width = `${originRect.width}px`;
+        ghost.style.height = `${originRect.height}px`;
+        ghost.style.opacity = '0.95';
+      });
+      setTimeout(() => { ghost.remove(); overlay.remove(); onPlay(); }, 220);
+    } else {
+      overlay.remove(); onPlay();
+    }
+  });
+
+  closeBtn.addEventListener('click', () => {
+    if (originRect) {
+      const ir = img.getBoundingClientRect();
+      const source = { x: ir.left, y: ir.top, width: ir.width, height: ir.height };
+      const ghost = document.createElement('img');
+      ghost.src = card.asset.path;
+      ghost.style.position = 'fixed';
+      ghost.style.left = `${source.x}px`;
+      ghost.style.top = `${source.y}px`;
+      ghost.style.width = `${source.width}px`;
+      ghost.style.height = `${source.height}px`;
+      ghost.style.borderRadius = '8px';
+      ghost.style.boxShadow = '0 10px 30px rgba(0,0,0,0.4)';
+      ghost.style.zIndex = '10000';
+      ghost.style.transition = 'all 160ms ease-in-out';
+      document.body.appendChild(ghost);
+      overlay.style.pointerEvents = 'none';
+      overlay.style.opacity = '0';
+      requestAnimationFrame(() => {
+        ghost.style.left = `${originRect.x - window.scrollX}px`;
+        ghost.style.top = `${originRect.y - window.scrollY}px`;
+        ghost.style.width = `${originRect.width}px`;
+        ghost.style.height = `${originRect.height}px`;
+        ghost.style.opacity = '0.9';
+      });
+      setTimeout(() => { ghost.remove(); overlay.remove(); }, 180);
+    } else {
+      overlay.remove();
+    }
+  });
+}
+
+function describeCardRules(card: any): string {
+  if (card.rulesTextOverride) return card.rulesTextOverride;
+  if (card.effect) return describeEffect(card.effect).join('\n');
+  if (Array.isArray(card.verbs)) return card.verbs.map(describeVerb).join('\n');
+  return '';
+}
+
+function describeEffect(effect: any): string[] {
+  if (!effect) return [];
+  if (effect.kind === 'all' && Array.isArray(effect.effects)) {
+    return effect.effects.flatMap((e: any) => describeEffect(e));
+  }
+  if (effect.kind === 'any' && Array.isArray(effect.effects)) {
+    const opts = effect.effects.flatMap((e: any) => describeEffect(e));
+    return [
+      `Choose one:`,
+      ...opts.map((t: string) => `${t}`),
+    ];
+  }
+  if (effect.kind === 'verb') return [describeVerb(effect.verb)];
+  if (effect.kind === 'if') {
+    const cond = `If has ${effect?.condition?.icon ?? 'icon'} tucked`;
+    const thenLines = describeEffect(effect.then);
+    const elseLines = effect.else ? describeEffect(effect.else) : [];
+    return [
+      `${cond}:`,
+      ...thenLines.map((t: string) => `${t}`),
+      ...(elseLines.length ? ['Else:', ...elseLines.map((t: string) => `${t}`)] : []),
+    ];
+  }
+  return [];
+}
+
+function describeVerb(verb: any): string {
+  if (!verb || typeof verb !== 'object') return '';
+  switch (verb.type) {
+    case 'draw': return `Draw ${verb.count}`;
+    case 'drawUpTo': return `Draw up to ${verb.limit} in hand`;
+    case 'tuck': return verb.target === 'opponent' ? `Tuck this in front of the opponent` : `Tuck this in front of you`;
+    case 'gainCoin': return `Gain ${verb.amount} coin(s)`;
+    case 'destroy': return `Destroy any piece`;
+    case 'move': return `Move a piece ${verb.steps ?? 1} step(s)`;
+    case 'recruit': {
+      const kind = String(verb.pieceTypeId || (verb.pieceTypes?.anyOf?.[0] ?? 'piece'));
+      const count = Math.max(1, Number(verb.count ?? 1));
+      const pool = (verb.at && (verb.at as any).nodes && Array.isArray((verb.at as any).nodes)) ? (verb.at as any).nodes : undefined;
+      const excl = Array.isArray(verb.excludeNodes) && verb.excludeNodes.length ? ` except ${verb.excludeNodes.join(', ')}` : '';
+      if (pool && count > 1) return `Choose ${count} places to recruit 1 ${kind} each from [${pool.join(', ')}]${excl}`;
+      if (pool) return `Recruit 1 ${kind} in one of [${pool.join(', ')}]${excl}`;
+      return count > 1 ? `Recruit ${count} ${kind}` : `Recruit 1 ${kind}`;
+    }
+    case 'placeCharacter': return `Place your character in a nearby city`;
+    case 'endGame': return `End the game`;
+    default: return '';
+  }
 }
 
 function renderCoins(count: number, size: 'sm' | 'md' = 'md'): HTMLElement {
