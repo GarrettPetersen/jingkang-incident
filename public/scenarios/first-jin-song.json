@@ -9,7 +9,7 @@
       "quote": { "text": "If civil officials don’t love money and military men don’t fear death, the realm will be at peace.", "cite": "Yue Fei, Songshi, Vol. 365" },
       "rulesTextOverride": "Recruit one :foot: in 5 separate cities without :dot: or :star:.\nPlace Yue Fei in Ezhou or a city adjacent to Ezhou.\nTuck this card.",
       "effect": { "kind": "all", "effects": [
-        { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "foot", "count": 5, "unique": true, "faction": "selfFaction", "excludeNodes": ["kaifeng","yanjing","shangjing","zhaozhou","cangzhou"] } },
+        { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "foot", "count": 5, "unique": true, "faction": "song", "excludeNodes": ["kaifeng","yanjing","shangjing","zhaozhou","cangzhou"] } },
         { "kind": "verb", "verb": { "type": "placeCharacter", "nearCurrent": true } },
         { "kind": "verb", "verb": { "type": "tuck", "target": "self" } }
       ]}
@@ -18,10 +18,10 @@
       "template": "character", "name": "Qin Hui", "title": "Jin Captive", "factions": ["jin"],
       "icons": ["jin"],
       "quote": { "text": "Let the South keep to the South, the North to the North.", "cite": "Qin Hui, Songshi, Vol. 473" },
-      "rulesTextOverride": "Place Qin Hui in any city with :dot:.\nRecruit one :rebel-foot: in Bianjing.\nTuck this card.",
+      "rulesTextOverride": "Place Qin Hui in any city with :dot:.\nPlace one :rebel-foot: in Bianjing.\nTuck this card.",
       "effect": { "kind": "all", "effects": [
-        { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "foot", "at": { "nodes": ["kaifeng"] }, "faction": "rebel" } },
         { "kind": "verb", "verb": { "type": "placeCharacter", "options": ["yanjing","shangjing","zhaozhou","cangzhou"] } },
+        { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "foot", "at": { "nodes": ["kaifeng"] }, "faction": "rebel" } },
         { "kind": "verb", "verb": { "type": "tuck", "target": "self" } }
       ]}
     },
@@ -29,9 +29,10 @@
       "template": "character", "name": "Wuzhu", "title": "Jin General", "factions": ["jin"],
       "icons": ["jin"],
       "quote": { "text": "He drove the Song ruler onto a sea island and, in the end, fixed the Huai as the boundary.", "cite": "Jinshi, Vol. 77" },
+      "rulesTextOverride": "Recruit 4 :horse: in Yanjing, Shangjing, Zhaozhou, or Cangzhou.\nPlace Wuzhu in Yanjing, Shangjing, Zhaozhou, or Cangzhou.\nTuck this card.",
       "effect": { "kind": "all", "effects": [
-        { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "horse", "count": 4, "at": { "nodes": ["yanjing","shangjing","zhaozhou","cangzhou"] }, "faction": "selfFaction" } },
-        { "kind": "verb", "verb": { "type": "placeCharacter", "nearCurrent": true } },
+        { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "horse", "count": 4, "at": { "nodes": ["yanjing","shangjing","zhaozhou","cangzhou"] }, "faction": "jin" } },
+        { "kind": "verb", "verb": { "type": "placeCharacter", "options": ["yanjing","shangjing","zhaozhou","cangzhou"] } },
         { "kind": "verb", "verb": { "type": "tuck", "target": "self" } }
       ]}
     },
@@ -40,7 +41,7 @@
       "icons": ["jin"],
       "quote": { "text": "Impulsive to the end, he fell into treason; when the plot failed he fled south—only confirming his dealings with the Song. Alas!", "cite": "Jinshi, Vol. 77" },
       "effect": { "kind": "all", "effects": [
-        { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "horse", "count": 3, "at": { "nodes": ["yanjing","shangjing","zhaozhou","cangzhou"] }, "faction": "selfFaction" } },
+        { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "horse", "count": 3, "at": { "nodes": ["yanjing","shangjing","zhaozhou","cangzhou"] }, "faction": "jin" } },
         { "kind": "verb", "verb": { "type": "placeCharacter", "nearCurrent": true } },
         { "kind": "verb", "verb": { "type": "tuck", "target": "self" } }
       ]}
@@ -50,8 +51,8 @@
       "icons": ["song"],
       "quote": { "text": "Liu Yu seized the moment for gain; the Jin sought to use him to claim credit—what sense is that?", "cite": "Jinshi, Vol. 77" },
       "effect": { "kind": "all", "effects": [
-        { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "capital", "at": { "nodes": ["huaiyang"] }, "faction": "selfFaction" } },
-        { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "ship", "count": 4, "unique": true, "at": { "nodes": ["yangzhou","nanjing","jiujiang","quanzhou","shaoxing","suzhou-js"] }, "faction": "selfFaction" } },
+        { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "capital", "at": { "nodes": ["huaiyang"] }, "faction": "song" } },
+        { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "ship", "count": 4, "unique": true, "at": { "nodes": ["yangzhou","nanjing","jiujiang","quanzhou","shaoxing","suzhou-js"] }, "faction": "song" } },
         { "kind": "verb", "verb": { "type": "placeCharacter", "nearCurrent": true } },
         { "kind": "verb", "verb": { "type": "tuck", "target": "self" } }
       ]}

@@ -395,6 +395,7 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
       top.setAttribute('r', '10');
       top.setAttribute('fill', fill);
       top.setAttribute('fill-opacity', '0.35');
+      top.setAttribute('pointer-events', 'none');
       mapLayer.appendChild(top);
     } else if (ctrls.length > 1) {
       const k = ctrls.length;
@@ -413,6 +414,7 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
         path.setAttribute('d', d);
         path.setAttribute('fill', c);
         path.setAttribute('fill-opacity', '0.35');
+        path.setAttribute('pointer-events', 'none');
         mapLayer.appendChild(path);
       }
     }
@@ -422,6 +424,7 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
     label.setAttribute('y', String(n.y + 4));
     label.setAttribute('fill', '#222');
     label.textContent = n.label ?? n.id;
+    label.setAttribute('pointer-events', 'none');
     mapLayer.appendChild(label);
 
     // Setup markers: small yellow dot for early Jin-held cities; black star for Bianjing (Kaifeng)
@@ -440,6 +443,7 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
         mark.setAttribute('fill', '#f0c419');
         mark.setAttribute('stroke', '#b78900');
         mark.setAttribute('stroke-width', '1');
+        mark.setAttribute('pointer-events', 'none');
         mapLayer.appendChild(mark);
       }
       if (isBianjing) {
@@ -457,6 +461,7 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
         star.setAttribute('fill', '#000');
         star.setAttribute('stroke', '#000');
         star.setAttribute('stroke-width', '0.5');
+        star.setAttribute('pointer-events', 'none');
         mapLayer.appendChild(star);
       }
     }
