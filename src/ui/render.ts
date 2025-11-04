@@ -1324,20 +1324,120 @@ function showCardModal(card: any, onPlay: () => void, originRect?: { x: number; 
   text.style.fontSize = '14px';
   text.style.lineHeight = '1.4';
   text.style.whiteSpace = 'pre-wrap';
-  // Replace tokens with emoji-like symbols for modal display
-  function tokenToEmoji(tok: string): string {
-    if (tok === ':dot:') return '●';
-    if (tok === ':star:') return '★';
-    if (tok === ':rebel-foot:' || tok === ':black-foot:') return '■';
-    if (tok === ':song-foot:' || tok === ':red-foot:') return '■';
-    if (tok === ':jin-foot:' || tok === ':yellow-foot:') return '■';
-    if (tok === ':daqi-foot:' || tok === ':green-foot:') return '■';
-    if (tok === ':foot:') return '□';
-    return tok;
+  function glyphChar(kind: string): string {
+    // Private Use Area mapping for icon font
+    if (kind === 'foot') return '\uE001';
+    if (kind === 'horse') return '\uE002';
+    if (kind === 'ship') return '\uE003';
+    if (kind === 'capital') return '\uE004';
+    if (kind === 'dot') return '\uE005';
+    if (kind === 'star') return '\uE006';
+    if (kind === 'character') return '\uE007';
+    return '\uE001';
+  }
+  function createIcon(kind: string, faction?: string): HTMLElement {
+    // Prefer font glyph; fallback to inline SVG if not available
+    try {
+      const fontReady = (document as any).fonts && (document as any).fonts.check && (document as any).fonts.check('12px PieceIcons');
+      if (!fontReady) throw new Error('icon font not ready');
+      const span = document.createElement('span');
+      span.textContent = glyphChar(kind);
+      span.style.fontFamily = 'PieceIcons, inherit';
+      span.style.fontSize = '1em';
+      span.style.lineHeight = '1';
+      span.style.verticalAlign = '-2px';
+      if (faction) {
+        const col = (FactionColor as any)[faction] ?? '#000';
+        span.style.color = col;
+      }
+      // If font not loaded, width may match fallback glyph; we still return span and let CSS load the font
+      return span;
+    } catch {}
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const wrap = document.createElement('span');
+    wrap.style.display = 'inline-block';
+    wrap.style.width = kind === 'ship' ? '22px' : '14px';
+    wrap.style.height = '14px';
+    wrap.style.verticalAlign = '-2px';
+    const svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('width', wrap.style.width);
+    svg.setAttribute('height', wrap.style.height);
+    const fill = faction ? (FactionColor as any)[faction] ?? '#888' : '#fff';
+    const stroke = faction ? darken(fill, 0.8) : '#000';
+    if (kind === 'dot') {
+      const c = document.createElementNS(svgNS, 'circle');
+      c.setAttribute('cx', '7'); c.setAttribute('cy', '7'); c.setAttribute('r', '4');
+      c.setAttribute('fill', '#f0c419'); c.setAttribute('stroke', '#b78900'); c.setAttribute('stroke-width', '1');
+      svg.appendChild(c);
+    } else if (kind === 'star') {
+      const path = document.createElementNS(svgNS, 'path');
+      const R = 6, r2 = 2.5; const cx = 7, cy = 7; const pts: Array<[number, number]> = [];
+      for (let i = 0; i < 10; i++) { const ang = -Math.PI/2 + (i*Math.PI)/5; const rr = i%2===0?R:r2; pts.push([cx + rr*Math.cos(ang), cy + rr*Math.sin(ang)]); }
+      const d = `M ${pts[0][0]} ${pts[0][1]} ` + pts.slice(1).map(p => `L ${p[0]} ${p[1]}`).join(' ') + ' Z';
+      path.setAttribute('d', d); path.setAttribute('fill', '#000'); path.setAttribute('stroke', '#000'); path.setAttribute('stroke-width', '0.5');
+      svg.appendChild(path);
+    } else if (kind === 'foot') {
+      const r = document.createElementNS(svgNS, 'rect');
+      r.setAttribute('x', '1'); r.setAttribute('y', '1'); r.setAttribute('width', '12'); r.setAttribute('height', '12'); r.setAttribute('rx', '2'); r.setAttribute('ry', '2');
+      r.setAttribute('fill', faction ? fill : '#fff'); r.setAttribute('stroke', faction ? stroke : '#000'); r.setAttribute('stroke-width', '2');
+      svg.appendChild(r);
+    } else if (kind === 'horse') {
+      const p = document.createElementNS(svgNS, 'polygon');
+      p.setAttribute('points', '7,1 1,13 13,13'); p.setAttribute('fill', faction ? fill : '#fff'); p.setAttribute('stroke', faction ? stroke : '#000'); p.setAttribute('stroke-width', '2');
+      svg.appendChild(p);
+    } else if (kind === 'ship') {
+      const w = 22, h = 6; const x = (14 - w)/2; const y = (14 - h)/2;
+      const r = document.createElementNS(svgNS, 'rect');
+      r.setAttribute('x', String(x)); r.setAttribute('y', String(y)); r.setAttribute('width', String(w)); r.setAttribute('height', String(h)); r.setAttribute('rx', '2'); r.setAttribute('ry', '2');
+      r.setAttribute('fill', faction ? fill : '#fff'); r.setAttribute('stroke', faction ? stroke : '#000'); r.setAttribute('stroke-width', '2');
+      svg.appendChild(r);
+    } else if (kind === 'capital') {
+      const path = document.createElementNS(svgNS, 'path');
+      path.setAttribute('d', 'M1 13 L1 7 L5 4 L6 7 L8 3 L10 7 L13 13 Z');
+      path.setAttribute('fill', faction ? fill : '#000'); path.setAttribute('stroke', '#000'); path.setAttribute('stroke-width', '1');
+      svg.appendChild(path);
+    } else if (kind === 'character') {
+      const c = document.createElementNS(svgNS, 'circle');
+      c.setAttribute('cx', '7'); c.setAttribute('cy', '7'); c.setAttribute('r', '6'); c.setAttribute('fill', '#fff'); c.setAttribute('stroke', faction ? fill : '#000'); c.setAttribute('stroke-width', '2');
+      const t = document.createElementNS(svgNS, 'text');
+      t.setAttribute('x', '7'); t.setAttribute('y', '9'); t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', '7'); t.setAttribute('font-weight', '700'); t.setAttribute('fill', '#000');
+      const initials = (card.name || '?').split(/\s+/).map((s: string) => s[0]).join('').slice(0,2).toUpperCase();
+      t.textContent = initials;
+      svg.appendChild(c); svg.appendChild(t);
+    }
+    wrap.appendChild(svg);
+    return wrap;
+  }
+  function parseAndRender(raw: string) {
+    const primary = Array.isArray((card as any).icons) ? (card as any).icons.find((s: string) => s === 'song' || s === 'jin' || s === 'daqi') : undefined;
+    const qualify = (s: string, what: string) => primary ? s.replace(new RegExp(`:${what}:`, 'g'), `:${primary}-${what}:`) : s;
+    let str = raw;
+    str = qualify(str, 'foot'); str = qualify(str, 'horse'); str = qualify(str, 'ship');
+    const tokenRe = /:((rebel|black|song|red|jin|yellow|daqi|green)-)?(foot|horse|ship|capital|character|dot|star):/g;
+    const paras = str.split(/\n+/);
+    for (let i = 0; i < paras.length; i++) {
+      const line = document.createElement('div');
+      let last = 0; let m: RegExpExecArray | null;
+      while ((m = tokenRe.exec(paras[i])) !== null) {
+        const start = m.index; const end = tokenRe.lastIndex;
+        if (start > last) line.appendChild(document.createTextNode(paras[i].slice(last, start)));
+        const fac = (m[2] || '').toLowerCase();
+        const which = m[3].toLowerCase();
+        let faction: string | undefined;
+        if (fac === 'rebel' || fac === 'black') faction = 'rebel';
+        if (fac === 'song' || fac === 'red') faction = 'song';
+        if (fac === 'jin' || fac === 'yellow') faction = 'jin';
+        if (fac === 'daqi' || fac === 'green') faction = 'daqi';
+        if (!faction && (which === 'foot' || which === 'horse' || which === 'ship' || which === 'capital' || which === 'character')) faction = primary;
+        line.appendChild(createIcon(which, faction));
+        last = end;
+      }
+      if (last < paras[i].length) line.appendChild(document.createTextNode(paras[i].slice(last)));
+      text.appendChild(line);
+    }
   }
   const raw = card.rulesTextOverride || describeCardRules(card);
-  const display = raw ? raw.replace(/:rebel-foot:|:black-foot:|:song-foot:|:red-foot:|:jin-foot:|:yellow-foot:|:daqi-foot:|:green-foot:|:foot:|:dot:|:star:/g, (m: string) => tokenToEmoji(m)) : '';
-  text.textContent = display;
+  if (raw) parseAndRender(raw);
   side.appendChild(text);
 
   const row = document.createElement('div');

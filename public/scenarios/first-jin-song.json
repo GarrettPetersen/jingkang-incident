@@ -7,7 +7,7 @@
       "template": "character", "name": "Yue Fei", "title": "Loyal Song Officer", "factions": ["song"],
       "icons": ["song"],
       "quote": { "text": "If civil officials don’t love money and military men don’t fear death, the realm will be at peace.", "cite": "Yue Fei, Songshi, Vol. 365" },
-      "rulesTextOverride": "Recruit one :foot: in 5 separate cities without :dot: or :star:.\nPlace Yue Fei in Ezhou or a city adjacent to Ezhou.\nTuck this card.",
+      "rulesTextOverride": "Recruit one :song-foot: in 5 separate cities without :dot: or :star:.\nPlace Yue Fei in Ezhou or a city adjacent to Ezhou.\nTuck this card.",
       "effect": { "kind": "all", "effects": [
         { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "foot", "count": 5, "unique": true, "faction": "song", "excludeNodes": ["kaifeng","yanjing","shangjing","zhaozhou","cangzhou"] } },
         { "kind": "verb", "verb": { "type": "placeCharacter", "nearCurrent": true } },
@@ -29,7 +29,7 @@
       "template": "character", "name": "Wuzhu", "title": "Jin General", "factions": ["jin"],
       "icons": ["jin"],
       "quote": { "text": "He drove the Song ruler onto a sea island and, in the end, fixed the Huai as the boundary.", "cite": "Jinshi, Vol. 77" },
-      "rulesTextOverride": "Recruit 4 :horse: in Yanjing, Shangjing, Zhaozhou, or Cangzhou.\nPlace Wuzhu in Yanjing, Shangjing, Zhaozhou, or Cangzhou.\nTuck this card.",
+      "rulesTextOverride": "Recruit 4 :jin-horse: in Yanjing, Shangjing, Zhaozhou, or Cangzhou.\nPlace Wuzhu in Yanjing, Shangjing, Zhaozhou, or Cangzhou.\nTuck this card.",
       "effect": { "kind": "all", "effects": [
         { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "horse", "count": 4, "at": { "nodes": ["yanjing","shangjing","zhaozhou","cangzhou"] }, "faction": "jin" } },
         { "kind": "verb", "verb": { "type": "placeCharacter", "options": ["yanjing","shangjing","zhaozhou","cangzhou"] } },

@@ -286,65 +286,173 @@ function makeCharacterCardDataUrl(
   let rulesMarkup = "";
   let rulesBottomY = 0;
   if (rulesText && rulesText.trim()) {
-    // For character cards, auto-qualify ambiguous :foot: with the character's primary faction
+    // Inline icon rendering using vectors matching board pieces
     let effectiveRules = rulesText;
     const primaryFaction = factions[0];
-    if (primaryFaction && /:foot:/.test(effectiveRules)) {
-      effectiveRules = effectiveRules.replace(
-        /:foot:/g,
-        `:${primaryFaction}-foot:`
-      );
+    // Auto-qualify ambiguous tokens for primary faction
+    const qualify = (s: string, what: string) =>
+      primaryFaction ? s.replace(new RegExp(`:${what}:`, 'g'), `:${primaryFaction}-${what}:`) : s;
+    effectiveRules = qualify(effectiveRules, 'foot');
+    effectiveRules = qualify(effectiveRules, 'horse');
+    effectiveRules = qualify(effectiveRules, 'ship');
+
+    // Measurement helpers
+    const fontSize = 13;
+    const FONT_FAMILY = 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+    // Precise text measurement using an offscreen SVG measurer
+    const __msvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    __msvg.setAttribute('width', '0');
+    __msvg.setAttribute('height', '0');
+    (__msvg.style as any).position = 'fixed';
+    (__msvg.style as any).left = '-9999px';
+    const __mtext = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    __mtext.setAttribute('font-size', String(fontSize));
+    __mtext.setAttribute('font-family', FONT_FAMILY);
+    __msvg.appendChild(__mtext);
+    document.body.appendChild(__msvg);
+    __mtext.setAttribute('xml:space', 'preserve');
+    const iconH = 12;
+    function widthOfText(s: string): number {
+      if (!s) return 0;
+      // Treat pure spaces specially; some renderers return 0 width for measuring a space
+      const spaceWidth = fontSize * 0.33;
+      if (/^\s+$/.test(s)) return s.length * spaceWidth;
+      try {
+        __mtext.textContent = s;
+        const w = (__mtext as any).getComputedTextLength?.() as number | undefined;
+        if (typeof w === 'number' && isFinite(w)) return w;
+      } catch {}
+      // Fallback rough estimate if measurement fails
+      const avgChar = fontSize * 0.58;
+      const spaces = (s.match(/\s/g) || []).length;
+      const non = s.length - spaces;
+      return non * avgChar + spaces * spaceWidth;
     }
-    // Replace tokens with emoji-like characters so text wraps naturally
-    function tokenToEmoji(tok: string): string {
-      if (tok === ":dot:") return "●";
-      if (tok === ":star:") return "★";
-      if (tok === ":rebel-foot:" || tok === ":black-foot:") return "■";
-      if (tok === ":song-foot:" || tok === ":red-foot:") return "■";
-      if (tok === ":jin-foot:" || tok === ":yellow-foot:") return "■";
-      if (tok === ":daqi-foot:" || tok === ":green-foot:") return "■";
-      if (tok === ":foot:") return "□";
-      return tok;
+    function iconWidth(kind: string): number {
+      if (kind === 'ship') return Math.round(iconH * 1.8);
+      if (kind === 'capital') return Math.round(iconH * 1.2);
+      if (kind === 'character') return iconH;
+      return iconH; // foot, horse, dot, star
     }
-    const paragraphs = effectiveRules
-      .split(/\n+/)
-      .map((s) => s.trim())
-      .filter(Boolean)
-      .map((s) =>
-        s.replace(
-          /:rebel-foot:|:black-foot:|:song-foot:|:red-foot:|:jin-foot:|:yellow-foot:|:daqi-foot:|:green-foot:|:foot:|:dot:|:star:/g,
-          (m) => tokenToEmoji(m)
-        )
-      );
-    const startY = 110;
-    const lineGap = 14;
-    const groupGap = 6;
-    let tspans: string[] = [];
-    let first = true;
-    for (const para of paragraphs) {
-      const lines = wrapTextToLines(para, bandW, 13, 10).map((s) =>
-        s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-      );
-      lines.forEach((ln, i) => {
-        if (first && i === 0)
-          tspans.push(`<tspan x="${bandX}" y="${startY}">${ln}</tspan>`);
-        else tspans.push(`<tspan x="${bandX}" dy="${lineGap}">${ln}</tspan>`);
-      });
-      first = false;
-      // add extra gap between paragraphs
-      tspans.push(`<tspan x="${bandX}" dy="${groupGap}"></tspan>`);
+    // Inline SVG icon generator for on-card rendering (fonts can't load inside data: SVG reliably)
+    function iconMarkup(kind: string, faction?: FactionId): string {
+      if (kind === 'dot') {
+        return `<circle cx="6" cy="6" r="4" fill="#f0c419" stroke="#b78900" stroke-width="1"/>`;
+      }
+      if (kind === 'star') {
+        const R = 5, r2 = 2.2; const cx = 6, cy = 6; const pts: Array<[number, number]> = [];
+        for (let i = 0; i < 10; i++) { const ang = -Math.PI/2 + (i*Math.PI)/5; const rr = i%2===0?R:r2; pts.push([cx + rr*Math.cos(ang), cy + rr*Math.sin(ang)]); }
+        const d = `M ${pts[0][0]} ${pts[0][1]} ` + pts.slice(1).map(p=>`L ${p[0]} ${p[1]}`).join(' ') + ' Z';
+        return `<path d="${d}" fill="#000" stroke="#000" stroke-width="0.5"/>`;
+      }
+      if (kind === 'foot') {
+        const fill = faction ? (FactionColor as any)[faction] ?? '#888' : '#fff';
+        const stroke = faction ? '#000' : '#000';
+        return `<rect x="0" y="0" width="12" height="12" rx="2" ry="2" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`;
+      }
+      if (kind === 'horse') {
+        const fill = faction ? (FactionColor as any)[faction] ?? '#888' : '#fff';
+        return `<polygon points="6,0 0,12 12,12" fill="${fill}" stroke="#000" stroke-width="2"/>`;
+      }
+      if (kind === 'ship') {
+        const fill = faction ? (FactionColor as any)[faction] ?? '#888' : '#fff';
+        const w = iconWidth('ship'); const h = 6; const y = (12 - h)/2; const x = (12 - w)/2;
+        return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="2" ry="2" fill="${fill}" stroke="#000" stroke-width="2"/>`;
+      }
+      if (kind === 'capital') {
+        const fill = faction ? (FactionColor as any)[faction] ?? '#000' : '#000';
+        return `<path d="M1 12 L1 7 L5 4 L6 7 L8 3 L10 7 L11 12 Z" fill="${fill}" stroke="#000" stroke-width="1"/>`;
+      }
+      if (kind === 'character') {
+        const f = faction ? (FactionColor as any)[faction] ?? '#000' : '#000';
+        return `<circle cx="6" cy="6" r="6" fill="#fff" stroke="${f}" stroke-width="2"/>`;
+      }
+      return '';
     }
-    rulesBottomY =
-      startY +
-      paragraphs.length * groupGap +
-      paragraphs.reduce(
-        (sum, p) => sum + wrapTextToLines(p, bandW, 13, 10).length,
-        0
-      ) *
-        lineGap;
-    rulesMarkup = `\n  <text text-anchor="start" font-size="13" fill="#222">${tspans.join(
-      ""
-    )}</text>`;
+    type Item = { kind: 'text'; text: string } | { kind: 'icon'; which: string; faction?: FactionId };
+    const tokenRe = /:((rebel|black|song|red|jin|yellow|daqi|green)-)?(foot|horse|ship|capital|character|dot|star):/g;
+    function parseParagraph(par: string): Item[] {
+      const out: Item[] = [];
+      let last = 0; let m: RegExpExecArray | null;
+      while ((m = tokenRe.exec(par)) !== null) {
+        const start = m.index; const end = tokenRe.lastIndex;
+        if (start > last) out.push({ kind: 'text', text: par.slice(last, start) });
+        const facStr = (m[2] || '').toLowerCase();
+        const which = m[3].toLowerCase();
+        let faction: FactionId | undefined = undefined;
+        if (facStr === 'rebel' || facStr === 'black') faction = 'rebel' as FactionId;
+        if (facStr === 'song' || facStr === 'red') faction = 'song' as FactionId;
+        if (facStr === 'jin' || facStr === 'yellow') faction = 'jin' as FactionId;
+        if (facStr === 'daqi' || facStr === 'green') faction = 'daqi' as FactionId;
+        if (!faction && (which === 'foot' || which === 'horse' || which === 'ship' || which === 'capital' || which === 'character')) faction = primaryFaction;
+        out.push({ kind: 'icon', which, faction });
+        last = end;
+      }
+      if (last < par.length) out.push({ kind: 'text', text: par.slice(last) });
+      return out;
+    }
+    function wrapItems(items: Item[], maxW: number): Item[][] {
+      const lines: Item[][] = [];
+      let current: Item[] = []; let used = 0;
+      const pushLine = () => { if (current.length) lines.push(current); current = []; used = 0; };
+      for (const it of items) {
+        if (it.kind === 'text') {
+          // split by spaces but preserve spaces
+          const parts = it.text.split(/(\s+)/);
+          for (const p of parts) {
+            if (!p) continue;
+            const w = widthOfText(p);
+            if (used + w > maxW && used > 0) pushLine();
+            current.push({ kind: 'text', text: p });
+            used += w;
+          }
+        } else {
+          const w = iconWidth(it.which);
+          if (used + w > maxW && used > 0) pushLine();
+          current.push(it);
+          used += w + 2; // small gap after icon
+        }
+      }
+      if (current.length) lines.push(current);
+      return lines.slice(0, 10); // cap lines
+    }
+
+    const startY = 110; const lineGap = 16; const groupGap = 8;
+    let yCursor = startY;
+    let parts: string[] = [];
+    const paragraphs = effectiveRules.split(/\n+/).map(s => s.trim()).filter(Boolean);
+    for (let pIdx = 0; pIdx < paragraphs.length; pIdx++) {
+      const items = parseParagraph(paragraphs[pIdx]);
+      const lines = wrapItems(items, bandW);
+      for (let li = 0; li < lines.length; li++) {
+        let x = bandX;
+        for (const it of lines[li]) {
+          if (it.kind === 'text') {
+            const w = widthOfText(it.text);
+            if (/^\s+$/.test(it.text)) {
+              // advance only; rely on positioning for visual spaces
+              x += w;
+            } else {
+              const safe = it.text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+              parts.push(`<text x="${x}" y="${yCursor}" font-size="${fontSize}" font-family="${FONT_FAMILY}" fill="#222" xml:space="preserve">${safe}</text>`);
+              x += w;
+            }
+          } else {
+            const w = iconWidth(it.which);
+            const tx = x; const ty = yCursor - 10; // baseline adjust
+            parts.push(`<g transform="translate(${tx}, ${ty})">${iconMarkup(it.which, it.faction)}</g>`);
+            x += w + 2;
+          }
+        }
+        yCursor += lineGap;
+      }
+      // paragraph gap
+      yCursor += groupGap;
+    }
+    rulesBottomY = yCursor - groupGap;
+    rulesMarkup = parts.join('');
+    // Clean up measurer
+    try { __msvg.remove(); } catch {}
   }
 
   // Quote block above icon band — ensure no overlap with rules text
@@ -389,6 +497,12 @@ function makeCharacterCardDataUrl(
       <stop offset="0%" stop-color="#ffffff"/>
       <stop offset="100%" stop-color="#f6f6f6"/>
     </linearGradient>
+    <style type="text/css"><![CDATA[
+      @font-face {
+        font-family: 'PieceIcons';
+        src: url('/fonts/piece-icons.woff2') format('woff2'), url('/fonts/piece-icons.ttf') format('truetype');
+      }
+    ]]></style>
   </defs>
   <rect x="0" y="0" width="${width}" height="${height}" fill="url(#cardGrad)" rx="12" ry="12"/>
   <text x="50%" y="42" text-anchor="middle" font-size="20" font-weight="700" fill="#111">${name}</text>

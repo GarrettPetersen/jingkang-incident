@@ -13,6 +13,13 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+@font-face {
+  font-family: 'PieceIcons';
+  src: url('/fonts/piece-icons.woff2') format('woff2'),
+       url('/fonts/piece-icons.ttf') format('truetype');
+  font-display: swap;
+}
+
 a {
   font-weight: 500;
   color: #646cff;
