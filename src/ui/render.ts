@@ -1326,19 +1326,13 @@ function showCardModal(card: any, onPlay: () => void, originRect?: { x: number; 
   text.style.whiteSpace = 'pre-wrap';
   // Replace tokens with emoji-like symbols for modal display
   function tokenToEmoji(tok: string): string {
-    if (tok === ':dot:') return '🟡';
+    if (tok === ':dot:') return '●';
     if (tok === ':star:') return '★';
-    if (tok === ':rebel-foot:' || tok === ':black-foot:') return '⬛';
-    if (tok === ':song-foot:' || tok === ':red-foot:') return '🟥';
-    if (tok === ':jin-foot:' || tok === ':yellow-foot:') return '🟨';
-    if (tok === ':daqi-foot:' || tok === ':green-foot:') return '🟩';
-    if (tok === ':foot:') {
-      const ic = Array.isArray(card.icons) && card.icons[0];
-      if (ic === 'jin') return '🟨';
-      if (ic === 'daqi') return '🟩';
-      if (ic === 'rebel') return '⬛';
-      return '🟥';
-    }
+    if (tok === ':rebel-foot:' || tok === ':black-foot:') return '■';
+    if (tok === ':song-foot:' || tok === ':red-foot:') return '■';
+    if (tok === ':jin-foot:' || tok === ':yellow-foot:') return '■';
+    if (tok === ':daqi-foot:' || tok === ':green-foot:') return '■';
+    if (tok === ':foot:') return '□';
     return tok;
   }
   const raw = card.rulesTextOverride || describeCardRules(card);

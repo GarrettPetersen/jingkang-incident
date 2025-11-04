@@ -160,56 +160,83 @@ function wrapTextToLines(
 }
 
 function describeCardRules(card: { verbs?: any[]; effect?: any }): string {
-  if (!card) return '';
-  if (card.effect) return describeEffect(card.effect).join('\n');
-  if (Array.isArray(card.verbs)) return card.verbs.map(describeVerb).join('\n');
-  return '';
+  if (!card) return "";
+  if (card.effect) return describeEffect(card.effect).join("\n");
+  if (Array.isArray(card.verbs)) return card.verbs.map(describeVerb).join("\n");
+  return "";
 }
 
 function describeEffect(effect: any): string[] {
   if (!effect) return [];
-  if (effect.kind === 'all' && Array.isArray(effect.effects)) {
+  if (effect.kind === "all" && Array.isArray(effect.effects)) {
     return effect.effects.flatMap((e: any) => describeEffect(e));
   }
-  if (effect.kind === 'any' && Array.isArray(effect.effects)) {
+  if (effect.kind === "any" && Array.isArray(effect.effects)) {
     const opts = effect.effects.flatMap((e: any) => describeEffect(e));
-    return ['Choose one:', ...opts.map((t: string) => `${t}`)];
+    return ["Choose one:", ...opts.map((t: string) => `${t}`)];
   }
-  if (effect.kind === 'verb') return [describeVerb(effect.verb)];
-  if (effect.kind === 'if') {
-    const cond = `If has ${effect?.condition?.icon ?? 'icon'} tucked`;
+  if (effect.kind === "verb") return [describeVerb(effect.verb)];
+  if (effect.kind === "if") {
+    const cond = `If has ${effect?.condition?.icon ?? "icon"} tucked`;
     const thenLines = describeEffect(effect.then);
     const elseLines = effect.else ? describeEffect(effect.else) : [];
     return [
       `${cond}:`,
       ...thenLines.map((t: string) => `${t}`),
-      ...(elseLines.length ? ['Else:', ...elseLines.map((t: string) => `${t}`)] : []),
+      ...(elseLines.length
+        ? ["Else:", ...elseLines.map((t: string) => `${t}`)]
+        : []),
     ];
   }
   return [];
 }
 
 function describeVerb(verb: any): string {
-  if (!verb || typeof verb !== 'object') return '';
+  if (!verb || typeof verb !== "object") return "";
   switch (verb.type) {
-    case 'draw': return `Draw ${verb.count}`;
-    case 'drawUpTo': return `Draw up to ${verb.limit} in hand`;
-    case 'tuck': return verb.target === 'opponent' ? `Tuck this in front of the opponent` : `Tuck this in front of you`;
-    case 'gainCoin': return `Gain ${verb.amount} coin(s)`;
-    case 'destroy': return `Destroy any piece`;
-    case 'move': return `Move a piece ${verb.steps ?? 1} step(s)`;
-    case 'recruit': {
-      const kind = String(verb.pieceTypeId || (verb.pieceTypes?.anyOf?.[0] ?? 'piece'));
+    case "draw":
+      return `Draw ${verb.count}`;
+    case "drawUpTo":
+      return `Draw up to ${verb.limit} in hand`;
+    case "tuck":
+      return verb.target === "opponent"
+        ? `Tuck this in front of the opponent`
+        : `Tuck this in front of you`;
+    case "gainCoin":
+      return `Gain ${verb.amount} coin(s)`;
+    case "destroy":
+      return `Destroy any piece`;
+    case "move":
+      return `Move a piece ${verb.steps ?? 1} step(s)`;
+    case "recruit": {
+      const kind = String(
+        verb.pieceTypeId || (verb.pieceTypes?.anyOf?.[0] ?? "piece")
+      );
       const count = Math.max(1, Number(verb.count ?? 1));
-      const pool = (verb.at && (verb.at as any).nodes && Array.isArray((verb.at as any).nodes)) ? (verb.at as any).nodes : undefined;
-      const excl = Array.isArray(verb.excludeNodes) && verb.excludeNodes.length ? ` except ${verb.excludeNodes.join(', ')}` : '';
-      if (pool && count > 1) return `Choose ${count} places to recruit 1 ${kind} each from [${pool.join(', ')}]${excl}`;
-      if (pool) return `Recruit 1 ${kind} in one of [${pool.join(', ')}]${excl}`;
+      const pool =
+        verb.at &&
+        (verb.at as any).nodes &&
+        Array.isArray((verb.at as any).nodes)
+          ? (verb.at as any).nodes
+          : undefined;
+      const excl =
+        Array.isArray(verb.excludeNodes) && verb.excludeNodes.length
+          ? ` except ${verb.excludeNodes.join(", ")}`
+          : "";
+      if (pool && count > 1)
+        return `Choose ${count} places to recruit 1 ${kind} each from [${pool.join(
+          ", "
+        )}]${excl}`;
+      if (pool)
+        return `Recruit 1 ${kind} in one of [${pool.join(", ")}]${excl}`;
       return count > 1 ? `Recruit ${count} ${kind}` : `Recruit 1 ${kind}`;
     }
-    case 'placeCharacter': return `Place your character in a nearby city`;
-    case 'endGame': return `End the game`;
-    default: return '';
+    case "placeCharacter":
+      return `Place your character in a nearby city`;
+    case "endGame":
+      return `End the game`;
+    default:
+      return "";
   }
 }
 
@@ -259,28 +286,36 @@ function makeCharacterCardDataUrl(
   let rulesMarkup = "";
   let rulesBottomY = 0;
   if (rulesText && rulesText.trim()) {
+    // For character cards, auto-qualify ambiguous :foot: with the character's primary faction
+    let effectiveRules = rulesText;
+    const primaryFaction = factions[0];
+    if (primaryFaction && /:foot:/.test(effectiveRules)) {
+      effectiveRules = effectiveRules.replace(
+        /:foot:/g,
+        `:${primaryFaction}-foot:`
+      );
+    }
     // Replace tokens with emoji-like characters so text wraps naturally
     function tokenToEmoji(tok: string): string {
-      if (tok === ':dot:') return '🟡';
-      if (tok === ':star:') return '★';
-      if (tok === ':rebel-foot:' || tok === ':black-foot:') return '⬛';
-      if (tok === ':song-foot:' || tok === ':red-foot:') return '🟥';
-      if (tok === ':jin-foot:' || tok === ':yellow-foot:') return '🟨';
-      if (tok === ':daqi-foot:' || tok === ':green-foot:') return '🟩';
-      if (tok === ':foot:') {
-        const f = factions[0];
-        if (f === 'jin') return '🟨';
-        if (f === 'daqi') return '🟩';
-        if (f === 'rebel') return '⬛';
-        return '🟥';
-      }
+      if (tok === ":dot:") return "●";
+      if (tok === ":star:") return "★";
+      if (tok === ":rebel-foot:" || tok === ":black-foot:") return "■";
+      if (tok === ":song-foot:" || tok === ":red-foot:") return "■";
+      if (tok === ":jin-foot:" || tok === ":yellow-foot:") return "■";
+      if (tok === ":daqi-foot:" || tok === ":green-foot:") return "■";
+      if (tok === ":foot:") return "□";
       return tok;
     }
-    const paragraphs = rulesText
+    const paragraphs = effectiveRules
       .split(/\n+/)
       .map((s) => s.trim())
       .filter(Boolean)
-      .map((s) => s.replace(/:rebel-foot:|:black-foot:|:song-foot:|:red-foot:|:jin-foot:|:yellow-foot:|:daqi-foot:|:green-foot:|:foot:|:dot:|:star:/g, (m) => tokenToEmoji(m)));
+      .map((s) =>
+        s.replace(
+          /:rebel-foot:|:black-foot:|:song-foot:|:red-foot:|:jin-foot:|:yellow-foot:|:daqi-foot:|:green-foot:|:foot:|:dot:|:star:/g,
+          (m) => tokenToEmoji(m)
+        )
+      );
     const startY = 110;
     const lineGap = 14;
     const groupGap = 6;
@@ -288,18 +323,28 @@ function makeCharacterCardDataUrl(
     let first = true;
     for (const para of paragraphs) {
       const lines = wrapTextToLines(para, bandW, 13, 10).map((s) =>
-        s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
       );
       lines.forEach((ln, i) => {
-        if (first && i === 0) tspans.push(`<tspan x="${bandX}" y="${startY}">${ln}</tspan>`);
+        if (first && i === 0)
+          tspans.push(`<tspan x="${bandX}" y="${startY}">${ln}</tspan>`);
         else tspans.push(`<tspan x="${bandX}" dy="${lineGap}">${ln}</tspan>`);
       });
       first = false;
       // add extra gap between paragraphs
       tspans.push(`<tspan x="${bandX}" dy="${groupGap}"></tspan>`);
     }
-    rulesBottomY = startY + (paragraphs.length * groupGap) + (paragraphs.reduce((sum, p) => sum + wrapTextToLines(p, bandW, 13, 10).length, 0) * lineGap);
-    rulesMarkup = `\n  <text text-anchor="start" font-size="13" fill="#222">${tspans.join('')}</text>`;
+    rulesBottomY =
+      startY +
+      paragraphs.length * groupGap +
+      paragraphs.reduce(
+        (sum, p) => sum + wrapTextToLines(p, bandW, 13, 10).length,
+        0
+      ) *
+        lineGap;
+    rulesMarkup = `\n  <text text-anchor="start" font-size="13" fill="#222">${tspans.join(
+      ""
+    )}</text>`;
   }
 
   // Quote block above icon band — ensure no overlap with rules text
@@ -315,7 +360,7 @@ function makeCharacterCardDataUrl(
           .replace(/</g, "&lt;")
           .replace(/>/g, "&gt;")
       : "";
-    const minY = (rulesBottomY ? rulesBottomY + 10 : 90);
+    const minY = rulesBottomY ? rulesBottomY + 10 : 90;
     const byBand = bandY - 30 - (qLines.length - 1) * 14;
     const baseY = Math.max(minY, byBand);
     const tspans = qLines
@@ -366,7 +411,8 @@ function materializeCardFromDef(def: any): Card {
   const verbs = Array.isArray(def.verbs) ? (def.verbs as any) : [];
   const c: Card = { id, name, verbs };
   if (def.icons) c.icons = def.icons;
-  if (typeof def.rulesTextOverride === "string") (c as any).rulesTextOverride = String(def.rulesTextOverride);
+  if (typeof def.rulesTextOverride === "string")
+    (c as any).rulesTextOverride = String(def.rulesTextOverride);
   if (def.keepOnPlay !== undefined) c.keepOnPlay = !!def.keepOnPlay;
   if (def.effect && typeof def.effect === "object") {
     // Trust scenario to provide a valid Effect tree
@@ -390,8 +436,16 @@ function materializeCardFromDef(def: any): Card {
     const factions = Array.isArray(def.factions)
       ? (def.factions as FactionId[])
       : [];
-    const rulesText = (c as any).rulesTextOverride || describeCardRules({ verbs: c.verbs, effect: (c as any).effect });
-    const path = makeCharacterCardDataUrl(name, title, factions, c.quote, rulesText);
+    const rulesText =
+      (c as any).rulesTextOverride ||
+      describeCardRules({ verbs: c.verbs, effect: (c as any).effect });
+    const path = makeCharacterCardDataUrl(
+      name,
+      title,
+      factions,
+      c.quote,
+      rulesText
+    );
     c.asset = {
       path,
       size: { width: TAROT_CARD_WIDTH, height: TAROT_CARD_HEIGHT },
