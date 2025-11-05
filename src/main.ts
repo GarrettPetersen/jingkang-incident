@@ -291,26 +291,35 @@ function makeCharacterCardDataUrl(
     const primaryFaction = factions[0];
     // Auto-qualify ambiguous tokens for primary faction
     const qualify = (s: string, what: string) =>
-      primaryFaction ? s.replace(new RegExp(`:${what}:`, 'g'), `:${primaryFaction}-${what}:`) : s;
-    effectiveRules = qualify(effectiveRules, 'foot');
-    effectiveRules = qualify(effectiveRules, 'horse');
-    effectiveRules = qualify(effectiveRules, 'ship');
+      primaryFaction
+        ? s.replace(new RegExp(`:${what}:`, "g"), `:${primaryFaction}-${what}:`)
+        : s;
+    effectiveRules = qualify(effectiveRules, "foot");
+    effectiveRules = qualify(effectiveRules, "horse");
+    effectiveRules = qualify(effectiveRules, "ship");
 
     // Measurement helpers
     const fontSize = 13;
-    const FONT_FAMILY = 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+    const FONT_FAMILY =
+      "system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
     // Precise text measurement using an offscreen SVG measurer
-    const __msvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    __msvg.setAttribute('width', '0');
-    __msvg.setAttribute('height', '0');
-    (__msvg.style as any).position = 'fixed';
-    (__msvg.style as any).left = '-9999px';
-    const __mtext = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    __mtext.setAttribute('font-size', String(fontSize));
-    __mtext.setAttribute('font-family', FONT_FAMILY);
+    const __msvg = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "svg"
+    );
+    __msvg.setAttribute("width", "0");
+    __msvg.setAttribute("height", "0");
+    (__msvg.style as any).position = "fixed";
+    (__msvg.style as any).left = "-9999px";
+    const __mtext = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "text"
+    );
+    __mtext.setAttribute("font-size", String(fontSize));
+    __mtext.setAttribute("font-family", FONT_FAMILY);
     __msvg.appendChild(__mtext);
     document.body.appendChild(__msvg);
-    __mtext.setAttribute('xml:space', 'preserve');
+    __mtext.setAttribute("xml:space", "preserve");
     const iconH = 12;
     function widthOfText(s: string): number {
       if (!s) return 0;
@@ -319,8 +328,10 @@ function makeCharacterCardDataUrl(
       if (/^\s+$/.test(s)) return s.length * spaceWidth;
       try {
         __mtext.textContent = s;
-        const w = (__mtext as any).getComputedTextLength?.() as number | undefined;
-        if (typeof w === 'number' && isFinite(w)) return w;
+        const w = (__mtext as any).getComputedTextLength?.() as
+          | number
+          | undefined;
+        if (typeof w === "number" && isFinite(w)) return w;
       } catch {}
       // Fallback rough estimate if measurement fails
       const avgChar = fontSize * 0.58;
@@ -329,81 +340,135 @@ function makeCharacterCardDataUrl(
       return non * avgChar + spaces * spaceWidth;
     }
     function iconWidth(kind: string): number {
-      if (kind === 'ship') return Math.round(iconH * 1.8);
-      if (kind === 'capital') return Math.round(iconH * 1.2);
-      if (kind === 'character') return iconH;
+      if (kind === "ship") return iconH; // narrower footprint; diagonal rendering
+      if (kind === "capital") return Math.round(iconH * 1.2);
+      if (kind === "character") return iconH;
       return iconH; // foot, horse, dot, star
     }
     // Inline SVG icon generator for on-card rendering (fonts can't load inside data: SVG reliably)
     function iconMarkup(kind: string, faction?: FactionId): string {
-      if (kind === 'dot') {
+      if (kind === "dot") {
         return `<circle cx="6" cy="6" r="4" fill="#f0c419" stroke="#b78900" stroke-width="1"/>`;
       }
-      if (kind === 'star') {
-        const R = 5, r2 = 2.2; const cx = 6, cy = 6; const pts: Array<[number, number]> = [];
-        for (let i = 0; i < 10; i++) { const ang = -Math.PI/2 + (i*Math.PI)/5; const rr = i%2===0?R:r2; pts.push([cx + rr*Math.cos(ang), cy + rr*Math.sin(ang)]); }
-        const d = `M ${pts[0][0]} ${pts[0][1]} ` + pts.slice(1).map(p=>`L ${p[0]} ${p[1]}`).join(' ') + ' Z';
+      if (kind === "star") {
+        const R = 5,
+          r2 = 2.2;
+        const cx = 6,
+          cy = 6;
+        const pts: Array<[number, number]> = [];
+        for (let i = 0; i < 10; i++) {
+          const ang = -Math.PI / 2 + (i * Math.PI) / 5;
+          const rr = i % 2 === 0 ? R : r2;
+          pts.push([cx + rr * Math.cos(ang), cy + rr * Math.sin(ang)]);
+        }
+        const d =
+          `M ${pts[0][0]} ${pts[0][1]} ` +
+          pts
+            .slice(1)
+            .map((p) => `L ${p[0]} ${p[1]}`)
+            .join(" ") +
+          " Z";
         return `<path d="${d}" fill="#000" stroke="#000" stroke-width="0.5"/>`;
       }
-      if (kind === 'foot') {
-        const fill = faction ? (FactionColor as any)[faction] ?? '#888' : '#fff';
-        const stroke = faction ? '#000' : '#000';
+      if (kind === "foot") {
+        const fill = faction
+          ? (FactionColor as any)[faction] ?? "#888"
+          : "#fff";
+        const stroke = faction ? "#000" : "#000";
         return `<rect x="0" y="0" width="12" height="12" rx="2" ry="2" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`;
       }
-      if (kind === 'horse') {
-        const fill = faction ? (FactionColor as any)[faction] ?? '#888' : '#fff';
+      if (kind === "horse") {
+        const fill = faction
+          ? (FactionColor as any)[faction] ?? "#888"
+          : "#fff";
         return `<polygon points="6,0 0,12 12,12" fill="${fill}" stroke="#000" stroke-width="2"/>`;
       }
-      if (kind === 'ship') {
-        const fill = faction ? (FactionColor as any)[faction] ?? '#888' : '#fff';
-        const w = iconWidth('ship'); const h = 6; const y = (12 - h)/2; const x = (12 - w)/2;
-        return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="2" ry="2" fill="${fill}" stroke="#000" stroke-width="2"/>`;
+      if (kind === "ship") {
+        const fill = faction
+          ? (FactionColor as any)[faction] ?? "#888"
+          : "#fff";
+        // Diagonal bar centered in 12x12 box
+        // Draw a 10x4 rounded rect rotated -30 degrees about center (6,6)
+        const rw = 10,
+          rh = 4;
+        const cx = 6,
+          cy = 6;
+        return `<g transform="translate(${cx},${cy}) rotate(-30)"><rect x="${
+          -rw / 2
+        }" y="${
+          -rh / 2
+        }" width="${rw}" height="${rh}" rx="2" ry="2" fill="${fill}" stroke="#000" stroke-width="2"/></g>`;
       }
-      if (kind === 'capital') {
-        const fill = faction ? (FactionColor as any)[faction] ?? '#000' : '#000';
+      if (kind === "capital") {
+        const fill = faction
+          ? (FactionColor as any)[faction] ?? "#000"
+          : "#000";
         return `<path d="M1 12 L1 7 L5 4 L6 7 L8 3 L10 7 L11 12 Z" fill="${fill}" stroke="#000" stroke-width="1"/>`;
       }
-      if (kind === 'character') {
-        const f = faction ? (FactionColor as any)[faction] ?? '#000' : '#000';
+      if (kind === "character") {
+        const f = faction ? (FactionColor as any)[faction] ?? "#000" : "#000";
         return `<circle cx="6" cy="6" r="6" fill="#fff" stroke="${f}" stroke-width="2"/>`;
       }
-      return '';
+      return "";
     }
-    type Item = { kind: 'text'; text: string } | { kind: 'icon'; which: string; faction?: FactionId };
-    const tokenRe = /:((rebel|black|song|red|jin|yellow|daqi|green)-)?(foot|horse|ship|capital|character|dot|star):/g;
+    type Item =
+      | { kind: "text"; text: string }
+      | { kind: "icon"; which: string; faction?: FactionId };
+    const tokenRe =
+      /:((rebel|black|song|red|jin|yellow|daqi|green)-)?(foot|horse|ship|capital|character|dot|star):/g;
     function parseParagraph(par: string): Item[] {
       const out: Item[] = [];
-      let last = 0; let m: RegExpExecArray | null;
+      let last = 0;
+      let m: RegExpExecArray | null;
       while ((m = tokenRe.exec(par)) !== null) {
-        const start = m.index; const end = tokenRe.lastIndex;
-        if (start > last) out.push({ kind: 'text', text: par.slice(last, start) });
-        const facStr = (m[2] || '').toLowerCase();
+        const start = m.index;
+        const end = tokenRe.lastIndex;
+        if (start > last)
+          out.push({ kind: "text", text: par.slice(last, start) });
+        const facStr = (m[2] || "").toLowerCase();
         const which = m[3].toLowerCase();
         let faction: FactionId | undefined = undefined;
-        if (facStr === 'rebel' || facStr === 'black') faction = 'rebel' as FactionId;
-        if (facStr === 'song' || facStr === 'red') faction = 'song' as FactionId;
-        if (facStr === 'jin' || facStr === 'yellow') faction = 'jin' as FactionId;
-        if (facStr === 'daqi' || facStr === 'green') faction = 'daqi' as FactionId;
-        if (!faction && (which === 'foot' || which === 'horse' || which === 'ship' || which === 'capital' || which === 'character')) faction = primaryFaction;
-        out.push({ kind: 'icon', which, faction });
+        if (facStr === "rebel" || facStr === "black")
+          faction = "rebel" as FactionId;
+        if (facStr === "song" || facStr === "red")
+          faction = "song" as FactionId;
+        if (facStr === "jin" || facStr === "yellow")
+          faction = "jin" as FactionId;
+        if (facStr === "daqi" || facStr === "green")
+          faction = "daqi" as FactionId;
+        if (
+          !faction &&
+          (which === "foot" ||
+            which === "horse" ||
+            which === "ship" ||
+            which === "capital" ||
+            which === "character")
+        )
+          faction = primaryFaction;
+        out.push({ kind: "icon", which, faction });
         last = end;
       }
-      if (last < par.length) out.push({ kind: 'text', text: par.slice(last) });
+      if (last < par.length) out.push({ kind: "text", text: par.slice(last) });
       return out;
     }
     function wrapItems(items: Item[], maxW: number): Item[][] {
       const lines: Item[][] = [];
-      let current: Item[] = []; let used = 0;
-      const pushLine = () => { if (current.length) lines.push(current); current = []; used = 0; };
+      let current: Item[] = [];
+      let used = 0;
+      const pushLine = () => {
+        if (current.length) lines.push(current);
+        current = [];
+        used = 0;
+      };
       for (const it of items) {
-        if (it.kind === 'text') {
+        if (it.kind === "text") {
           // split by spaces but preserve spaces
           const parts = it.text.split(/(\s+)/);
           for (const p of parts) {
             if (!p) continue;
             const w = widthOfText(p);
             if (used + w > maxW && used > 0) pushLine();
-            current.push({ kind: 'text', text: p });
+            current.push({ kind: "text", text: p });
             used += w;
           }
         } else {
@@ -417,30 +482,46 @@ function makeCharacterCardDataUrl(
       return lines.slice(0, 10); // cap lines
     }
 
-    const startY = 110; const lineGap = 16; const groupGap = 8;
+    const startY = 110;
+    const lineGap = 16;
+    const groupGap = 8;
     let yCursor = startY;
     let parts: string[] = [];
-    const paragraphs = effectiveRules.split(/\n+/).map(s => s.trim()).filter(Boolean);
+    const paragraphs = effectiveRules
+      .split(/\n+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
     for (let pIdx = 0; pIdx < paragraphs.length; pIdx++) {
       const items = parseParagraph(paragraphs[pIdx]);
       const lines = wrapItems(items, bandW);
       for (let li = 0; li < lines.length; li++) {
         let x = bandX;
         for (const it of lines[li]) {
-          if (it.kind === 'text') {
+          if (it.kind === "text") {
             const w = widthOfText(it.text);
             if (/^\s+$/.test(it.text)) {
               // advance only; rely on positioning for visual spaces
               x += w;
             } else {
-              const safe = it.text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-              parts.push(`<text x="${x}" y="${yCursor}" font-size="${fontSize}" font-family="${FONT_FAMILY}" fill="#222" xml:space="preserve">${safe}</text>`);
+              const safe = it.text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
+              parts.push(
+                `<text x="${x}" y="${yCursor}" font-size="${fontSize}" font-family="${FONT_FAMILY}" fill="#222" xml:space="preserve">${safe}</text>`
+              );
               x += w;
             }
           } else {
             const w = iconWidth(it.which);
-            const tx = x; const ty = yCursor - 10; // baseline adjust
-            parts.push(`<g transform="translate(${tx}, ${ty})">${iconMarkup(it.which, it.faction)}</g>`);
+            const tx = x;
+            const ty = yCursor - 10; // baseline adjust
+            parts.push(
+              `<g transform="translate(${tx}, ${ty})">${iconMarkup(
+                it.which,
+                it.faction
+              )}</g>`
+            );
             x += w + 2;
           }
         }
@@ -450,9 +531,11 @@ function makeCharacterCardDataUrl(
       yCursor += groupGap;
     }
     rulesBottomY = yCursor - groupGap;
-    rulesMarkup = parts.join('');
+    rulesMarkup = parts.join("");
     // Clean up measurer
-    try { __msvg.remove(); } catch {}
+    try {
+      __msvg.remove();
+    } catch {}
   }
 
   // Quote block above icon band — ensure no overlap with rules text
