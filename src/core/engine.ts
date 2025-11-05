@@ -66,7 +66,22 @@ export function playCard(state: GameState, cardId: string): void {
   const player = currentPlayer(state);
   const idx = player.hand.findIndex((c) => c.id === cardId);
   if (idx === -1) return;
-  const [card] = player.hand.splice(idx, 1);
+  const card = player.hand[idx];
+  // Generic per-card play condition
+  try {
+    const cond = (card as any).playCondition as any;
+    if (cond) {
+      let ok = true;
+      ok = evaluateCondition(state, player.id, cond as any, card);
+      if (!ok) {
+        const msg = ((card as any).playConditionMessage as string) || `Cannot play ${card.name} now.`;
+        state.log.push({ message: `${player.name}: ${msg}` });
+        return;
+      }
+    }
+  } catch {}
+  // Remove from hand now that checks pass
+  player.hand.splice(idx, 1);
   state.log.push({ message: `${player.name} plays ${card.name}` });
   state.playingCardId = card.id;
   (state as any).playingCard = card;
@@ -131,7 +146,7 @@ function executeEffect(
   }
 }
 
-function evaluateCondition(state: GameState, playerId: PlayerId, cond: Condition): boolean {
+function evaluateCondition(state: GameState, playerId: PlayerId, cond: Condition, currentCard?: any): boolean {
   switch (cond.kind) {
     case 'hasTuckedIcon': {
       const need = Math.max(1, cond.atLeast ?? 1);
@@ -146,6 +161,13 @@ function evaluateCondition(state: GameState, playerId: PlayerId, cond: Condition
         }
         return false;
       }
+    }
+    case 'noStarCardInHand': {
+      const p = state.players.find(pp => pp.id === playerId);
+      if (!p) return false;
+      return !p.hand
+        .filter((c: any) => !currentCard || c?.id !== currentCard?.id)
+        .some((c: any) => typeof c?.name === 'string' && c.name.includes('*'));
     }
   }
 }
@@ -168,6 +190,34 @@ function executeVerb(
   verb: VerbSpec,
 ): void {
   switch (verb.type) {
+    case 'addCardToHand': {
+      const self = state.players.find((p) => p.id === playerId)!;
+      const catalog = (state as any).cardCatalog as Record<string, any> | undefined;
+      const src = catalog?.[verb.cardId];
+      if (src) {
+        // shallow clone is fine for Card
+        const cardCopy = { ...(src as any) };
+        self.hand.push(cardCopy);
+        state.log.push({ message: `${self.name} adds a card to hand.` });
+      } else {
+        state.log.push({ message: `Card ${verb.cardId} not found.` });
+      }
+      break;
+    }
+    case 'retrieveFromDiscard': {
+      const self = state.players.find((p) => p.id === playerId)!;
+      const target = (verb as any).target === 'self' ? self : findOpponent(state, playerId);
+      const match = String((verb as any).match ?? 'dagger').toLowerCase();
+      const idx = state.discardPile.cards.findIndex((c: any) => String(c?.name || c?.id || '').toLowerCase().includes(match));
+      if (idx >= 0) {
+        const [card] = state.discardPile.cards.splice(idx, 1);
+        target.tucked.push(card);
+        state.log.push({ message: `${self.name} retrieves ${card.name || 'a card'} and tucks it in front of ${target.name}` });
+      } else {
+        state.log.push({ message: `${self.name} finds no matching card in discard.` });
+      }
+      break;
+    }
     case 'draw': {
       const targetId = resolvePlayerSelector(state, playerId, verb.target ?? 'self');
       const target = state.players.find((p) => p.id === targetId)!;
@@ -359,7 +409,12 @@ export function inputSelectNode(state: GameState, nodeId: NodeId): void {
     };
     const label = (state.map.nodes as any)[nodeId]?.label ?? nodeId;
     const rem = Math.max(0, (next.remaining ?? 1) - 1);
-    state.log.push({ message: `Recruited at ${label}` });
+    const playerName = state.players.find((p) => p.id === ownerId)?.name ?? ownerId;
+    const fac = next.faction ?? (ownerFaction as any);
+    const facName = fac ? (String(fac).charAt(0).toUpperCase() + String(fac).slice(1)) : '';
+    const ptName = (state.pieceTypes as any)[next.pieceTypeId]?.name ?? String(next.pieceTypeId);
+    const unitLabel = `${facName} ${String(ptName).toLowerCase()}`.trim();
+    state.log.push({ message: `${playerName} recruited ${unitLabel} at ${label}` });
     if (rem > 0) {
       const opts = next.unique ? state.prompt.nodeOptions.filter((n) => n !== nodeId) : state.prompt.nodeOptions;
       const pieceName = String(next.pieceTypeId);

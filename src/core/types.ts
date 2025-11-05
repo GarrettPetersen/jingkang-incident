@@ -78,12 +78,18 @@ export interface Card {
   verbs: VerbSpec[];
   // Preferred: composable effect tree (AND/OR/IF)
   effect?: Effect;
+  // Optional condition that must be true to play the card
+  playCondition?: Condition;
+  // Optional message to show when playCondition fails
+  playConditionMessage?: string;
   // Optional human-readable override for rules text
   rulesTextOverride?: string;
   asset?: {
     path: string; // public path to image (e.g., /cards/coin.svg)
     size: { width: number; height: number }; // pixel dimensions of the full card asset
     iconSlot?: { x: number; y: number; width: number; height: number }; // region to show when tucked
+    // Optional card back image (data URL or public path)
+    backPath?: string;
   };
   keepOnPlay?: boolean; // if true, card returns to hand after play
   // Optional flavor quote rendered on the card face (above the icon slot)
@@ -91,6 +97,8 @@ export interface Card {
     text: string; // localized/translated text to display
     cite?: string; // brief citation, e.g., "Songshi, Vol. 473"
   };
+  // Optional short label to render on the card back (e.g., START, EVENT)
+  backText?: string;
 }
 
 export interface Deck {
@@ -104,6 +112,8 @@ export type VerbSpec =
   | { type: "drawUpTo"; limit: number }
   | { type: "tuck"; target: "self" | "opponent" }
   | { type: "move"; steps?: number }
+  | { type: "addCardToHand"; cardId: CardId }
+  | { type: "retrieveFromDiscard"; match?: string; target?: "self" | "opponent" }
   | {
       type: "recruit";
       pieceTypeId?: PieceTypeId;
@@ -141,6 +151,9 @@ export type Condition = {
   who: "self" | "others";
   icon: IconId;
   atLeast?: number;
+} | {
+  // True when the current player's hand has NO card whose title contains '*'
+  kind: "noStarCardInHand";
 };
 
 // Selectors and parameter helpers for verb arguments

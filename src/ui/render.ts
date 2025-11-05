@@ -115,6 +115,7 @@ export function renderApp(root: HTMLElement, state: GameState, handlers: {
   // Expose currently playing card id for modal logic (Undo vs Play)
   try {
     (window as any).__playingCardId = (state as any).playingCardId || (state as any).pending?.card?.id || undefined;
+    (window as any).__playLocked = !!((state as any).playingCardId || (state as any).pending?.card || state.hasPlayedThisTurn);
   } catch {}
 }
 
@@ -158,7 +159,8 @@ function renderLeftPanel(state: GameState, handlers: any): HTMLElement {
   deckLbl.textContent = 'Draw Pile';
   deckLbl.style.fontSize = '12px';
   deckLbl.style.color = '#ccc';
-  const draw = renderPile('Draw', '/cards/back.svg', state.drawPile.cards.length);
+  const topBack = (state.drawPile.cards[0] as any)?.asset?.backPath ?? '/cards/back.svg';
+  const draw = renderPile('Draw', topBack, state.drawPile.cards.length);
   draw.setAttribute('data-key', 'pile:draw:global');
   deckWrap.appendChild(deckLbl);
   deckWrap.appendChild(draw);
@@ -923,7 +925,7 @@ function renderHand(state: GameState, handlers: any): HTMLElement {
   center.style.gap = '10px';
   center.id = 'hand-center';
   for (const card of player.hand) {
-    const disabled = !!state.hasPlayedThisTurn;
+    const disabled = !!(state.hasPlayedThisTurn || (state as any).playingCardId || (state as any).pending?.card);
     const cardEl = renderCard(card, () => handlers.onPlayCard(card.id));
     cardEl.setAttribute('data-key', `card:${getStableCardKey(card)}`);
     if (state.playingCardId === card.id) {
@@ -1091,13 +1093,16 @@ function renderOpponents(state: GameState): HTMLElement {
     const hand = document.createElement('div');
     hand.style.display = 'flex';
     hand.style.gap = '4px';
-    for (let i = 0; i < Math.min(opp.hand.length, 5); i++) {
-      const back = document.createElement('img');
-      back.src = '/cards/back.svg';
-      back.style.width = '40px';
-      back.style.height = '56px';
-      back.style.borderRadius = '6px';
-      hand.appendChild(back);
+    const maxShow = Math.min(opp.hand.length, 5);
+    for (let i = 0; i < maxShow; i++) {
+      const backImg = document.createElement('img');
+      const card = (opp.hand as any[])[i];
+      const backPath = (card && card.asset && (card.asset as any).backPath) ? (card.asset as any).backPath : '/cards/back.svg';
+      backImg.src = backPath;
+      backImg.style.width = '40px';
+      backImg.style.height = '56px';
+      backImg.style.borderRadius = '6px';
+      hand.appendChild(backImg);
     }
     const handLbl = document.createElement('div');
     handLbl.textContent = `(${opp.hand.length})`;
@@ -1392,10 +1397,19 @@ function showCardModal(card: any, onPlay: () => void, originRect?: { x: number; 
       r.setAttribute('fill', faction ? fill : '#fff'); r.setAttribute('stroke', faction ? stroke : '#000'); r.setAttribute('stroke-width', '2');
       svg.appendChild(r);
     } else if (kind === 'capital') {
-      const path = document.createElementNS(svgNS, 'path');
-      path.setAttribute('d', 'M1 13 L1 7 L5 4 L6 7 L8 3 L10 7 L13 13 Z');
-      path.setAttribute('fill', faction ? fill : '#000'); path.setAttribute('stroke', '#000'); path.setAttribute('stroke-width', '1');
-      svg.appendChild(path);
+      const img = document.createElementNS(svgNS, 'image');
+      img.setAttribute('x', '1'); img.setAttribute('y', '1');
+      img.setAttribute('width', '12'); img.setAttribute('height', '12');
+      img.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '/assets/capital.svg');
+      img.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+      svg.appendChild(img);
+    } else if (kind === 'dagger') {
+      const blade = document.createElementNS(svgNS, 'rect');
+      blade.setAttribute('x', '6'); blade.setAttribute('y', '1'); blade.setAttribute('width', '1'); blade.setAttribute('height', '8');
+      blade.setAttribute('fill', '#555'); blade.setAttribute('stroke', '#111'); blade.setAttribute('stroke-width', '0.5');
+      const tip = document.createElementNS(svgNS, 'path');
+      tip.setAttribute('d', 'M5,9 L8,9 L6.5,12 Z'); tip.setAttribute('fill', '#222');
+      svg.appendChild(blade); svg.appendChild(tip);
     } else if (kind === 'character') {
       const c = document.createElementNS(svgNS, 'circle');
       c.setAttribute('cx', '7'); c.setAttribute('cy', '7'); c.setAttribute('r', '6'); c.setAttribute('fill', '#fff'); c.setAttribute('stroke', faction ? fill : '#000'); c.setAttribute('stroke-width', '2');
@@ -1413,7 +1427,7 @@ function showCardModal(card: any, onPlay: () => void, originRect?: { x: number; 
     const qualify = (s: string, what: string) => primary ? s.replace(new RegExp(`:${what}:`, 'g'), `:${primary}-${what}:`) : s;
     let str = raw;
     str = qualify(str, 'foot'); str = qualify(str, 'horse'); str = qualify(str, 'ship');
-    const tokenRe = /:((rebel|black|song|red|jin|yellow|daqi|green)-)?(foot|horse|ship|capital|character|dot|star):/g;
+    const tokenRe = /:((rebel|black|song|red|jin|yellow|daqi|green)-)?(foot|horse|ship|capital|character|dot|star|dagger):/g;
     const paras = str.split(/\n+/);
     for (let i = 0; i < paras.length; i++) {
       const line = document.createElement('div');
@@ -1446,6 +1460,7 @@ function showCardModal(card: any, onPlay: () => void, originRect?: { x: number; 
 
   const playBtn = document.createElement('button');
   const isPlaying = ((window as any).__playingCardId === card.id);
+  const playLocked = !!(window as any).__playLocked;
   playBtn.textContent = isPlaying ? 'Undo' : 'Play';
   playBtn.style.padding = '8px 12px';
   playBtn.style.background = '#2e86de';
@@ -1463,7 +1478,9 @@ function showCardModal(card: any, onPlay: () => void, originRect?: { x: number; 
   closeBtn.style.borderRadius = '6px';
   closeBtn.style.cursor = 'pointer';
 
-  row.appendChild(playBtn);
+  if (!(playLocked && !isPlaying)) {
+    row.appendChild(playBtn);
+  }
   row.appendChild(closeBtn);
   side.appendChild(row);
 
@@ -1501,6 +1518,9 @@ function showCardModal(card: any, onPlay: () => void, originRect?: { x: number; 
     if (isPlaying && (window as any).onUndo) {
       overlay.remove();
       (window as any).onUndo();
+      return;
+    }
+    if (playLocked && !isPlaying) {
       return;
     }
     // Animate back to the card's original hand position (slightly raised), then play
