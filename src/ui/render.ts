@@ -428,7 +428,7 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
     mapLayer.appendChild(label);
 
     // Setup markers: small yellow dot for early Jin-held cities; black star for Bianjing (Kaifeng)
-    const jinHeld = new Set(['yanjing', 'shangjing', 'zhaozhou', 'cangzhou']);
+    const jinHeld = new Set(['yanjing', 'shangjing', 'daming', 'zhaozhou', 'cangzhou']);
     const isBianjing = n.id === 'kaifeng' || n.id === 'bianjing';
     if (jinHeld.has(n.id) || isBianjing) {
       const r = 10; // node radius
