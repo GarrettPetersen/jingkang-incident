@@ -259,7 +259,7 @@ function describeVerb(verb: any): string {
 function makeCharacterCardDataUrl(
   name: string,
   title: string,
-  factions: FactionId[],
+  displayIcons: string[],
   quote?: { text: string; cite?: string },
   rulesText?: string
 ): string {
@@ -271,32 +271,32 @@ function makeCharacterCardDataUrl(
     bandH = ICON_BAND_H;
   const r = 16;
   const gap = 12;
-  const iconsCount = 1 + Math.max(0, factions.length); // include character initials + faction icons
+  const tokens = Array.isArray(displayIcons) ? displayIcons.filter(Boolean) : [];
+  const iconsCount = Math.max(0, tokens.length);
   const totalW = iconsCount * (r * 2) + (iconsCount - 1) * gap;
   const startX = bandX + (bandW - totalW) / 2 + r;
   const cy = bandY + bandH / 2;
   let iconsMarkup = "";
-  // Character initials icon (leftmost)
-  const initials = name
-    .split(/\s+/)
-    .map((s) => s[0] || "")
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-  iconsMarkup += `<circle cx="${startX}" cy="${cy}" r="${r}" fill="#fff" stroke="#222" stroke-width="2"/>
-      <text x="${startX}" y="${
-    cy + 5
-  }" text-anchor="middle" font-size="16" font-weight="700" fill="#111">${initials}</text>`;
-  // Faction icons to the right
-  factions.forEach((f, i) => {
-    const cx = startX + (i + 1) * (2 * r + gap);
-    const fill = (FactionColor as any)[f] || "#666";
-    const char = getFactionHan(f);
-    const textFill = f === "jin" ? "#111" : "#fff";
-    iconsMarkup += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" stroke="#222" stroke-width="2"/>
-      <text x="${cx}" y="${
-      cy + 5
-    }" text-anchor="middle" font-size="16" font-weight="700" fill="${textFill}">${char}</text>`;
+  tokens.forEach((tok, i) => {
+    const cx = startX + i * (2 * r + gap);
+    if (tok === 'character') {
+      const initials = name.split(/\s+/).map(s=>s[0]||'').join('').slice(0,2).toUpperCase();
+      iconsMarkup += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#fff" stroke="#222" stroke-width="2"/>
+        <text x="${cx}" y="${cy + 5}" text-anchor="middle" font-size="16" font-weight="700" fill="#111">${initials}</text>`;
+    } else if (tok === 'song' || tok === 'jin' || tok === 'daqi' || tok === 'rebel') {
+      const f = tok as FactionId;
+      const fill = (FactionColor as any)[f] || "#666";
+      const char = getFactionHan(f);
+      const textFill = f === "jin" ? "#111" : "#fff";
+      iconsMarkup += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" stroke="#222" stroke-width="2"/>
+        <text x="${cx}" y="${cy + 5}" text-anchor="middle" font-size="16" font-weight="700" fill="${textFill}">${char}</text>`;
+    } else {
+      // Treat any other token as a specific character icon; render initials from token
+      const words = String(tok).split(/[^A-Za-z]+/).filter(Boolean);
+      const initials = words.map(w => w[0] || '').join('').slice(0,2).toUpperCase();
+      iconsMarkup += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#fff" stroke="#222" stroke-width="2"/>
+        <text x="${cx}" y="${cy + 5}" text-anchor="middle" font-size="16" font-weight="700" fill="#111">${initials}</text>`;
+    }
   });
   // Rules text block (baked into SVG) — place higher up under title
   let rulesMarkup = "";
@@ -304,15 +304,6 @@ function makeCharacterCardDataUrl(
   if (rulesText && rulesText.trim()) {
     // Inline icon rendering using vectors matching board pieces
     let effectiveRules = rulesText;
-    const primaryFaction = factions[0];
-    // Auto-qualify ambiguous tokens for primary faction
-    const qualify = (s: string, what: string) =>
-      primaryFaction
-        ? s.replace(new RegExp(`:${what}:`, "g"), `:${primaryFaction}-${what}:`)
-        : s;
-    effectiveRules = qualify(effectiveRules, "foot");
-    effectiveRules = qualify(effectiveRules, "horse");
-    effectiveRules = qualify(effectiveRules, "ship");
 
     // Measurement helpers
     const fontSize = 13;
@@ -672,7 +663,7 @@ function makeCharacterCardDataUrl(
   </defs>
   <rect x="0" y="0" width="${width}" height="${height}" fill="url(#cardGrad)" rx="12" ry="12"/>
   <text x="50%" y="42" text-anchor="middle" font-size="20" font-weight="700" fill="#111"${nameAttrs}>${name}</text>
-  <text x="50%" y="70" text-anchor="middle" font-size="16" fill="#333"${titleAttrs}>${title}</text>
+  ${title ? `<text x="50%" y="70" text-anchor="middle" font-size="16" fill="#333"${titleAttrs}>${title}</text>` : ``}
   ${quoteMarkup}
   ${rulesMarkup}
   <rect x="${bandX}" y="${bandY}" width="${bandW}" height="${bandH}" fill="#eee" rx="8" ry="8"/>
@@ -929,8 +920,8 @@ function materializeCardFromDef(def: any): Card {
     }
   } else if (def.template === "character") {
     const title = String(def.title ?? "");
-    const factions = Array.isArray(def.factions)
-      ? (def.factions as FactionId[])
+    const displayIcons = Array.isArray(def.icons)
+      ? (def.icons as string[])
       : [];
     const rulesText =
       (c as any).rulesTextOverride ||
@@ -938,7 +929,7 @@ function materializeCardFromDef(def: any): Card {
     const path = makeCharacterCardDataUrl(
       name,
       title,
-      factions,
+      displayIcons,
       c.quote,
       rulesText
     );

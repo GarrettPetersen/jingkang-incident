@@ -3,67 +3,67 @@
   "name": "First Jin–Song War Setup",
   "version": 1,
   "cards": {
-    "card-character-yue-fei": {
-      "template": "character", "name": "Yue Fei", "title": "Loyal Song Officer", "factions": ["song"],
+    "start-yue-fei": {
+      "template": "character", "name": "Yue Fei, Loyal Song Officer",
       "backText": "START",
-      "icons": ["song"],
+      "icons": ["yue-fei","song"],
       "quote": { "text": "If civil officials don’t love money and military men don’t fear death, the realm will be at peace.", "cite": "Yue Fei, Songshi, Vol. 365" },
-      "rulesTextOverride": "Add [[card-pack-yue-fei-character]] to your hand.\nRecruit one :song-foot: in 5 separate cities without :dot: or :star:.\nPlace Yue Fei in Ezhou or a city adjacent to Ezhou.\nTuck this card.",
+      "rulesTextOverride": "Add [[yue-fei-cuts-horses-legs-star]] to your hand.\nRecruit one :song-foot: in 5 separate cities without :dot: or :star:.\nPlace Yue Fei in Ezhou or a city adjacent to Ezhou.\nTuck this card.",
       "effect": { "kind": "all", "effects": [
-        { "kind": "verb", "verb": { "type": "addCardToHand", "cardId": "card-pack-yue-fei-character" } },
+        { "kind": "verb", "verb": { "type": "addCardToHand", "cardId": "yue-fei-cuts-horses-legs-star" } },
         { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "foot", "count": 5, "unique": true, "faction": "song", "excludeNodes": ["kaifeng","yanjing","shangjing","daming","zhaozhou","cangzhou"] } },
         { "kind": "verb", "verb": { "type": "placeCharacter", "options": ["ezhou","yueyang","jiujiang","xiangyang"] } },
         { "kind": "verb", "verb": { "type": "tuck", "target": "self" } }
       ]}
     },
-    "card-character-qin-hui": {
-      "template": "character", "name": "Qin Hui", "title": "Jin Captive", "factions": ["jin"],
+    "start-qin-hui": {
+      "template": "character", "name": "Qin Hui, Jin Captive",
       "backText": "START",
-      "icons": ["jin"],
+      "icons": ["qin-hui","jin"],
       "quote": { "text": "Let the South keep to the South, the North to the North.", "cite": "Qin Hui, Songshi, Vol. 473" },
-      "rulesTextOverride": "Add [[card-pack-qin-hui-character]] to your hand.\nPlace one :rebel-foot: in Bianjing.\nPlace :jin-capital: in Shangjing or Yanjing.\nPlace Qin Hui in any city with :dot:.\nTuck this card.",
+      "rulesTextOverride": "Add [[qin-hui-treacherous-minister-star]] to your hand.\nPlace one :rebel-foot: in Bianjing.\nPlace :jin-capital: in Shangjing or Yanjing.\nPlace Qin Hui in any city with :dot:.\nTuck this card.",
       "effect": { "kind": "all", "effects": [
-        { "kind": "verb", "verb": { "type": "addCardToHand", "cardId": "card-pack-qin-hui-character" } },
+        { "kind": "verb", "verb": { "type": "addCardToHand", "cardId": "qin-hui-treacherous-minister-star" } },
         { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "foot", "at": { "nodes": ["kaifeng"] }, "faction": "rebel" } },
         { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "capital", "at": { "nodes": ["shangjing","yanjing"] }, "faction": "jin" } },
         { "kind": "verb", "verb": { "type": "placeCharacter", "options": ["yanjing","shangjing","daming","zhaozhou","cangzhou"] } },
         { "kind": "verb", "verb": { "type": "tuck", "target": "self" } }
       ]}
     },
-    "card-character-wuzhu": {
-      "template": "character", "name": "Wuzhu", "title": "Jin General", "factions": ["jin"],
+    "start-wuzhu": {
+      "template": "character", "name": "Wuzhu, Jin General",
       "backText": "START",
-      "icons": ["jin"],
+      "icons": ["wuzhu","jin"],
       "quote": { "text": "He drove the Song ruler onto a sea island and, in the end, fixed the Huai as the boundary.", "cite": "Jinshi, Vol. 77" },
-      "rulesTextOverride": "Add [[card-pack-wuzhu-character]] to your hand.\nRecruit 4 :jin-horse: in any city with :dot:.\nPlace Wuzhu in any city with :dot:.\nTuck this card.",
+      "rulesTextOverride": "Add [[wuzhu-fire-arrows-star]] to your hand.\nRecruit 4 :jin-horse: in any city with :dot:.\nPlace Wuzhu in any city with :dot:.\nTuck this card.",
       "effect": { "kind": "all", "effects": [
-        { "kind": "verb", "verb": { "type": "addCardToHand", "cardId": "card-pack-wuzhu-character" } },
+        { "kind": "verb", "verb": { "type": "addCardToHand", "cardId": "wuzhu-fire-arrows-star" } },
         { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "horse", "count": 4, "at": { "nodes": ["yanjing","shangjing","daming","zhaozhou","cangzhou"] }, "faction": "jin" } },
         { "kind": "verb", "verb": { "type": "placeCharacter", "options": ["yanjing","shangjing","daming","zhaozhou","cangzhou"] } },
         { "kind": "verb", "verb": { "type": "tuck", "target": "self" } }
       ]}
     },
-    "card-character-talan": {
-      "template": "character", "name": "Talan", "title": "Jin General", "factions": ["jin"],
+    "start-talan": {
+      "template": "character", "name": "Talan, Jin General",
       "backText": "START",
-      "icons": ["jin"],
+      "icons": ["talan","jin"],
       "quote": { "text": "Impulsive to the end, he fell into treason; when the plot failed he fled south—only confirming his dealings with the Song. Alas!", "cite": "Jinshi, Vol. 77" },
-      "rulesTextOverride": "Add [[card-pack-talan-character]] to your hand.\nRecruit 3 :jin-horse: in any city with :dot:.\nPlace Talan in any city with :dot:.\nTuck this card.",
+      "rulesTextOverride": "Add [[talan-back-channel-dealings-star]] to your hand.\nRecruit 3 :jin-horse: in any city with :dot:.\nPlace Talan in any city with :dot:.\nTuck this card.",
       "effect": { "kind": "all", "effects": [
-        { "kind": "verb", "verb": { "type": "addCardToHand", "cardId": "card-pack-talan-character" } },
+        { "kind": "verb", "verb": { "type": "addCardToHand", "cardId": "talan-back-channel-dealings-star" } },
         { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "horse", "count": 3, "at": { "nodes": ["yanjing","shangjing","daming","zhaozhou","cangzhou"] }, "faction": "jin" } },
         { "kind": "verb", "verb": { "type": "placeCharacter", "options": ["yanjing","shangjing","daming","zhaozhou","cangzhou"] } },
         { "kind": "verb", "verb": { "type": "tuck", "target": "self" } }
       ]}
     },
-    "card-character-liu-yu": {
-      "template": "character", "name": "Liu Yu", "title": "Song Official", "factions": ["song"],
+    "start-liu-yu": {
+      "template": "character", "name": "Liu Yu, Song Official",
       "backText": "START",
-      "icons": ["song"],
+      "icons": ["liu-yu","song"],
       "quote": { "text": "Liu Yu seized the moment for gain; the Jin sought to use him to claim credit—what sense is that?", "cite": "Jinshi, Vol. 77" },
-      "rulesTextOverride": "Add [[card-pack-liu-yu-character]] to your hand.\nPlace :song-capital: in Huaiyang.\nRecruit one :song-ship: in 4 separate water-accessible cities without :dot: or :star:.\nPlace Liu Yu in Chuzhou or a city adjacent to Chuzhou without :star:.\nTuck this card.",
+      "rulesTextOverride": "Add [[liu-yu-sea-routes-map-star]] to your hand.\nPlace :song-capital: in Huaiyang.\nRecruit one :song-ship: in 4 separate water-accessible cities without :dot: or :star:.\nPlace Liu Yu in Chuzhou or a city adjacent to Chuzhou without :star:.\nTuck this card.",
       "effect": { "kind": "all", "effects": [
-        { "kind": "verb", "verb": { "type": "addCardToHand", "cardId": "card-pack-liu-yu-character" } },
+        { "kind": "verb", "verb": { "type": "addCardToHand", "cardId": "liu-yu-sea-routes-map-star" } },
         { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "capital", "at": { "nodes": ["huaiyang"] }, "faction": "song" } },
         { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "ship", "count": 4, "unique": true,
           "at": { "nodes": [
@@ -76,7 +76,14 @@
       ]}
     }
     ,
-    "card-pack-yue-fei-character": {
+    "liu-yu-defects-to-the-jin": {
+      "template": "character",
+      "name": "Liu Yu Defects to the Jin",
+      "icons": ["liu-yu","jin"],
+      "rulesTextOverride": "Convert 2 :song-foot:/:song-horse:/:song-ship: to the same type of :jin-foot:/:jin-horse:/:jin-ship: in Liu Yu’s location.\nDestroy 1 :song-foot:/:song-horse:/:song-ship: in Liu Yu’s location.\nAll other :song-foot:/:song-horse:/:song-ship: and :song-character: in Liu Yu’s location retreat.\nTrash the [[start-liu-yu]] card and tuck this card in front of Liu Yu in its place.",
+      "quote": { "text": "Yu presented a Sea Routes Map and wooden models of warships to the Jin emperor Dan.", "cite": "Songshi, Vol. 475" }
+    },
+    "yue-fei-cuts-horses-legs-star": {
       "name": "Yue Fei Cuts the Horses' Legs*",
       "backText": "CHARACTER",
       "rulesTextOverride": "Cannot be played with other * cards in hand.\nKeep this card when played.\nDestroy an enemy :horse: or :foot: in a city adjacent to Yue Fei’s location.\nDraw up to a hand of 6 cards.",
@@ -89,7 +96,7 @@
         { "kind": "verb", "verb": { "type": "drawUpTo", "limit": 6 } }
       ] }
     },
-    "card-pack-qin-hui-character": {
+    "qin-hui-treacherous-minister-star": {
       "name": "Qin Hui, Treacherous Minister*",
       "backText": "CHARACTER",
       "rulesTextOverride": "Cannot be played with other * cards in hand.\nKeep this card when played.\nRetrieve a :dagger: card from the discard pile and tuck it in front of any other player, only if Qin Hui is in a city with :song-capital:.\nDraw up to a hand of 6 cards.",
@@ -103,7 +110,7 @@
         { "kind": "verb", "verb": { "type": "drawUpTo", "limit": 6 } }
       ] }
     },
-    "card-pack-wuzhu-character": {
+    "wuzhu-fire-arrows-star": {
       "name": "Wuzhu's Fire Arrows*",
       "backText": "CHARACTER",
       "rulesTextOverride": "Cannot be played with other * cards in hand.\nKeep this card when played.\nDestroy an enemy :jin-ship: adjacent to Wuzhu.\nDraw up to a hand of 6 cards.",
@@ -116,10 +123,10 @@
         { "kind": "verb", "verb": { "type": "drawUpTo", "limit": 6 } }
       ] }
     },
-    "card-pack-talan-character": {
+    "talan-back-channel-dealings-star": {
       "name": "Talan's Back Channel Dealings*",
       "backText": "CHARACTER",
-      "rulesTextOverride": "Cannot be played with a * card in hand.\nKeep this card when played.\nDraw up to a hand of 6 cards.\nYou may draw a card. If you do, an enemy player draws a card and you gain 1 :coin:.",
+      "rulesTextOverride": "Cannot be played with other * cards in hand.\nKeep this card when played.\nDraw up to a hand of 6 cards.\nYou may draw a card. If you do, an enemy player draws a card and you gain 1 :coin:.",
       "quote": { "text": "Zong Bi observed that Talan had dealings with the Song, exchanging gifts.", "cite": "Jinshi, Vol. 77" },
       "playCondition": { "kind": "noStarCardInHand" },
       "playConditionMessage": "Cannot be played with a * card in hand.",
@@ -136,7 +143,7 @@
         ] }
       ] }
     },
-    "card-pack-liu-yu-character": {
+    "liu-yu-sea-routes-map-star": {
       "name": "Liu Yu's Sea Routes Map*",
       "backText": "CHARACTER",
       "rulesTextOverride": "Cannot be played with other * cards in hand.\nKeep this card when played.\nRecruit 1 :foot: in Liu Yu’s location; OR if Liu Yu’s location is water-accessible, you may pay 2 :coin: to recruit 1 :ship: there.\nDraw up to a hand of 6 cards.",
