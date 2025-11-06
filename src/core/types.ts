@@ -143,6 +143,32 @@ export type VerbSpec =
       pieceTypeId: PieceTypeId;
       faction?: FactionSelector;
     }
+  | {
+      // Convert N pieces at your character's location from one faction to another, preserving type
+      type: "convertAtCharacter";
+      fromFaction: FactionSelector;
+      toFaction: FactionSelector;
+      pieceTypes?: PieceTypeSelector;
+      count: number;
+    }
+  | {
+      // Destroy up to N pieces at your character's location (optionally filtered)
+      type: "destroyAtCharacter";
+      fromFaction?: FactionSelector;
+      pieceTypes?: PieceTypeSelector;
+      count?: number;
+    }
+  | {
+      // Force all pieces and characters of a faction at your character's location to retreat to adjacent cities
+      type: "retreatAtCharacter";
+      faction: FactionSelector;
+    }
+  | {
+      // Remove a specific tucked card from a player's tuck area and trash it (move to discard)
+      type: "trashTuckedCard";
+      matchCardId: CardId;
+      target?: PlayerSelector;
+    }
   | { type: "gainCoin"; amount: number }
   | { type: "endGame"; winner?: "self" | "none" }
   | {

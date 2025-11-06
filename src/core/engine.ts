@@ -57,6 +57,25 @@ export function endTurn(state: GameState): void {
   startTurn(state);
 }
 
+// Character control via tucked per-character icons
+function slugifyNameToIconToken(name: string): string {
+  return String(name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+function getControlledCharacter(state: GameState, playerId: PlayerId) {
+  const p = state.players.find(pp => pp.id === playerId);
+  if (!p) return undefined;
+  const tuckedIcons: string[] = [];
+  for (const card of p.tucked) {
+    const arr = (card?.icons ?? []) as any[];
+    for (const ic of arr) tuckedIcons.push(String(ic));
+  }
+  for (const ch of Object.values(state.characters)) {
+    const token = slugifyNameToIconToken(ch.name);
+    if (tuckedIcons.includes(token)) return ch;
+  }
+  return undefined;
+}
+
 export function playCard(state: GameState, cardId: string): void {
   if (state.gameOver) return;
   if (state.hasPlayedThisTurn) {
@@ -174,12 +193,12 @@ function evaluateCondition(state: GameState, playerId: PlayerId, cond: Condition
       return (p.coins ?? 0) >= Math.max(0, cond.atLeast);
     }
     case 'characterAt': {
-      const ch = Object.values(state.characters).find((c) => c.playerId === playerId);
+      const ch = getControlledCharacter(state, playerId);
       if (!ch) return false;
       return cond.nodes.includes(ch.location.nodeId);
     }
     case 'characterAtCityWithPiece': {
-      const ch = Object.values(state.characters).find((c) => c.playerId === playerId);
+      const ch = getControlledCharacter(state, playerId);
       if (!ch) return false;
       const here = ch.location.nodeId;
       return Object.values(state.pieces).some((pc) => pc.location.kind === 'node' && pc.location.nodeId === here && pc.typeId === cond.pieceTypeId && (!cond.faction || pc.faction === (cond.faction as any)));
@@ -380,7 +399,7 @@ function executeVerb(
     }
     case 'placeCharacter': {
       // Find the current player's character (first one)
-      const ch = Object.values(state.characters).find((c) => c.playerId === playerId);
+      const ch = getControlledCharacter(state, playerId);
       if (!ch) { state.log.push({ message: `No character to place.` }); break; }
       let options: string[] | undefined;
       if ((verb as any).options && Array.isArray((verb as any).options)) {
@@ -420,7 +439,7 @@ function executeVerb(
     }
     case 'destroyNearby': {
       // Find player's character to derive adjacency
-      const ch = Object.values(state.characters).find((c) => c.playerId === playerId);
+      const ch = getControlledCharacter(state, playerId);
       if (!ch) { state.log.push({ message: `No character to target from.` }); break; }
       const here = ch.location.nodeId;
       const adj = findAdjacentNodes(state.map, here);
@@ -446,10 +465,100 @@ function executeVerb(
       break;
     }
     case 'recruitAtCharacter': {
-      const ch = Object.values(state.characters).find((c) => c.playerId === playerId);
+      const ch = getControlledCharacter(state, playerId);
       if (!ch) { state.log.push({ message: `No character to recruit at.` }); break; }
       const faction = resolveFactionSelector(state, playerId, (verb as any).faction);
       placePiece(state, playerId, verb.pieceTypeId, ch.location.nodeId, faction as any);
+      break;
+    }
+    case 'convertAtCharacter': {
+      const ch = getControlledCharacter(state, playerId);
+      if (!ch) { state.log.push({ message: `No character to convert at.` }); break; }
+      const here = ch.location.nodeId;
+      const fromF = resolveFactionSelector(state, playerId, (verb as any).fromFaction);
+      const toF = resolveFactionSelector(state, playerId, (verb as any).toFaction);
+      if (!toF) { state.log.push({ message: `No target faction to convert to.` }); break; }
+      const allowedTypes: string[] | undefined = (verb as any).pieceTypes?.anyOf;
+      const count = Math.max(0, Number((verb as any).count ?? 0));
+      const elig = Object.values(state.pieces)
+        .filter(pc => pc.location.kind === 'node' && pc.location.nodeId === here)
+        .filter(pc => (!fromF || pc.faction === (fromF as any)))
+        .filter(pc => !allowedTypes || allowedTypes.includes(pc.typeId));
+      const take = elig.slice(0, count);
+      for (const pc of take) {
+        pc.faction = toF as any;
+      }
+      if (take.length > 0) {
+        state.log.push({ message: `Converted ${take.length} piece(s) at ${here} to ${String(toF)}.` });
+      }
+      break;
+    }
+    case 'destroyAtCharacter': {
+      const ch = getControlledCharacter(state, playerId);
+      if (!ch) { state.log.push({ message: `No character to destroy at.` }); break; }
+      const here = ch.location.nodeId;
+      const fromF = resolveFactionSelector(state, playerId, (verb as any).fromFaction);
+      const allowedTypes: string[] | undefined = (verb as any).pieceTypes?.anyOf;
+      let count = Math.max(1, Number((verb as any).count ?? 1));
+      const ids = Object.values(state.pieces)
+        .filter(pc => pc.location.kind === 'node' && pc.location.nodeId === here)
+        .filter(pc => (!fromF || pc.faction === (fromF as any)))
+        .filter(pc => !allowedTypes || allowedTypes.includes(pc.typeId))
+        .map(pc => pc.id);
+      for (const id of ids) {
+        if (count <= 0) break;
+        delete state.pieces[id];
+        count -= 1;
+      }
+      break;
+    }
+    case 'retreatAtCharacter': {
+      const ch = getControlledCharacter(state, playerId);
+      if (!ch) { state.log.push({ message: `No character to retreat from.` }); break; }
+      const here = ch.location.nodeId;
+      const faction = resolveFactionSelector(state, playerId, (verb as any).faction);
+      const adj = findAdjacentNodes(state.map, here);
+      const dest = adj[0]; // simple heuristic; future: prompt defending owners
+      if (!dest) break;
+      // Retreat pieces
+      for (const pc of Object.values(state.pieces)) {
+        if (pc.location.kind !== 'node') continue;
+        if (pc.location.nodeId !== here) continue;
+        const fac = pc.faction ?? undefined;
+        if (faction && fac !== faction) continue;
+        pc.location = { kind: 'node', nodeId: dest };
+      }
+      // Retreat characters of that faction (by owner faction fallback)
+      for (const cc of Object.values(state.characters)) {
+        if (cc.location.kind !== 'node') continue;
+        if (cc.location.nodeId !== here) continue;
+        const owner = state.players.find(p => p.id === cc.playerId);
+        const cf = cc.faction ?? owner?.faction;
+        if (faction && cf !== faction) continue;
+        cc.location = { kind: 'node', nodeId: dest } as any;
+      }
+      break;
+    }
+    case 'trashTuckedCard': {
+      const targetId = resolvePlayerSelector(state, playerId, (verb as any).target ?? 'self');
+      const target = state.players.find(p => p.id === targetId)!;
+      const matchId = String((verb as any).matchCardId);
+      let removed: any[] = [];
+      if (Array.isArray(target.tucked)) {
+        const keep: any[] = [];
+        for (const c of target.tucked) {
+          if ((c as any).id === matchId) {
+            removed.push(c);
+          } else {
+            keep.push(c);
+          }
+        }
+        (target as any).tucked = keep;
+      }
+      if (removed.length > 0) {
+        state.discardPile = pushBottom(state.discardPile, removed as any);
+        state.log.push({ message: `Trashed ${removed.length} tucked card(s).` });
+      }
       break;
     }
     case 'endGame': {

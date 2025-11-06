@@ -81,7 +81,14 @@
       "name": "Liu Yu Defects to the Jin",
       "icons": ["liu-yu","jin"],
       "rulesTextOverride": "Convert 2 :song-foot:/:song-horse:/:song-ship: to the same type of :jin-foot:/:jin-horse:/:jin-ship: in Liu Yu’s location.\nDestroy 1 :song-foot:/:song-horse:/:song-ship: in Liu Yu’s location.\nAll other :song-foot:/:song-horse:/:song-ship: and :song-character: in Liu Yu’s location retreat.\nTrash the [[start-liu-yu]] card and tuck this card in front of Liu Yu in its place.",
-      "quote": { "text": "Yu presented a Sea Routes Map and wooden models of warships to the Jin emperor Dan.", "cite": "Songshi, Vol. 475" }
+      "quote": { "text": "He killed his general and surrendered to the Jin.", "cite": "Songshi, Vol. 475" },
+      "effect": { "kind": "all", "effects": [
+        { "kind": "verb", "verb": { "type": "convertAtCharacter", "fromFaction": "song", "toFaction": "jin", "pieceTypes": { "anyOf": ["foot","horse","ship"] }, "count": 2 } },
+        { "kind": "verb", "verb": { "type": "destroyAtCharacter", "fromFaction": "song", "pieceTypes": { "anyOf": ["foot","horse","ship"] }, "count": 1 } },
+        { "kind": "verb", "verb": { "type": "retreatAtCharacter", "faction": "song" } },
+        { "kind": "verb", "verb": { "type": "trashTuckedCard", "matchCardId": "start-liu-yu", "target": "self" } },
+        { "kind": "verb", "verb": { "type": "tuck", "target": "self" } }
+      ] }
     },
     "yue-fei-cuts-horses-legs-star": {
       "name": "Yue Fei Cuts the Horses' Legs*",
