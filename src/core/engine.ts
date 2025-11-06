@@ -204,6 +204,28 @@ function executeVerb(
   card: Card,
   verb: VerbSpec,
 ): void {
+  function factionOfPiece(state: GameState, pc: any): string | undefined {
+    if (pc.faction) return String(pc.faction);
+    if (pc.ownerId) {
+      const owner = state.players.find((p) => p.id === pc.ownerId);
+      return owner?.faction ? String(owner.faction) : undefined;
+    }
+    return undefined;
+  }
+  function isEnemyPiece(state: GameState, selfId: PlayerId, pc: any): boolean {
+    // Never allow destroying own piece
+    if (pc.ownerId && pc.ownerId === selfId) return false;
+    const self = state.players.find((p) => p.id === selfId);
+    const selfFaction = self?.faction ? String(self.faction) : undefined;
+    const otherFaction = factionOfPiece(state, pc);
+    if (!selfFaction || !otherFaction) return false;
+    const dip = state.diplomacy as any;
+    if (dip && dip[selfFaction] && dip[selfFaction][otherFaction]) {
+      return dip[selfFaction][otherFaction] === 'enemy';
+    }
+    // Fallback: treat different factions as enemies
+    return selfFaction !== otherFaction;
+  }
   switch (verb.type) {
     case 'addCardToHand': {
       const self = state.players.find((p) => p.id === playerId)!;
@@ -221,8 +243,28 @@ function executeVerb(
     }
     case 'retrieveFromDiscard': {
       const self = state.players.find((p) => p.id === playerId)!;
-      const target = (verb as any).target === 'self' ? self : findOpponent(state, playerId);
       const match = String((verb as any).match ?? 'dagger').toLowerCase();
+      // If targeting an opponent and there are multiple, prompt to choose
+      if ((verb as any).target === 'opponent') {
+        const selfFaction = self.faction;
+        let candidates = state.players.filter((p) => p.id !== playerId);
+        const enemyOnly = candidates.filter((p) => selfFaction && p.faction && p.faction !== selfFaction);
+        if (enemyOnly.length > 0) candidates = enemyOnly;
+        if (candidates.length > 1) {
+          state.prompt = {
+            kind: 'choose',
+            playerId,
+            choices: candidates.map((p) => ({
+              kind: 'verb',
+              verb: { type: 'retrieveFromDiscard', match, target: { playerId: p.id } as any } as VerbSpec,
+            })) as any,
+            message: 'Choose a player to tuck the retrieved card in front of:',
+          } as any;
+          return;
+        }
+      }
+      const targetId = resolvePlayerSelector(state, playerId, (verb as any).target ?? 'self');
+      const target = state.players.find((p) => p.id === targetId)!;
       const idx = state.discardPile.cards.findIndex((c: any) => String(c?.name || c?.id || '').toLowerCase().includes(match));
       if (idx >= 0) {
         const [card] = state.discardPile.cards.splice(idx, 1);
@@ -234,6 +276,26 @@ function executeVerb(
       break;
     }
     case 'draw': {
+      // If drawing for an opponent and there are multiple enemy players, prompt to choose
+      if ((verb as any).target === 'opponent') {
+        const self = state.players.find((p) => p.id === playerId)!;
+        const selfFaction = self.faction;
+        let candidates = state.players.filter((p) => p.id !== playerId);
+        const enemyOnly = candidates.filter((p) => selfFaction && p.faction && p.faction !== selfFaction);
+        if (enemyOnly.length > 0) candidates = enemyOnly;
+        if (candidates.length > 1) {
+          state.prompt = {
+            kind: 'choose',
+            playerId,
+            choices: candidates.map((p) => ({
+              kind: 'verb',
+              verb: { type: 'draw', count: (verb as any).count, target: { playerId: p.id } as any } as VerbSpec,
+            })) as any,
+            message: 'Choose an enemy to draw:',
+          } as any;
+          return;
+        }
+      }
       const targetId = resolvePlayerSelector(state, playerId, verb.target ?? 'self');
       const target = state.players.find((p) => p.id === targetId)!;
       if (state.drawPile.cards.length === 0 && state.discardPile.cards.length > 0) {
@@ -323,10 +385,14 @@ function executeVerb(
       let options: string[] | undefined;
       if ((verb as any).options && Array.isArray((verb as any).options)) {
         options = ((verb as any).options as string[]).filter((nid) => !!state.map.nodes[nid]);
-      } else if ((verb as any).nearCurrent) {
-        const here = ch.location.nodeId;
+      } else if ((verb as any).nearCurrent && ch.location && (ch.location as any).kind === 'node') {
+        const here = (ch.location as any).nodeId as string;
         const adj = findAdjacentNodes(state.map, here);
         // include current and all adjacents
+        options = [here, ...adj];
+      } else if ((verb as any).nearNode && state.map.nodes[(verb as any).nearNode]) {
+        const here = String((verb as any).nearNode);
+        const adj = findAdjacentNodes(state.map, here);
         options = [here, ...adj];
       } else {
         options = Object.keys(state.map.nodes);
@@ -360,16 +426,14 @@ function executeVerb(
       const adj = findAdjacentNodes(state.map, here);
       const nodes = (verb as any).includeCurrentNode ? [here, ...adj] : adj;
       const allowedTypes: string[] | undefined = (verb as any).pieceTypes?.anyOf;
-      const self = state.players.find((p) => p.id === playerId)!;
       const eligible = Object.values(state.pieces)
         .filter((pc) => pc.location.kind === 'node' && nodes.includes(pc.location.nodeId))
         .filter((pc) => !allowedTypes || allowedTypes.includes(pc.typeId))
-        // Exclude own pieces by owner when known; if faction known, exclude same-faction
-        .filter((pc) => (pc.ownerId ? pc.ownerId !== playerId : true))
-        .filter((pc) => (pc.faction && self.faction ? pc.faction !== self.faction : true))
+        // Only enemy pieces per diplomacy matrix (or faction inequality fallback)
+        .filter((pc) => isEnemyPiece(state, playerId, pc))
         .map((pc) => pc.id);
       if (eligible.length === 0) {
-        state.log.push({ message: `No eligible adjacent targets.` });
+        state.log.push({ message: `No eligible adjacent enemy targets.` });
         break;
       }
       state.prompt = {

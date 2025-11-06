@@ -374,7 +374,9 @@ function makeCharacterCardDataUrl(
     // Inline SVG icon generator for on-card rendering (fonts can't load inside data: SVG reliably)
     function iconMarkup(kind: string, faction?: FactionId): string {
       if (kind === "dot") {
-        return `<circle cx="6" cy="6" r="4" fill="#f0c419" stroke="#b78900" stroke-width="1"/>`;
+        // Yellow diamond (rotated square) to distinguish from coins
+        const pts = [[6,2],[10,6],[6,10],[2,6]].map(p=>p.join(',')).join(' ');
+        return `<polygon points="${pts}" fill="#f0c419" stroke="#b78900" stroke-width="1"/>`;
       }
       if (kind === "star") {
         const R = 5,
@@ -410,7 +412,10 @@ function makeCharacterCardDataUrl(
         return `<polygon points="6,0 0,12 12,12" fill="${fill}" stroke="#000" stroke-width="2"/>`;
       }
       if (kind === "coin") {
-        return `<circle cx="6" cy="6" r="6" fill="#f0c419" stroke="#b78900" stroke-width="1.5"/>`;
+        // Coin with square hole: outer circle + inner square cutout (simulate hole by overlaying background color)
+        const outer = `<circle cx="6" cy="6" r="6" fill="#f0c419" stroke="#b78900" stroke-width="1.5"/>`;
+        const hole = `<rect x="4" y="4" width="4" height="4" fill="#f9f9f9" />`;
+        return `<g>${outer}${hole}</g>`;
       }
       if (kind === "dagger") {
         // simple dagger glyph in 12x12
@@ -754,7 +759,7 @@ function makeGenericCardDataUrl(
     return iconH;
   }
   function iconMarkup(kind: string, faction?: FactionId): string {
-    if (kind === 'dot') return `<circle cx="6" cy="6" r="4" fill="#f0c419" stroke="#b78900" stroke-width="1"/>`;
+    if (kind === 'dot') { const pts = [[6,2],[10,6],[6,10],[2,6]].map(p=>p.join(',')).join(' '); return `<polygon points="${pts}" fill="#f0c419" stroke="#b78900" stroke-width="1"/>`; }
     if (kind === 'star') {
       const R=5, r2=2.2, cx=6, cy=6; const pts: Array<[number,number]> = [];
       for (let i=0;i<10;i++){ const ang=-Math.PI/2 + i*Math.PI/5; const rr=i%2===0?R:r2; pts.push([cx+rr*Math.cos(ang), cy+rr*Math.sin(ang)]); }
@@ -786,6 +791,7 @@ function makeGenericCardDataUrl(
       const f = faction ? (FactionColor as any)[faction] ?? '#000' : '#000';
       return `<circle cx="6" cy="6" r="6" fill="#fff" stroke="${f}" stroke-width="2"/>`;
     }
+    if (kind === 'coin') { const outer = `<circle cx="6" cy="6" r="6" fill="#f0c419" stroke="#b78900" stroke-width="1.5"/>`; const hole = `<rect x="4" y="4" width="4" height="4" fill="#f9f9f9"/>`; return `<g>${outer}${hole}</g>`; }
     return '';
   }
   type Item = { kind:'text'; text:string } | { kind:'bold'; text:string } | { kind:'icon'; which:string; faction?: FactionId };
@@ -1038,19 +1044,22 @@ function buildStateFromScenario(scn: any): GameState {
       ch.faction !== undefined && ch.faction !== null
         ? (String(ch.faction) as FactionId)
         : undefined;
-    const nodeId = String(ch.nodeId ?? "");
-    if (!validNodes.has(nodeId)) {
-      console.warn(
-        `[scenario] Skipping character at unknown nodeId: ${nodeId}`
-      );
-      continue;
+    const rawNodeId = ch.nodeId !== undefined && ch.nodeId !== null ? String(ch.nodeId) : '';
+    let location: any;
+    if (!rawNodeId || rawNodeId === 'offboard') {
+      location = { kind: 'offboard' };
+    } else if (validNodes.has(rawNodeId)) {
+      location = { kind: 'node', nodeId: rawNodeId };
+    } else {
+      console.warn(`[scenario] Unknown nodeId: ${rawNodeId}; placing character offboard`);
+      location = { kind: 'offboard' };
     }
     characters[id] = {
       id,
       name,
       playerId: playerId || id,
       faction,
-      location: { kind: "node", nodeId },
+      location,
       portrait: ch.portrait ?? undefined,
     };
   }

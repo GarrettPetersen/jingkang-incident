@@ -12,7 +12,7 @@
       "effect": { "kind": "all", "effects": [
         { "kind": "verb", "verb": { "type": "addCardToHand", "cardId": "card-pack-yue-fei-character" } },
         { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "foot", "count": 5, "unique": true, "faction": "song", "excludeNodes": ["kaifeng","yanjing","shangjing","daming","zhaozhou","cangzhou"] } },
-        { "kind": "verb", "verb": { "type": "placeCharacter", "nearCurrent": true } },
+        { "kind": "verb", "verb": { "type": "placeCharacter", "options": ["ezhou","yueyang","jiujiang","xiangyang"] } },
         { "kind": "verb", "verb": { "type": "tuck", "target": "self" } }
       ]}
     },
@@ -148,8 +148,8 @@
         { "kind": "any", "effects": [
           { "kind": "if", "condition": { "kind": "hasCoins", "atLeast": 2 }, "then": { "kind": "if", "condition": { "kind": "characterAt", "nodes": [
             "yangzhou","zhenjiang","nanjing","huaiyin","huaiyang","jiujiang","nanchang","taizhou","haizhou","xuanzhou","hangzhou","shaoxing","fuzhou","quanzhou","ningbo","tanzhou","yueyang","ezhou","xiangyang","suzhou-js","guangzhou"
-          ] }, "then": { "kind": "all", "effects": [ { "kind": "verb", "verb": { "type": "gainCoin", "amount": -2 } }, { "kind": "verb", "verb": { "type": "recruitAtCharacter", "pieceTypeId": "ship", "faction": "song" } } ] } } },
-          { "kind": "verb", "verb": { "type": "recruitAtCharacter", "pieceTypeId": "foot", "faction": "song" } }
+          ] }, "then": { "kind": "all", "effects": [ { "kind": "verb", "verb": { "type": "gainCoin", "amount": -2 } }, { "kind": "verb", "verb": { "type": "recruitAtCharacter", "pieceTypeId": "ship", "faction": "selfFaction" } } ] } } },
+          { "kind": "verb", "verb": { "type": "recruitAtCharacter", "pieceTypeId": "foot", "faction": "selfFaction" } }
         ] },
         { "kind": "verb", "verb": { "type": "drawUpTo", "limit": 6 } }
       ] }
@@ -172,11 +172,11 @@
     "ops": { "cards": [] }
   },
   "characters": [
-    { "id": "char-yue-fei", "playerId": "a", "name": "Yue Fei", "nodeId": "ezhou",   "portrait": "/portraits/yue-fei.svg" },
-    { "id": "char-qin-hui", "playerId": "b", "name": "Qin Hui", "nodeId": "yanjing", "portrait": "/portraits/qin-hui.svg" },
-    { "id": "char-wuzhu",   "playerId": "c", "name": "Wuzhu",   "nodeId": "yanjing", "portrait": "/portraits/wuzhu.svg" },
-    { "id": "char-talan",   "playerId": "d", "name": "Talan",   "nodeId": "yanjing", "portrait": "/portraits/talan.svg" },
-    { "id": "char-liu-yu",  "playerId": "e", "name": "Liu Yu",  "nodeId": "yangzhou", "portrait": "/portraits/liu-yu.svg" }
+    { "id": "char-yue-fei", "playerId": "a", "name": "Yue Fei",   "portrait": "/portraits/yue-fei.svg" },
+    { "id": "char-qin-hui", "playerId": "b", "name": "Qin Hui",  "portrait": "/portraits/qin-hui.svg" },
+    { "id": "char-wuzhu",   "playerId": "c", "name": "Wuzhu",    "portrait": "/portraits/wuzhu.svg" },
+    { "id": "char-talan",   "playerId": "d", "name": "Talan",    "portrait": "/portraits/talan.svg" },
+    { "id": "char-liu-yu",  "playerId": "e", "name": "Liu Yu",   "portrait": "/portraits/liu-yu.svg" }
   ],
   "pieces": []
 }

@@ -457,7 +457,7 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
     label.setAttribute('pointer-events', 'none');
     mapLayer.appendChild(label);
 
-    // Setup markers: small yellow dot for early Jin-held cities; black star for Bianjing (Kaifeng)
+    // Setup markers: small yellow diamond for early Jin-held cities; black star for Bianjing (Kaifeng)
     const jinHeld = new Set(['yanjing', 'shangjing', 'daming', 'zhaozhou', 'cangzhou']);
     const isBianjing = n.id === 'kaifeng' || n.id === 'bianjing';
     if (jinHeld.has(n.id) || isBianjing) {
@@ -466,15 +466,21 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
       const cx = n.x + offs * Math.SQRT1_2; // cos(45°) = sin(45°) = sqrt(1/2)
       const cy = n.y - offs * Math.SQRT1_2;
       if (jinHeld.has(n.id)) {
-        const mark = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        mark.setAttribute('cx', String(cx));
-        mark.setAttribute('cy', String(cy));
-        mark.setAttribute('r', '3');
-        mark.setAttribute('fill', '#f0c419');
-        mark.setAttribute('stroke', '#b78900');
-        mark.setAttribute('stroke-width', '1');
-        mark.setAttribute('pointer-events', 'none');
-        mapLayer.appendChild(mark);
+        // diamond (rotated square)
+        const diamond = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        const d = 4; // diamond half-diagonal
+        const pts = [
+          [cx, cy - d],
+          [cx + d, cy],
+          [cx, cy + d],
+          [cx - d, cy],
+        ].map(p => p.join(',')).join(' ');
+        diamond.setAttribute('points', pts);
+        diamond.setAttribute('fill', '#f0c419');
+        diamond.setAttribute('stroke', '#b78900');
+        diamond.setAttribute('stroke-width', '1');
+        diamond.setAttribute('pointer-events', 'none');
+        mapLayer.appendChild(diamond);
       }
       if (isBianjing) {
         // small five-point star
@@ -1325,38 +1331,21 @@ function showCardModal(card: any, onPlay: () => void, originRect?: { x: number; 
   modal.style.border = '1px solid #333';
   modal.style.borderRadius = '10px';
   modal.style.boxShadow = '0 10px 30px rgba(0,0,0,0.5)';
-  modal.style.maxWidth = '86vw';
-  modal.style.maxHeight = '86vh';
+  modal.style.maxWidth = '92vw';
+  modal.style.maxHeight = '92vh';
   modal.style.display = 'flex';
-  modal.style.flexDirection = 'row';
-  modal.style.gap = '16px';
-  modal.style.padding = '16px';
+  modal.style.flexDirection = 'column';
+  modal.style.alignItems = 'center';
+  modal.style.gap = '10px';
+  modal.style.padding = '12px';
   modal.addEventListener('click', (ev) => ev.stopPropagation());
 
   const img = document.createElement('img');
   img.src = card.asset.path;
   img.alt = card.name;
-  img.style.maxWidth = '55vw';
-  img.style.maxHeight = '80vh';
+  img.style.maxWidth = '78vw';
+  img.style.maxHeight = '78vh';
   img.style.borderRadius = '8px';
-
-  const side = document.createElement('div');
-  side.style.display = 'flex';
-  side.style.flexDirection = 'column';
-  side.style.gap = '12px';
-  side.style.width = '28vw';
-  side.style.maxWidth = '420px';
-
-  const title = document.createElement('div');
-  title.textContent = card.name || 'Card';
-  title.style.fontSize = '18px';
-  title.style.fontWeight = '700';
-  side.appendChild(title);
-
-  // Rules text duplicate not shown in modal; users read the card face SVG
-  // (leaving placeholder in case we need a small helper panel later)
-  const text = document.createElement('div');
-  text.style.display = 'none';
   function glyphChar(kind: string): string {
     // Private Use Area mapping for icon font
     if (kind === 'foot') return '\uE001';
@@ -1398,10 +1387,12 @@ function showCardModal(card: any, onPlay: () => void, originRect?: { x: number; 
     const fill = faction ? (FactionColor as any)[faction] ?? '#888' : '#fff';
     const stroke = faction ? darken(fill, 0.8) : '#000';
     if (kind === 'dot') {
-      const c = document.createElementNS(svgNS, 'circle');
-      c.setAttribute('cx', '7'); c.setAttribute('cy', '7'); c.setAttribute('r', '4');
-      c.setAttribute('fill', '#f0c419'); c.setAttribute('stroke', '#b78900'); c.setAttribute('stroke-width', '1');
-      svg.appendChild(c);
+      // diamond
+      const pts = [[7,3],[11,7],[7,11],[3,7]].map(p=>p.join(',')).join(' ');
+      const poly = document.createElementNS(svgNS, 'polygon');
+      poly.setAttribute('points', pts);
+      poly.setAttribute('fill', '#f0c419'); poly.setAttribute('stroke', '#b78900'); poly.setAttribute('stroke-width', '1');
+      svg.appendChild(poly);
     } else if (kind === 'star') {
       const path = document.createElementNS(svgNS, 'path');
       const R = 6, r2 = 2.5; const cx = 7, cy = 7; const pts: Array<[number, number]> = [];
@@ -1439,10 +1430,14 @@ function showCardModal(card: any, onPlay: () => void, originRect?: { x: number; 
       tip.setAttribute('d', 'M5,9 L8,9 L6.5,12 Z'); tip.setAttribute('fill', '#222');
       svg.appendChild(blade); svg.appendChild(tip);
     } else if (kind === 'coin') {
-      const c = document.createElementNS(svgNS, 'circle');
-      c.setAttribute('cx', '7'); c.setAttribute('cy', '7'); c.setAttribute('r', '6');
-      c.setAttribute('fill', '#f0c419'); c.setAttribute('stroke', '#b78900'); c.setAttribute('stroke-width', '1.5');
-      svg.appendChild(c);
+      // coin with square hole
+      const outer = document.createElementNS(svgNS, 'circle');
+      outer.setAttribute('cx', '7'); outer.setAttribute('cy', '7'); outer.setAttribute('r', '6');
+      outer.setAttribute('fill', '#f0c419'); outer.setAttribute('stroke', '#b78900'); outer.setAttribute('stroke-width', '1.5');
+      const hole = document.createElementNS(svgNS, 'rect');
+      hole.setAttribute('x', '5'); hole.setAttribute('y', '5'); hole.setAttribute('width', '4'); hole.setAttribute('height', '4');
+      hole.setAttribute('fill', '#111'); // modal background to simulate hole
+      svg.appendChild(outer); svg.appendChild(hole);
     } else if (kind === 'character') {
       const c = document.createElementNS(svgNS, 'circle');
       c.setAttribute('cx', '7'); c.setAttribute('cy', '7'); c.setAttribute('r', '6'); c.setAttribute('fill', '#fff'); c.setAttribute('stroke', faction ? fill : '#000'); c.setAttribute('stroke-width', '2');
@@ -1513,6 +1508,8 @@ function showCardModal(card: any, onPlay: () => void, originRect?: { x: number; 
   const row = document.createElement('div');
   row.style.display = 'flex';
   row.style.gap = '10px';
+  row.style.justifyContent = 'center';
+  row.style.width = '100%';
 
   const playBtn = document.createElement('button');
   const isPlaying = ((window as any).__playingCardId === card.id);
@@ -1538,10 +1535,9 @@ function showCardModal(card: any, onPlay: () => void, originRect?: { x: number; 
     row.appendChild(playBtn);
   }
   row.appendChild(closeBtn);
-  side.appendChild(row);
 
   modal.appendChild(img);
-  modal.appendChild(side);
+  modal.appendChild(row);
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
 

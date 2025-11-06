@@ -45,7 +45,8 @@ export interface PieceType {
 
 export type Location =
   | { kind: "node"; nodeId: NodeId }
-  | { kind: "edge"; edgeId: EdgeId };
+  | { kind: "edge"; edgeId: EdgeId }
+  | { kind: "offboard" };
 
 export interface Piece {
   id: PieceId;
@@ -63,7 +64,7 @@ export interface Character {
   name: string;
   playerId: PlayerId;
   faction?: FactionId;
-  location: { kind: "node"; nodeId: NodeId };
+  location: Location;
   portrait?: string; // public path to image asset, e.g. /portraits/yue-fei.svg
 }
 
@@ -150,6 +151,8 @@ export type VerbSpec =
       // Provide explicit options, or use nearCurrent to derive options
       options?: NodeId[];
       nearCurrent?: boolean;
+      // If provided, compute adjacency from this anchor node (useful when character starts offboard)
+      nearNode?: NodeId;
     };
 
 // Effect composition and conditions (focused on tucked icons)
