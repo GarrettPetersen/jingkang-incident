@@ -61,7 +61,7 @@
       "backText": "START",
       "icons": ["song"],
       "quote": { "text": "Liu Yu seized the moment for gain; the Jin sought to use him to claim credit—what sense is that?", "cite": "Jinshi, Vol. 77" },
-      "rulesTextOverride": "Add Liu Yu Character Card to your hand.\nPlace :song-capital: in Huaiyang.\nRecruit one :song-ship: in 4 separate water-accessible cities without :dot: or :star:.\nPlace Liu Yu in Chuzhou or a city adjacent to Chuzhou without :star:.\nTuck this card.",
+      "rulesTextOverride": "Add The Ambitious Liu Yu to your hand.\nPlace :song-capital: in Huaiyang.\nRecruit one :song-ship: in 4 separate water-accessible cities without :dot: or :star:.\nPlace Liu Yu in Chuzhou or a city adjacent to Chuzhou without :star:.\nTuck this card.",
       "effect": { "kind": "all", "effects": [
         { "kind": "verb", "verb": { "type": "addCardToHand", "cardId": "card-pack-liu-yu-character" } },
         { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "capital", "at": { "nodes": ["huaiyang"] }, "faction": "song" } },
@@ -117,13 +117,16 @@
       "effect": { "kind": "all", "effects": [ { "kind": "verb", "verb": { "type": "drawUpTo", "limit": 5 } } ] }
     },
     "card-pack-liu-yu-character": {
-      "name": "Liu Yu Character Card",
+      "name": "The Ambitious Liu Yu",
       "backText": "CHARACTER",
-      "rulesTextOverride": "Cannot be played with a * card in hand.\nKeep this card when played.\nDraw up to a hand of 5 cards.",
+      "rulesTextOverride": "Cannot be played with other * cards in hand.\nKeep this card when played.\nRecruit one :foot: in your location, or pay 2 coins to recruit one :ship:.\nDraw up to a hand of 5 cards.",
+      "quote": { "text": "If light troops drive straight for Caishi, they will not be prepared; we will surely cross the river.", "cite": "Liu Yu, Jinshi, Vol. 77" },
       "playCondition": { "kind": "noStarCardInHand" },
-      "playConditionMessage": "Cannot be played with a * card in hand.",
+      "playConditionMessage": "Cannot be played with other * cards in hand.",
       "keepOnPlay": true,
-      "effect": { "kind": "all", "effects": [ { "kind": "verb", "verb": { "type": "drawUpTo", "limit": 5 } } ] }
+      "effect": { "kind": "all", "effects": [
+        { "kind": "verb", "verb": { "type": "drawUpTo", "limit": 5 } }
+      ] }
     }
   },
   "players": [
