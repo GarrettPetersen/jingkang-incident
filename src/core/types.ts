@@ -129,6 +129,19 @@ export type VerbSpec =
       excludeNodes?: NodeId[];
     }
   | { type: "destroy" }
+  | {
+      type: "destroyNearby";
+      // Limit selectable targets to these piece types (anyOf). If omitted, any piece type is eligible
+      pieceTypes?: PieceTypeSelector;
+      // If true, also allow pieces in the same city as the character (default: false = adjacent only)
+      includeCurrentNode?: boolean;
+    }
+  | {
+      // Recruit exactly at the current player's character location
+      type: "recruitAtCharacter";
+      pieceTypeId: PieceTypeId;
+      faction?: FactionSelector;
+    }
   | { type: "gainCoin"; amount: number }
   | { type: "endGame"; winner?: "self" | "none" }
   | {
@@ -154,6 +167,19 @@ export type Condition = {
 } | {
   // True when the current player's hand has NO card whose title contains '*'
   kind: "noStarCardInHand";
+} | {
+  // True if the current player has at least this many coins
+  kind: "hasCoins";
+  atLeast: number;
+} | {
+  // True if the current player's character is at any of the provided nodes
+  kind: "characterAt";
+  nodes: NodeId[];
+} | {
+  // True if the current player's character is in a city that contains a given piece type (optionally faction)
+  kind: "characterAtCityWithPiece";
+  pieceTypeId: PieceTypeId;
+  faction?: FactionSelector;
 };
 
 // Selectors and parameter helpers for verb arguments
@@ -203,6 +229,12 @@ export type Prompt =
         | { kind: "forRecruit"; pieceTypeId: PieceTypeId; remaining?: number; unique?: boolean; faction?: FactionId }
         | { kind: "forPlaceCharacter"; characterId: CharacterId };
       message: string;
+    }
+  | {
+      kind: "choose";
+      playerId: PlayerId;
+      choices: Effect[]; // UI will describe each effect as a label
+      message?: string;
     };
 
 export interface GameLogEntry {

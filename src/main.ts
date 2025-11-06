@@ -1,7 +1,7 @@
 import "./style.css";
 import { initialState } from "./sample/sampleData";
 import { renderApp } from "./ui/render";
-import { endTurn, getTurnStartSnapshot } from "./core/engine";
+import { endTurn, getTurnStartSnapshot, inputChoose } from "./core/engine";
 import {
   inputSelectAdjacentNode,
   inputSelectNode,
@@ -23,6 +23,17 @@ import { FactionColor } from "./core/types";
 import { map as boardMap } from "./map/board";
 
 let state: GameState = initialState;
+function resolveReferences(text: string): string {
+  try {
+    const cat = (window as any).__cardCatalog as Record<string, any> | undefined;
+    const dict = (window as any).__scenarioCardDict as Record<string, any> | undefined;
+    const getName = (id: string) =>
+      (cat && cat[id] && cat[id].name) || (dict && dict[id] && String(dict[id].name || dict[id].title || id)) || id;
+    return String(text || '').replace(/\[\[([\w:-]+)\]\]/g, (_m, id) => getName(String(id)));
+  } catch {
+    return String(text || '').replace(/\[\[([\w:-]+)\]\]/g, (_m, id) => String(id));
+  }
+}
 
 const root = document.querySelector<HTMLDivElement>("#app")!;
 
@@ -83,6 +94,10 @@ function rerender() {
     rerender();
   }
 };
+(window as any).onChoose = (index: number) => {
+  inputChoose(state, index);
+  rerender();
+};
 
 async function loadScenarioOrFallback() {
   try {
@@ -92,6 +107,7 @@ async function loadScenarioOrFallback() {
     if (!res.ok) throw new Error("fetch failed");
     const scenario: any = await res.json();
     state = buildStateFromScenario(scenario);
+    try { (window as any).__scenarioCardDict = scenario.cards || {}; } catch {}
   } catch {
     state = initialState;
   }
@@ -321,9 +337,10 @@ function makeCharacterCardDataUrl(
     document.body.appendChild(__msvg);
     __mtext.setAttribute("xml:space", "preserve");
     const iconH = 12;
-    function widthOfText(s: string): number {
+    function widthOfText(s: string, isBold?: boolean): number {
       if (!s) return 0;
       // Robust space width: measure "x x" - "xx" to avoid zero-width space bugs
+      try { __mtext.setAttribute('font-weight', isBold ? '700' : '400'); } catch {}
       let spaceWidth = fontSize * 0.33;
       try {
         __mtext.textContent = 'x x';
@@ -392,6 +409,9 @@ function makeCharacterCardDataUrl(
           : "#fff";
         return `<polygon points="6,0 0,12 12,12" fill="${fill}" stroke="#000" stroke-width="2"/>`;
       }
+      if (kind === "coin") {
+        return `<circle cx="6" cy="6" r="6" fill="#f0c419" stroke="#b78900" stroke-width="1.5"/>`;
+      }
       if (kind === "dagger") {
         // simple dagger glyph in 12x12
         return `<g transform="translate(6,6) rotate(-20)"><rect x="-0.6" y="-5" width="1.2" height="7" fill="#555" stroke="#111" stroke-width="0.5"/><path d="M -1.8,1 L 1.8,1 L 0,4 Z" fill="#222"/></g>`;
@@ -426,9 +446,40 @@ function makeCharacterCardDataUrl(
     }
     type Item =
       | { kind: "text"; text: string }
+      | { kind: "bold"; text: string }
       | { kind: "icon"; which: string; faction?: FactionId };
     const tokenRe =
-      /:((rebel|black|song|red|jin|yellow|daqi|green)-)?(foot|horse|ship|capital|character|dot|star|dagger):/g;
+      /:((rebel|black|song|red|jin|yellow|daqi|green)-)?(foot|horse|ship|capital|character|dot|star|dagger|coin):/g;
+    function resolveRefTitle(id: string): string {
+      try {
+        const cat = (window as any).__cardCatalog as
+          | Record<string, any>
+          | undefined;
+        const dict = (window as any).__scenarioCardDict as
+          | Record<string, any>
+          | undefined;
+        return (
+          (cat && cat[id] && cat[id].name) ||
+          (dict && dict[id] && String(dict[id].name || dict[id].title || id)) ||
+          id
+        );
+      } catch {
+        return id;
+      }
+    }
+    function pushTextWithRefs(out: Item[], text: string) {
+      const refRe = /\[\[([\w:-]+)\]\]/g;
+      let last = 0;
+      let m: RegExpExecArray | null;
+      while ((m = refRe.exec(text)) !== null) {
+        const start = m.index;
+        const end = refRe.lastIndex;
+        if (start > last) out.push({ kind: "text", text: text.slice(last, start) });
+        out.push({ kind: "bold", text: resolveRefTitle(String(m[1])) });
+        last = end;
+      }
+      if (last < text.length) out.push({ kind: "text", text: text.slice(last) });
+    }
     function parseParagraph(par: string): Item[] {
       const out: Item[] = [];
       let last = 0;
@@ -436,8 +487,7 @@ function makeCharacterCardDataUrl(
       while ((m = tokenRe.exec(par)) !== null) {
         const start = m.index;
         const end = tokenRe.lastIndex;
-        if (start > last)
-          out.push({ kind: "text", text: par.slice(last, start) });
+        if (start > last) pushTextWithRefs(out, par.slice(last, start));
         const facStr = (m[2] || "").toLowerCase();
         const which = m[3].toLowerCase();
         let faction: FactionId | undefined = undefined;
@@ -461,7 +511,7 @@ function makeCharacterCardDataUrl(
         out.push({ kind: "icon", which, faction });
         last = end;
       }
-      if (last < par.length) out.push({ kind: "text", text: par.slice(last) });
+      if (last < par.length) pushTextWithRefs(out, par.slice(last));
       return out;
     }
     function wrapItems(items: Item[], maxW: number): Item[][] {
@@ -474,14 +524,14 @@ function makeCharacterCardDataUrl(
         used = 0;
       };
       for (const it of items) {
-        if (it.kind === "text") {
+        if (it.kind === "text" || it.kind === "bold") {
           // split by spaces but preserve spaces
           const parts = it.text.split(/(\s+)/);
           for (const p of parts) {
             if (!p) continue;
-            const w = widthOfText(p);
+            const w = widthOfText(p, it.kind === 'bold');
             if (used + w > maxW && used > 0) pushLine();
-            current.push({ kind: "text", text: p });
+            current.push({ kind: it.kind, text: p } as any);
             used += w;
           }
         } else {
@@ -510,8 +560,8 @@ function makeCharacterCardDataUrl(
       for (let li = 0; li < lines.length; li++) {
         let x = bandX;
         for (const it of lines[li]) {
-          if (it.kind === "text") {
-            const w = widthOfText(it.text);
+          if (it.kind === "text" || it.kind === "bold") {
+            const w = widthOfText(it.text, it.kind === 'bold');
             if (/^\s+$/.test(it.text)) {
               // advance only; rely on positioning for visual spaces
               x += w;
@@ -521,7 +571,7 @@ function makeCharacterCardDataUrl(
                 .replace(/</g, "&lt;")
                 .replace(/>/g, "&gt;");
               parts.push(
-                `<text x="${x}" y="${yCursor}" font-size="${fontSize}" font-family="${FONT_FAMILY}" fill="#222" xml:space="preserve">${safe}</text>`
+                `<text x="${x}" y="${yCursor}" font-size="${fontSize}" font-family="${FONT_FAMILY}" fill="#222" font-weight="${it.kind === 'bold' ? '700' : '400'}" xml:space="preserve">${safe}</text>`
               );
               x += w;
             }
@@ -738,12 +788,30 @@ function makeGenericCardDataUrl(
     }
     return '';
   }
-  type Item = { kind:'text'; text:string } | { kind:'icon'; which:string; faction?: FactionId };
-  const tokenRe = /:((rebel|black|song|red|jin|yellow|daqi|green)-)?(foot|horse|ship|capital|character|dot|star|dagger):/g;
+  type Item = { kind:'text'; text:string } | { kind:'bold'; text:string } | { kind:'icon'; which:string; faction?: FactionId };
+  const tokenRe = /:((rebel|black|song|red|jin|yellow|daqi|green)-)?(foot|horse|ship|capital|character|dot|star|dagger|coin):/g;
+  function resolveRefTitle(id: string): string {
+    try {
+      const cat = (window as any).__cardCatalog as Record<string, any> | undefined;
+      const dict = (window as any).__scenarioCardDict as Record<string, any> | undefined;
+      return (cat && cat[id] && cat[id].name) || (dict && dict[id] && String(dict[id].name || dict[id].title || id)) || id;
+    } catch { return id; }
+  }
+  function pushTextWithRefs(out: Item[], text: string) {
+    const refRe = /\[\[([\w:-]+)\]\]/g; let last = 0; let m: RegExpExecArray | null;
+    while ((m = refRe.exec(text)) !== null) {
+      const start = m.index; const end = refRe.lastIndex;
+      if (start > last) out.push({ kind:'text', text: text.slice(last, start) });
+      out.push({ kind:'bold', text: resolveRefTitle(String(m[1])) });
+      last = end;
+    }
+    if (last < text.length) out.push({ kind:'text', text: text.slice(last) });
+  }
   function parseParagraph(par: string): Item[] {
     const out: Item[] = []; let last = 0; let m: RegExpExecArray | null;
     while ((m = tokenRe.exec(par)) !== null) {
-      const start = m.index; const end = tokenRe.lastIndex; if (start > last) out.push({ kind:'text', text: par.slice(last, start) });
+      const start = m.index; const end = tokenRe.lastIndex;
+      if (start > last) pushTextWithRefs(out, par.slice(last, start));
       const facStr = (m[2]||'').toLowerCase(); const which = m[3].toLowerCase();
       let faction: FactionId | undefined = undefined;
       if (facStr === 'rebel' || facStr === 'black') faction = 'rebel' as FactionId;
@@ -752,16 +820,16 @@ function makeGenericCardDataUrl(
       if (facStr === 'daqi' || facStr === 'green') faction = 'daqi' as FactionId;
       out.push({ kind:'icon', which, faction }); last = end;
     }
-    if (last < par.length) out.push({ kind:'text', text: par.slice(last) });
+    if (last < par.length) pushTextWithRefs(out, par.slice(last));
     return out;
   }
   function wrapItems(items: Item[], maxW: number): Item[][] {
     const lines: Item[][] = []; let line: Item[] = []; let used = 0;
     const push = () => { if (line.length) lines.push(line); line = []; used = 0; };
     for (const it of items) {
-      if (it.kind === 'text') {
+      if (it.kind === 'text' || it.kind === 'bold') {
         const parts = it.text.split(/(\s+)/);
-        for (const p of parts) { if (!p) continue; const w = widthOfText(p); if (used + w > maxW && used > 0) push(); line.push({ kind:'text', text:p }); used += w; }
+        for (const p of parts) { if (!p) continue; const w = widthOfText(p); if (used + w > maxW && used > 0) push(); line.push({ kind: it.kind, text:p } as any); used += w; }
       } else {
         const w = iconWidth(it.which); if (used + w > maxW && used > 0) push(); line.push(it); used += w + 2;
       }
@@ -772,14 +840,14 @@ function makeGenericCardDataUrl(
   const startY = 110; const lineGap = 16; let y = startY; let rulesMarkup = '';
   for (const par of paragraphs) {
     const items = parseParagraph(par); const lines = wrapItems(items, bandW);
-    for (const ln of lines) {
+      for (const ln of lines) {
       let x = bandX;
       for (const it of ln) {
-        if ((it as any).kind === 'text') {
+          if ((it as any).kind === 'text' || (it as any).kind === 'bold') {
           const t = (it as any).text as string; const w = widthOfText(t);
           const safe = t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-          // Render whitespace as actual text to guarantee visible spacing, with xml:space preserved
-          rulesMarkup += `<text x="${x}" y="${y}" font-size="${fontSize}" font-family="${FONT_FAMILY}" fill="#222" xml:space="preserve">${safe}</text>`;
+            const weight = (it as any).kind === 'bold' ? '700' : '400';
+            rulesMarkup += `<text x="${x}" y="${y}" font-size="${fontSize}" font-family="${FONT_FAMILY}" fill="#222" font-weight="${weight}" xml:space="preserve">${safe}</text>`;
           x += w;
         } else {
           const itc = it as any; const w = iconWidth(itc.which); const tx = x; const ty = y - 10;
@@ -1043,6 +1111,7 @@ function buildStateFromScenario(scn: any): GameState {
       try { catalog[cid] = materializeCardFromDef({ id: cid, ...(def as any) }); } catch {}
     }
     (state as any).cardCatalog = catalog;
+    try { (window as any).__cardCatalog = catalog; } catch {}
   } catch {}
   // Randomly deal identity (character) cards to players and bind characters to owners
   try {

@@ -108,6 +108,34 @@ export function renderApp(root: HTMLElement, state: GameState, handlers: {
   opps.style.gridArea = 'opps';
   container.appendChild(opps);
 
+  // Choice prompt overlay (reusable for 'any' effects)
+  if (state.prompt && (state.prompt as any).kind === 'choose') {
+    const overlay = document.createElement('div');
+    overlay.style.position = 'fixed';
+    overlay.style.left = '0'; overlay.style.top = '0'; overlay.style.right = '0'; overlay.style.bottom = '0';
+    overlay.style.background = 'rgba(0,0,0,0.45)';
+    overlay.style.display = 'flex'; overlay.style.alignItems = 'center'; overlay.style.justifyContent = 'center';
+    overlay.style.zIndex = '9999';
+    const panel = document.createElement('div');
+    panel.style.background = '#111'; panel.style.color = '#eee'; panel.style.border = '1px solid #333';
+    panel.style.borderRadius = '10px'; panel.style.padding = '16px'; panel.style.minWidth = '360px';
+    panel.style.display = 'flex'; panel.style.flexDirection = 'column'; panel.style.gap = '10px';
+    const title = document.createElement('div'); title.textContent = (state.prompt as any).message || 'Choose one:'; title.style.fontWeight = '700';
+    panel.appendChild(title);
+    const choices = (state.prompt as any).choices as any[];
+    choices.forEach((ch, idx) => {
+      const lines = describeEffect(ch);
+      const btn = document.createElement('button');
+      btn.textContent = lines.join(' / ') || `Option ${idx+1}`;
+      btn.style.padding = '8px 10px'; btn.style.background = '#2e86de'; btn.style.color = '#fff'; btn.style.border = 'none'; btn.style.borderRadius = '6px';
+      btn.style.cursor = 'pointer';
+      btn.addEventListener('click', () => (window as any).onChoose?.(idx));
+      panel.appendChild(btn);
+    });
+    overlay.appendChild(panel);
+    container.appendChild(overlay);
+  }
+
   root.appendChild(container);
   // Animate transitions
   runFLIP(root);
@@ -1325,10 +1353,10 @@ function showCardModal(card: any, onPlay: () => void, originRect?: { x: number; 
   title.style.fontWeight = '700';
   side.appendChild(title);
 
+  // Rules text duplicate not shown in modal; users read the card face SVG
+  // (leaving placeholder in case we need a small helper panel later)
   const text = document.createElement('div');
-  text.style.fontSize = '14px';
-  text.style.lineHeight = '1.4';
-  text.style.whiteSpace = 'pre-wrap';
+  text.style.display = 'none';
   function glyphChar(kind: string): string {
     // Private Use Area mapping for icon font
     if (kind === 'foot') return '\uE001';
@@ -1410,6 +1438,11 @@ function showCardModal(card: any, onPlay: () => void, originRect?: { x: number; 
       const tip = document.createElementNS(svgNS, 'path');
       tip.setAttribute('d', 'M5,9 L8,9 L6.5,12 Z'); tip.setAttribute('fill', '#222');
       svg.appendChild(blade); svg.appendChild(tip);
+    } else if (kind === 'coin') {
+      const c = document.createElementNS(svgNS, 'circle');
+      c.setAttribute('cx', '7'); c.setAttribute('cy', '7'); c.setAttribute('r', '6');
+      c.setAttribute('fill', '#f0c419'); c.setAttribute('stroke', '#b78900'); c.setAttribute('stroke-width', '1.5');
+      svg.appendChild(c);
     } else if (kind === 'character') {
       const c = document.createElementNS(svgNS, 'circle');
       c.setAttribute('cx', '7'); c.setAttribute('cy', '7'); c.setAttribute('r', '6'); c.setAttribute('fill', '#fff'); c.setAttribute('stroke', faction ? fill : '#000'); c.setAttribute('stroke-width', '2');
@@ -1423,18 +1456,41 @@ function showCardModal(card: any, onPlay: () => void, originRect?: { x: number; 
     return wrap;
   }
   function parseAndRender(raw: string) {
+    function resolveCardTitleById(id: string): string {
+      try {
+        const catalog = (window as any).__cardCatalog as Record<string, any> | undefined;
+        const title = catalog?.[id]?.name;
+        return title || id;
+      } catch {
+        return id;
+      }
+    }
+    function appendWithRefs(parent: HTMLElement, textChunk: string) {
+      const refRe = /\[\[([\w:-]+)\]\]/g; // [[card-id]]
+      let lastIdx = 0; let m: RegExpExecArray | null;
+      while ((m = refRe.exec(textChunk)) !== null) {
+        const start = m.index; const end = refRe.lastIndex;
+        if (start > lastIdx) parent.appendChild(document.createTextNode(textChunk.slice(lastIdx, start)));
+        const refId = m[1];
+        const strong = document.createElement('strong');
+        strong.textContent = resolveCardTitleById(refId);
+        parent.appendChild(strong);
+        lastIdx = end;
+      }
+      if (lastIdx < textChunk.length) parent.appendChild(document.createTextNode(textChunk.slice(lastIdx)));
+    }
     const primary = Array.isArray((card as any).icons) ? (card as any).icons.find((s: string) => s === 'song' || s === 'jin' || s === 'daqi') : undefined;
     const qualify = (s: string, what: string) => primary ? s.replace(new RegExp(`:${what}:`, 'g'), `:${primary}-${what}:`) : s;
     let str = raw;
     str = qualify(str, 'foot'); str = qualify(str, 'horse'); str = qualify(str, 'ship');
-    const tokenRe = /:((rebel|black|song|red|jin|yellow|daqi|green)-)?(foot|horse|ship|capital|character|dot|star|dagger):/g;
+    const tokenRe = /:((rebel|black|song|red|jin|yellow|daqi|green)-)?(foot|horse|ship|capital|character|dot|star|dagger|coin):/g;
     const paras = str.split(/\n+/);
     for (let i = 0; i < paras.length; i++) {
       const line = document.createElement('div');
       let last = 0; let m: RegExpExecArray | null;
       while ((m = tokenRe.exec(paras[i])) !== null) {
         const start = m.index; const end = tokenRe.lastIndex;
-        if (start > last) line.appendChild(document.createTextNode(paras[i].slice(last, start)));
+        if (start > last) appendWithRefs(line, paras[i].slice(last, start));
         const fac = (m[2] || '').toLowerCase();
         const which = m[3].toLowerCase();
         let faction: string | undefined;
@@ -1446,13 +1502,13 @@ function showCardModal(card: any, onPlay: () => void, originRect?: { x: number; 
         line.appendChild(createIcon(which, faction));
         last = end;
       }
-      if (last < paras[i].length) line.appendChild(document.createTextNode(paras[i].slice(last)));
+      if (last < paras[i].length) appendWithRefs(line, paras[i].slice(last));
       text.appendChild(line);
     }
   }
-  const raw = card.rulesTextOverride || describeCardRules(card);
-  if (raw) parseAndRender(raw);
-  side.appendChild(text);
+  // const raw = card.rulesTextOverride || describeCardRules(card);
+  // if (raw) parseAndRender(raw);
+  // side.appendChild(text);
 
   const row = document.createElement('div');
   row.style.display = 'flex';

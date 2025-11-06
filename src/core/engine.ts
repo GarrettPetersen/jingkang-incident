@@ -132,9 +132,8 @@ function executeEffect(
       return;
     }
     case 'any': {
-      // TODO: prompt for choice; for now, choose the first available
-      const choice = effect.effects[0];
-      if (choice) executeEffect(state, playerId, card, choice);
+      // Prompt the player to choose one of the effects; UI will handle labeling
+      state.prompt = { kind: 'choose', playerId, choices: effect.effects, message: 'Choose one:' } as any;
       return;
     }
     case 'if': {
@@ -168,6 +167,22 @@ function evaluateCondition(state: GameState, playerId: PlayerId, cond: Condition
       return !p.hand
         .filter((c: any) => !currentCard || c?.id !== currentCard?.id)
         .some((c: any) => typeof c?.name === 'string' && c.name.includes('*'));
+    }
+    case 'hasCoins': {
+      const p = state.players.find(pp => pp.id === playerId);
+      if (!p) return false;
+      return (p.coins ?? 0) >= Math.max(0, cond.atLeast);
+    }
+    case 'characterAt': {
+      const ch = Object.values(state.characters).find((c) => c.playerId === playerId);
+      if (!ch) return false;
+      return cond.nodes.includes(ch.location.nodeId);
+    }
+    case 'characterAtCityWithPiece': {
+      const ch = Object.values(state.characters).find((c) => c.playerId === playerId);
+      if (!ch) return false;
+      const here = ch.location.nodeId;
+      return Object.values(state.pieces).some((pc) => pc.location.kind === 'node' && pc.location.nodeId === here && pc.typeId === cond.pieceTypeId && (!cond.faction || pc.faction === (cond.faction as any)));
     }
   }
 }
@@ -337,6 +352,42 @@ function executeVerb(
       };
       break;
     }
+    case 'destroyNearby': {
+      // Find player's character to derive adjacency
+      const ch = Object.values(state.characters).find((c) => c.playerId === playerId);
+      if (!ch) { state.log.push({ message: `No character to target from.` }); break; }
+      const here = ch.location.nodeId;
+      const adj = findAdjacentNodes(state.map, here);
+      const nodes = (verb as any).includeCurrentNode ? [here, ...adj] : adj;
+      const allowedTypes: string[] | undefined = (verb as any).pieceTypes?.anyOf;
+      const self = state.players.find((p) => p.id === playerId)!;
+      const eligible = Object.values(state.pieces)
+        .filter((pc) => pc.location.kind === 'node' && nodes.includes(pc.location.nodeId))
+        .filter((pc) => !allowedTypes || allowedTypes.includes(pc.typeId))
+        // Exclude own pieces by owner when known; if faction known, exclude same-faction
+        .filter((pc) => (pc.ownerId ? pc.ownerId !== playerId : true))
+        .filter((pc) => (pc.faction && self.faction ? pc.faction !== self.faction : true))
+        .map((pc) => pc.id);
+      if (eligible.length === 0) {
+        state.log.push({ message: `No eligible adjacent targets.` });
+        break;
+      }
+      state.prompt = {
+        kind: 'selectPiece',
+        playerId,
+        pieceIds: eligible,
+        next: { kind: 'forDestroy' },
+        message: 'Select an adjacent enemy to destroy',
+      };
+      break;
+    }
+    case 'recruitAtCharacter': {
+      const ch = Object.values(state.characters).find((c) => c.playerId === playerId);
+      if (!ch) { state.log.push({ message: `No character to recruit at.` }); break; }
+      const faction = resolveFactionSelector(state, playerId, (verb as any).faction);
+      placePiece(state, playerId, verb.pieceTypeId, ch.location.nodeId, faction as any);
+      break;
+    }
     case 'endGame': {
       state.gameOver = true;
       state.winnerId = verb.winner === 'self' ? playerId : undefined;
@@ -388,6 +439,20 @@ export function inputSelectAdjacentNode(state: GameState, nodeId: NodeId): void 
     };
   } else {
     state.prompt = null;
+    resumePendingIfAny(state);
+  }
+}
+
+export function inputChoose(state: GameState, index: number): void {
+  if (!state.prompt || state.prompt.kind !== 'choose') return;
+  const { playerId, choices } = state.prompt as any;
+  state.prompt = null;
+  const card = (state as any).playingCard as any;
+  const eff = Array.isArray(choices) ? choices[index] : undefined;
+  if (eff) {
+    executeEffect(state, playerId, card, eff);
+    if (!state.prompt) resumePendingIfAny(state);
+  } else {
     resumePendingIfAny(state);
   }
 }
