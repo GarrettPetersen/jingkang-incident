@@ -113,6 +113,7 @@ export type VerbSpec =
   | { type: "drawUpTo"; limit: number }
   | { type: "tuck"; target: "self" | "opponent" }
   | { type: "move"; steps?: number }
+  | { type: "generalMove"; steps?: number }
   | { type: "addCardToHand"; cardId: CardId }
   | { type: "retrieveFromDiscard"; match?: string; target?: "self" | "opponent" }
   | {
@@ -216,6 +217,18 @@ export type Condition = {
   kind: "characterAtCityWithPiece";
   pieceTypeId: PieceTypeId;
   faction?: FactionSelector;
+} | {
+  // True if the specified node currently contains a piece of the given faction (presence check)
+  kind: "nodeHasFaction";
+  nodeId: NodeId;
+  faction: FactionSelector;
+} | {
+  // True if the specified node is controlled by a faction:
+  // (a) presence of that faction at the node, OR
+  // (b) exactly one adjacent contender by movement type, and it is that faction
+  kind: "nodeControlledBy";
+  nodeId: NodeId;
+  faction: FactionSelector;
 };
 
 // Selectors and parameter helpers for verb arguments
@@ -250,6 +263,23 @@ export type Prompt =
       message: string;
     }
   | {
+      // General-move convoy selection after choosing destination
+      kind: "selectConvoy";
+      playerId: PlayerId;
+      originNodeId: NodeId;
+      destinationNodeId: NodeId;
+      // Whether the origin→destination is reachable by these modes
+      allowLand: boolean;
+      allowWater: boolean;
+      // Piece options available to convoy (friendly pieces at origin)
+      options: PieceId[];
+      // Currently selected pieces to convoy
+      selected: PieceId[];
+      // If true, confirmation requires at least one selected ship
+      requireShipForWater?: boolean;
+      message: string;
+    }
+  | {
       kind: "selectAdjacentNode";
       playerId: PlayerId;
       pieceId: PieceId;
@@ -263,7 +293,8 @@ export type Prompt =
       nodeOptions: NodeId[];
       next:
         | { kind: "forRecruit"; pieceTypeId: PieceTypeId; remaining?: number; unique?: boolean; faction?: FactionId }
-        | { kind: "forPlaceCharacter"; characterId: CharacterId };
+        | { kind: "forPlaceCharacter"; characterId: CharacterId }
+        | { kind: "forGeneralMove"; characterId: CharacterId; fromNode: NodeId; steps: number };
       message: string;
     }
   | {

@@ -6,6 +6,8 @@ import {
   inputSelectAdjacentNode,
   inputSelectNode,
   inputSelectPiece,
+  inputToggleConvoyPiece,
+  inputConfirmConvoy,
   playCard,
   startTurn,
 } from "./core/engine";
@@ -96,6 +98,14 @@ function rerender() {
 };
 (window as any).onChoose = (index: number) => {
   inputChoose(state, index);
+  rerender();
+};
+(window as any).onToggleConvoy = (pieceId: string) => {
+  inputToggleConvoyPiece(state, pieceId);
+  rerender();
+};
+(window as any).onConfirmConvoy = () => {
+  inputConfirmConvoy(state);
   rerender();
 };
 
@@ -970,9 +980,9 @@ function materializeCardFromDef(def: any): Card {
         height: ICON_BAND_H,
       },
     };
-    if ((def as any).backText) {
-      c.asset.backPath = makeCardBackDataUrl(String((def as any).backText));
-    }
+    // Ensure every card has a back
+    const backLabel = String((def as any).backText || "Card");
+    c.asset.backPath = makeCardBackDataUrl(backLabel);
   }
   // If no asset or non-character template, render using character style for consistency
   if (!c.asset) {
@@ -985,7 +995,8 @@ function materializeCardFromDef(def: any): Card {
     c.asset = {
       path,
       size: { width: TAROT_CARD_WIDTH, height: TAROT_CARD_HEIGHT },
-      backPath: (def as any).backText ? makeCardBackDataUrl(String((def as any).backText)) : undefined,
+      // Always provide a back, defaulting to a generic label if none specified
+      backPath: makeCardBackDataUrl(String((def as any).backText || "Card")),
       iconSlot: {
         x: ICON_BAND_X,
         y: ICON_BAND_Y,

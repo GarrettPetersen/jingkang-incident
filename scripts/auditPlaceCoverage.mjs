@@ -27,7 +27,7 @@ function loadCities() {
     for (const v of ids) {
       if (!v) continue; known.add(norm(v)); tokens.push(v.toString());
       const b = baseZh(v); if (b && b !== v) { known.add(norm(b)); tokens.push(b); }
-    }
+  }
     if (Array.isArray(c.aliases)) {
       for (const a of c.aliases) {
         known.add(norm(a)); tokens.push(a.toString());

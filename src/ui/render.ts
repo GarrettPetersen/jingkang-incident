@@ -135,6 +135,74 @@ export function renderApp(root: HTMLElement, state: GameState, handlers: {
     overlay.appendChild(panel);
     container.appendChild(overlay);
   }
+  // Convoy selection overlay (general move)
+  if (state.prompt && (state.prompt as any).kind === 'selectConvoy') {
+    const pr: any = state.prompt;
+    const overlay = document.createElement('div');
+    overlay.style.position = 'fixed';
+    overlay.style.left = '0'; overlay.style.top = '0'; overlay.style.right = '0'; overlay.style.bottom = '0';
+    overlay.style.background = 'rgba(0,0,0,0.45)';
+    overlay.style.display = 'flex'; overlay.style.alignItems = 'center'; overlay.style.justifyContent = 'center';
+    overlay.style.zIndex = '9999';
+    const panel = document.createElement('div');
+    panel.style.background = '#111'; panel.style.color = '#eee'; panel.style.border = '1px solid #333';
+    panel.style.borderRadius = '10px'; panel.style.padding = '16px'; panel.style.minWidth = '420px';
+    panel.style.display = 'flex'; panel.style.flexDirection = 'column'; panel.style.gap = '10px';
+    const title = document.createElement('div');
+    title.textContent = pr.message || 'Choose convoy:';
+    title.style.fontWeight = '700';
+    panel.appendChild(title);
+    const list = document.createElement('div');
+    list.style.display = 'flex';
+    list.style.flexWrap = 'wrap';
+    list.style.gap = '8px';
+    const selected = new Set<string>(pr.selected || []);
+    pr.options.forEach((pid: string) => {
+      const pc = state.pieces[pid];
+      if (!pc) return;
+      const btn = document.createElement('button');
+      const pt = state.pieceTypes[pc.typeId];
+      const isSel = selected.has(pid);
+      btn.textContent = pt?.name ?? pc.typeId;
+      btn.style.padding = '6px 10px';
+      btn.style.borderRadius = '8px';
+      btn.style.border = isSel ? '2px solid #2ecc71' : '1px solid #555';
+      btn.style.background = isSel ? '#1b2836' : '#222';
+      btn.style.color = '#eee';
+      btn.style.cursor = 'pointer';
+      btn.onclick = () => { (window as any).onToggleConvoy?.(pid); };
+      list.appendChild(btn);
+    });
+    panel.appendChild(list);
+    const hint = document.createElement('div');
+    hint.style.fontSize = '12px';
+    hint.style.color = '#bbb';
+    if (pr.requireShipForWater) {
+      hint.textContent = 'Water crossing: select at least one ship.';
+    } else {
+      hint.textContent = pr.allowWater && !pr.allowLand
+        ? 'Water crossing: ship required.'
+        : 'Land route by default; adding a ship will use water if available.';
+    }
+    panel.appendChild(hint);
+    const actions = document.createElement('div');
+    actions.style.display = 'flex';
+    actions.style.gap = '8px';
+    actions.style.justifyContent = 'flex-end';
+    const ok = document.createElement('button');
+    ok.textContent = 'Confirm Move';
+    ok.style.padding = '8px 12px';
+    ok.style.background = '#2e86de';
+    ok.style.color = '#fff';
+    ok.style.border = 'none';
+    ok.style.borderRadius = '6px';
+    ok.style.cursor = 'pointer';
+    ok.onclick = () => { (window as any).onConfirmConvoy?.(); };
+    actions.appendChild(ok);
+    panel.appendChild(actions);
+    overlay.appendChild(panel);
+    container.appendChild(overlay);
+  }
 
   root.appendChild(container);
   // Animate transitions
@@ -366,7 +434,7 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
       const x1 = na.x + ox, y1 = na.y + oy;
       const x2 = nb.x + ox, y2 = nb.y + oy;
       if (kind === 'river') {
-        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         line.setAttribute('x1', String(x1));
         line.setAttribute('y1', String(y1));
         line.setAttribute('x2', String(x2));
@@ -387,7 +455,7 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
           line.setAttribute('stroke-dasharray', '6 4');
         }
         mapLayer.appendChild(line);
-      }
+  }
     }
   });
 
@@ -1357,7 +1425,7 @@ function showDeckExplorer(): void {
   panel.appendChild(header); panel.appendChild(body); overlay.appendChild(panel); document.body.appendChild(overlay);
 }
 
-function showCardModal(card: any, onPlay: () => void, originRect?: { x: number; y: number; width: number; height: number }, opts?: { allowPlay?: boolean }): void {
+function showCardModal(card: any, onPlay: () => void, originRect?: { x: number; y: number; width: number; height: number }, opts?: { allowPlay?: boolean; showBack?: boolean }): void {
   if (!card || !card.asset) return;
   const existing = document.getElementById('card-preview-overlay');
   if (existing) existing.remove();
@@ -1390,12 +1458,26 @@ function showCardModal(card: any, onPlay: () => void, originRect?: { x: number; 
   modal.style.padding = '12px';
   modal.addEventListener('click', (ev) => ev.stopPropagation());
 
+  const showBack = !!(opts && (opts as any).showBack);
+  const hasBack = !!(card.asset && (card.asset as any).backPath);
+  let showingBack = false;
+  const imgRow = document.createElement('div');
+  imgRow.style.display = 'flex';
+  imgRow.style.alignItems = 'center';
+  imgRow.style.justifyContent = 'center';
+  imgRow.style.maxWidth = '88vw';
+  imgRow.style.maxHeight = '78vh';
   const img = document.createElement('img');
-  img.src = card.asset.path;
-  img.alt = card.name;
+  const setFace = () => {
+    img.src = showingBack && hasBack ? (card.asset as any).backPath : card.asset.path;
+    img.alt = showingBack ? `${card.name} (Back)` : card.name;
+  };
+  setFace();
   img.style.maxWidth = '78vw';
   img.style.maxHeight = '78vh';
   img.style.borderRadius = '8px';
+  img.style.objectFit = 'contain';
+  imgRow.appendChild(img);
   function glyphChar(kind: string): string {
     // Private Use Area mapping for icon font
     if (kind === 'foot') return '\uE001';
@@ -1578,6 +1660,24 @@ function showCardModal(card: any, onPlay: () => void, originRect?: { x: number; 
     playBtn.style.cursor = 'pointer';
   }
 
+  // Flip button when back is available
+  let flipBtn: HTMLButtonElement | null = null;
+  if (hasBack) {
+    flipBtn = document.createElement('button');
+    flipBtn.textContent = 'Flip';
+    flipBtn.style.padding = '8px 12px';
+    flipBtn.style.background = '#666';
+    flipBtn.style.color = '#fff';
+    flipBtn.style.border = 'none';
+    flipBtn.style.borderRadius = '6px';
+    flipBtn.style.cursor = 'pointer';
+    flipBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      showingBack = !showingBack;
+      setFace();
+    });
+  }
+
   const closeBtn = document.createElement('button');
   closeBtn.textContent = 'Close';
   closeBtn.style.padding = '8px 12px';
@@ -1590,9 +1690,10 @@ function showCardModal(card: any, onPlay: () => void, originRect?: { x: number; 
   if (allowPlay && playBtn && !(playLocked && !isPlaying)) {
     row.appendChild(playBtn);
   }
+  if (flipBtn) row.appendChild(flipBtn);
   row.appendChild(closeBtn);
 
-  modal.appendChild(img);
+  modal.appendChild(imgRow);
   modal.appendChild(row);
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
@@ -1611,7 +1712,7 @@ function showCardModal(card: any, onPlay: () => void, originRect?: { x: number; 
     ghost.style.zIndex = '10000';
     ghost.style.transition = 'all 180ms ease-in-out';
     document.body.appendChild(ghost);
-    const r = img.getBoundingClientRect();
+    const r = (imgRow as HTMLElement).getBoundingClientRect();
     const target = { x: r.left, y: r.top, width: r.width, height: r.height };
     requestAnimationFrame(() => {
       ghost.style.left = `${target.x}px`;

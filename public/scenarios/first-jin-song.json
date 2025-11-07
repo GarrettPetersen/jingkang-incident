@@ -81,6 +81,7 @@
       "name": "Zhang Bangchang Ordered to Drink Poison*",
       "backText": "Jingkang",
       "icons": ["war-jin-song"],
+      "events-referenced": ["song-1127-enforce-zhang-bangchang-suicide"],
       "rulesTextOverride": "Remove a :rebel-foot: from Bianjing. Tuck this card.",
       "quote": { "text": "Facing north, Bangchang kowtowed to receive the investiture; he assumed a false throne as Great Chu and planned to make Jinling the capital.", "cite": "Songshi, Vol. 475" },
       "playCondition": { "kind": "noStarCardInHand" },
@@ -97,6 +98,7 @@
       "name": "Liu Yu Defects to the Jin",
       "backText": "CHARACTER",
       "icons": ["liu-yu","jin"],
+      "events-referenced": ["jin-1129-liu-yu-defection-jinan"],
       "rulesTextOverride": "Convert 2 :song-foot:/:song-horse:/:song-ship: to the same type of :jin-foot:/:jin-horse:/:jin-ship: in Liu Yu’s location.\nDestroy 1 :song-foot:/:song-horse:/:song-ship: in Liu Yu’s location.\nAll other :song-foot:/:song-horse:/:song-ship: and :song-character: in Liu Yu’s location retreat.\nTrash the [[start-liu-yu]] card and tuck this card in front of Liu Yu in its place.",
       "quote": { "text": "He killed his general and surrendered to the Jin.", "cite": "Songshi, Vol. 475" },
       "effect": { "kind": "all", "effects": [
@@ -170,6 +172,7 @@
     "liu-yu-sea-routes-map-star": {
       "name": "Liu Yu's Sea Routes Map*",
       "backText": "CHARACTER",
+      "events-referenced": ["song-1135-liu-yu-sea-routes-map-presented"],
       "rulesTextOverride": "Cannot be played with other * cards in hand.\nKeep this card when played.\nRecruit 1 :foot: in Liu Yu’s location; OR if Liu Yu’s location is water-accessible, you may pay 2 :coin: to recruit 1 :ship: there.\nDraw up to a hand of 6 cards.",
       "quote": { "text": "Yu presented a Sea Routes Map and wooden models of warships to the Jin emperor Dan.", "cite": "Songshi, Vol. 475" },
       "playCondition": { "kind": "noStarCardInHand" },
@@ -183,6 +186,22 @@
           { "kind": "verb", "verb": { "type": "recruitAtCharacter", "pieceTypeId": "foot", "faction": "selfFaction" } }
         ] },
         { "kind": "verb", "verb": { "type": "drawUpTo", "limit": 6 } }
+      ] }
+    }
+    ,
+    "mengan-mouke-system": {
+      "template": "character",
+      "name": "Meng’an–Mouke System",
+      "backText": "Jingkang",
+      "icons": ["jin"],
+      "events-referenced": ["jin-1127-1142-mengan-mouke-system"],
+      "rulesTextOverride": "Recruit 1 :jin-horse: at Shangjing if Shangjing is Jin‑controlled.\nThen, Move.",
+      "quote": { "text": "Organized under Meng’an and Mouke, military and civil registers are unified and offices pass down the generations to provide forces for campaigns and frontier garrisons.", "cite": "Jinshi, Vol. 44" },
+      "effect": { "kind": "all", "effects": [
+        { "kind": "if", "condition": { "kind": "nodeControlledBy", "nodeId": "shangjing", "faction": "jin" }, "then":
+          { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "horse", "at": { "nodes": ["shangjing"] }, "faction": "jin" } }
+        },
+        { "kind": "verb", "verb": { "type": "move" } }
       ] }
     }
   },
@@ -199,7 +218,7 @@
     "discardPile": []
   },
   "decks": {
-    "event": { "cards": [] },
+    "event": { "cards": ["mengan-mouke-system"] },
     "ops": { "cards": [] }
   },
   "characters": [

@@ -240,6 +240,78 @@ function evaluateCondition(state: GameState, playerId: PlayerId, cond: Condition
       const here = ch.location.nodeId;
       return Object.values(state.pieces).some((pc) => pc.location.kind === 'node' && pc.location.nodeId === here && pc.typeId === cond.pieceTypeId && (!cond.faction || pc.faction === (cond.faction as any)));
     }
+    case 'nodeHasFaction': {
+      const faction = resolveFactionSelector(state, playerId, (cond as any).faction);
+      if (!faction) return false;
+      const nodeId = (cond as any).nodeId;
+      return Object.values(state.pieces).some((pc) => {
+        if (pc.location.kind !== 'node') return false;
+        if (pc.location.nodeId !== nodeId) return false;
+        const pf = pc.faction ?? (pc.ownerId ? state.players.find((p) => p.id === pc.ownerId)?.faction : undefined);
+        return pf === faction;
+      });
+    }
+    case 'nodeControlledBy': {
+      const faction = resolveFactionSelector(state, playerId, (cond as any).faction);
+      if (!faction) return false;
+      const nodeId = (cond as any).nodeId as string;
+      // Presence rule: any piece of faction at node -> control
+      const present = Object.values(state.pieces).some((pc) => {
+        if (pc.location.kind !== 'node') return false;
+        if (pc.location.nodeId !== nodeId) return false;
+        const pf = pc.faction ?? (pc.ownerId ? state.players.find((p) => p.id === pc.ownerId)?.faction : undefined);
+        return pf === faction;
+      });
+      if (present) return true;
+      // Else, exclusive adjacency by movement type
+      // Precompute neighbors by movement type
+      const landKinds = new Set(['road', 'path']);
+      const waterKinds = new Set(['river', 'canal', 'coast', 'lake']);
+      function neighborsByKinds(nid: string, kinds: Set<string>): string[] {
+        const out: string[] = [];
+        for (const e of Object.values(state.map.edges)) {
+          if (!e.kinds || e.kinds.length === 0) continue;
+          const has = e.kinds.some((k) => kinds.has(k));
+          if (!has) continue;
+          if (e.a === nid) out.push(e.b);
+          else if (e.b === nid) out.push(e.a);
+        }
+        return out;
+      }
+      // Build faction -> any piece adjacent via its movement type?
+      const factions = Array.from(
+        new Set(
+          Object.values(state.players)
+            .map((p) => p.faction)
+            .concat(
+              Object.values(state.pieces).map((pc) =>
+                pc.faction ?? (pc.ownerId ? state.players.find((p) => p.id === pc.ownerId)?.faction : undefined)
+              ) as any
+            )
+        )
+      ).filter(Boolean) as string[];
+      const contenders: Set<string> = new Set();
+      for (const fac of factions) {
+        let qualifies = false;
+        for (const pc of Object.values(state.pieces)) {
+          if (pc.location.kind !== 'node') continue;
+          const pf = pc.faction ?? (pc.ownerId ? state.players.find((p) => p.id === pc.ownerId)?.faction : undefined);
+          if (pf !== fac) continue;
+          const from = pc.location.nodeId;
+          const isShip = pc.typeId === 'ship';
+          const neigh = isShip ? neighborsByKinds(from, waterKinds) : neighborsByKinds(from, landKinds);
+          if (neigh.includes(nodeId)) {
+            qualifies = true;
+            break;
+          }
+        }
+        if (qualifies) {
+          contenders.add(fac);
+          if (contenders.size > 1) break;
+        }
+      }
+      return contenders.size === 1 && contenders.has(faction);
+    }
   }
 }
 
@@ -399,17 +471,65 @@ function executeVerb(
       break;
     }
     case 'move': {
-      const steps = verb.steps ?? 1;
-      // Prompt to select a piece owned by the player
-      const movablePieceIds = Object.values(state.pieces)
-        .filter((pc) => pc.ownerId === playerId && pc.location.kind === 'node')
-        .map((pc) => pc.id);
+      // Single-step move; if a card needs multiple, include multiple move verbs
+      const steps = 1;
+      // Prompt to select a piece owned by the player (on-board) OR the player's character for a general move
+      const movablePieceIds = Object.values(state.pieces).filter((pc) => pc.ownerId === playerId && pc.location.kind === 'node').map((pc) => pc.id);
+      const ch = getControlledCharacter(state, playerId);
+      if (ch && ch.location.kind === 'node') {
+        movablePieceIds.unshift(`char:${ch.id}`);
+      }
       state.prompt = {
         kind: 'selectPiece',
         playerId,
         pieceIds: movablePieceIds,
         next: { kind: 'forMove', steps },
-        message: 'Select a piece to move',
+        message: 'Select a unit (or your character) to move',
+      };
+      break;
+    }
+    case 'generalMove': {
+      // Character-led convoy move
+      const ch = getControlledCharacter(state, playerId);
+      if (!ch || ch.location.kind !== 'node') { state.log.push({ message: `No character available to move.` }); break; }
+      const from = ch.location.nodeId;
+      // Movement modes
+      function neighborsByMode(nodeId: string, mode: 'water' | 'land'): string[] {
+        const nodes = new Set<string>();
+        for (const e of Object.values(state.map.edges)) {
+          const kinds = (e.kinds || []).map(k => String(k).toLowerCase());
+          const isWater = kinds.includes('river') || kinds.includes('canal') || kinds.includes('coast') || kinds.includes('lake') || kinds.includes('water') || kinds.includes('sea');
+          if (mode === 'water' && !isWater) continue;
+          if (mode === 'land' && isWater) continue;
+          if (e.a === nodeId) nodes.add(e.b);
+          else if (e.b === nodeId) nodes.add(e.a);
+        }
+        if (nodes.size === 0) return findAdjacentNodes(state.map, nodeId);
+        return Array.from(nodes);
+      }
+      // Blocked if any non-friendly piece occupies
+      const owner = state.players.find(p => p.id === playerId);
+      const fac = owner?.faction;
+      function nodeBlocked(nid: string): boolean {
+        for (const pc of Object.values(state.pieces)) {
+          if (pc.location.kind !== 'node') continue;
+          if (pc.location.nodeId !== nid) continue;
+          const pf = pc.faction ?? (pc.ownerId ? state.players.find(p => p.id === pc.ownerId)?.faction : undefined);
+          if (pf && pf !== fac) return true;
+        }
+        return false;
+      }
+      const landOpts = neighborsByMode(from, 'land').filter(n => !nodeBlocked(n));
+      // Water option requires at least one friendly ship at origin
+      const haveShipAtOrigin = Object.values(state.pieces).some(pc => pc.location.kind === 'node' && pc.location.nodeId === from && (pc.faction ?? (pc.ownerId ? state.players.find(p => p.id === pc.ownerId)?.faction : undefined)) === fac && pc.typeId === 'ship');
+      const waterOpts = haveShipAtOrigin ? neighborsByMode(from, 'water').filter(n => !nodeBlocked(n)) : [];
+      const opts = Array.from(new Set([...landOpts, ...waterOpts]));
+      state.prompt = {
+        kind: 'selectNode',
+        playerId,
+        nodeOptions: opts,
+        next: { kind: 'forGeneralMove', characterId: ch.id, fromNode: from, steps: Math.max(1, Number((verb as any).steps ?? 1)) },
+        message: 'Select destination for general move',
       };
       break;
     }
@@ -666,16 +786,85 @@ function executeVerb(
 
 export function inputSelectPiece(state: GameState, pieceId: PieceId): void {
   if (!state.prompt || state.prompt.kind !== 'selectPiece') return;
+  // Special case: selecting the player's character (general move) encoded as "char:<id>"
+  if (state.prompt.next.kind === 'forMove' && String(pieceId).startsWith('char:')) {
+    const chId = String(pieceId).slice(5);
+    const ch = state.characters[chId];
+    if (!ch || ch.location.kind !== 'node') return;
+    const owner = state.players.find(p => p.id === state.prompt.playerId);
+    const fac = owner?.faction;
+    const from = ch.location.nodeId;
+    function neighborsByMode(nodeId: string, mode: 'water' | 'land'): string[] {
+      const nodes = new Set<string>();
+      for (const e of Object.values(state.map.edges)) {
+        const kinds = (e.kinds || []).map(k => String(k).toLowerCase());
+        const isWater = kinds.includes('river') || kinds.includes('canal') || kinds.includes('coast') || kinds.includes('lake') || kinds.includes('water') || kinds.includes('sea');
+        if (mode === 'water' && !isWater) continue;
+        if (mode === 'land' && isWater) continue;
+        if (e.a === nodeId) nodes.add(e.b);
+        else if (e.b === nodeId) nodes.add(e.a);
+      }
+      if (nodes.size === 0) return findAdjacentNodes(state.map, nodeId);
+      return Array.from(nodes);
+    }
+    function nodeBlocked(nid: string): boolean {
+      for (const pc of Object.values(state.pieces)) {
+        if (pc.location.kind !== 'node') continue;
+        if (pc.location.nodeId !== nid) continue;
+        const pf = pc.faction ?? (pc.ownerId ? state.players.find(p => p.id === pc.ownerId)?.faction : undefined);
+        if (pf && pf !== fac) return true;
+      }
+      return false;
+    }
+    const landOpts = neighborsByMode(from, 'land').filter(n => !nodeBlocked(n));
+    const haveShipAtOrigin = Object.values(state.pieces).some(pc => pc.location.kind === 'node' && pc.location.nodeId === from && (pc.faction ?? (pc.ownerId ? state.players.find(p => p.id === pc.ownerId)?.faction : undefined)) === fac && pc.typeId === 'ship');
+    const waterOpts = haveShipAtOrigin ? neighborsByMode(from, 'water').filter(n => !nodeBlocked(n)) : [];
+    const opts = Array.from(new Set([...landOpts, ...waterOpts]));
+    state.prompt = {
+      kind: 'selectNode',
+      playerId: state.prompt.playerId,
+      nodeOptions: opts,
+      next: { kind: 'forGeneralMove', characterId: ch.id, fromNode: from, steps: 1 },
+      message: 'Select destination for general move',
+    };
+    return;
+  }
   const piece = state.pieces[pieceId];
   if (!piece) return;
   if (state.prompt.next.kind === 'forMove') {
     if (piece.location.kind !== 'node') return;
-    const options = findAdjacentNodes(state.map, piece.location.nodeId);
+    const owner = state.players.find(p => p.id === state.prompt!.playerId);
+    const fac = owner?.faction;
+    // Compute allowed adjacents by movement mode
+    function neighborsByMode(nodeId: string, mode: 'water' | 'land'): string[] {
+      const nodes = new Set<string>();
+      for (const e of Object.values(state.map.edges)) {
+        const kinds = (e.kinds || []).map(k => String(k).toLowerCase());
+        const isWater = kinds.includes('river') || kinds.includes('canal') || kinds.includes('coast') || kinds.includes('lake') || kinds.includes('water') || kinds.includes('sea');
+        if (mode === 'water' && !isWater) continue;
+        if (mode === 'land' && isWater) continue;
+        if (e.a === nodeId) nodes.add(e.b);
+        else if (e.b === nodeId) nodes.add(e.a);
+      }
+      if (nodes.size === 0) return findAdjacentNodes(state.map, nodeId);
+      return Array.from(nodes);
+    }
+    function nodeBlocked(nid: string): boolean {
+      for (const pc of Object.values(state.pieces)) {
+        if (pc.location.kind !== 'node') continue;
+        if (pc.location.nodeId !== nid) continue;
+        const pf = pc.faction ?? (pc.ownerId ? state.players.find(p => p.id === pc.ownerId)?.faction : undefined);
+        if (pf && pf !== fac) return true;
+      }
+      return false;
+    }
+    const mode: 'water' | 'land' = piece.typeId === 'ship' ? 'water' : 'land';
+    const adj = neighborsByMode(piece.location.nodeId, mode).filter(n => !nodeBlocked(n));
     state.prompt = {
       kind: 'selectAdjacentNode',
       playerId: state.prompt.playerId,
       pieceId,
-      nodeOptions: options,
+      nodeOptions: adj,
       stepsRemaining: state.prompt.next.steps,
       message: 'Select destination',
     };
@@ -692,10 +881,43 @@ export function inputSelectAdjacentNode(state: GameState, nodeId: NodeId): void 
   const { pieceId, stepsRemaining } = state.prompt;
   const piece = state.pieces[pieceId];
   if (!piece || piece.location.kind !== 'node') return;
+  // Revalidate: destination cannot contain enemy or neutral pieces
+  const owner = state.players.find(p => p.id === state.prompt.playerId);
+  const fac = owner?.faction;
+  for (const pc of Object.values(state.pieces)) {
+    if (pc.location.kind !== 'node') continue;
+    if (pc.location.nodeId !== nodeId) continue;
+    const pf = pc.faction ?? (pc.ownerId ? state.players.find(p => p.id === pc.ownerId)?.faction : undefined);
+    if (pf && pf !== fac) return;
+  }
   piece.location = { kind: 'node', nodeId };
   const remaining = stepsRemaining - 1;
   if (remaining > 0) {
-    const options = findAdjacentNodes(state.map, nodeId);
+    // Continue with same piece and movement mode
+    function neighborsByMode(nodeId: string, mode: 'water' | 'land'): string[] {
+      const nodes = new Set<string>();
+      for (const e of Object.values(state.map.edges)) {
+        const kinds = (e.kinds || []).map(k => String(k).toLowerCase());
+        const isWater = kinds.includes('river') || kinds.includes('canal') || kinds.includes('coast') || kinds.includes('lake') || kinds.includes('water') || kinds.includes('sea');
+        if (mode === 'water' && !isWater) continue;
+        if (mode === 'land' && isWater) continue;
+        if (e.a === nodeId) nodes.add(e.b);
+        else if (e.b === nodeId) nodes.add(e.a);
+      }
+      if (nodes.size === 0) return findAdjacentNodes(state.map, nodeId);
+      return Array.from(nodes);
+    }
+    function nodeBlocked(nid: string): boolean {
+      for (const pc of Object.values(state.pieces)) {
+        if (pc.location.kind !== 'node') continue;
+        if (pc.location.nodeId !== nid) continue;
+        const pf = pc.faction ?? (pc.ownerId ? state.players.find(p => p.id === pc.ownerId)?.faction : undefined);
+        if (pf && pf !== fac) return true;
+      }
+      return false;
+    }
+    const mode: 'water' | 'land' = piece.typeId === 'ship' ? 'water' : 'land';
+    const options = neighborsByMode(nodeId, mode).filter(n => !nodeBlocked(n));
     state.prompt = {
       kind: 'selectAdjacentNode',
       playerId: state.prompt.playerId,
@@ -769,9 +991,74 @@ export function inputSelectNode(state: GameState, nodeId: NodeId): void {
       ch.location = { kind: 'node', nodeId } as any;
       const label = (state.map.nodes as any)[nodeId]?.label ?? nodeId;
       state.log.push({ message: `Placed ${ch.name} at ${label}` });
-    }
-    state.prompt = null;
+  }
+  state.prompt = null;
     resumePendingIfAny(state);
+  } else if ((next as any).kind === 'forGeneralMove') {
+    const chId = (next as any).characterId as string;
+    const from = String((next as any).fromNode);
+    const steps = Math.max(1, Number((next as any).steps ?? 1));
+    const ch = state.characters[chId];
+    if (!ch || ch.location.kind !== 'node' || ch.location.nodeId !== from) { state.prompt = null; resumePendingIfAny(state); return; }
+    const owner = state.players.find(p => p.id === state.prompt.playerId);
+    const fac = owner?.faction;
+    // Determine available modes based on edge type between from and nodeId
+    function isWaterEdge(a: string, b: string): boolean {
+      for (const e of Object.values(state.map.edges)) {
+        if (!((e.a === a && e.b === b) || (e.a === b && e.b === a))) continue;
+        const kinds = (e.kinds || []).map(k => String(k).toLowerCase());
+        const isWater = kinds.includes('river') || kinds.includes('canal') || kinds.includes('coast') || kinds.includes('lake') || kinds.includes('water') || kinds.includes('sea');
+        if (isWater) return true;
+      }
+      return false;
+    }
+    function isLandEdge(a: string, b: string): boolean {
+      for (const e of Object.values(state.map.edges)) {
+        if (!((e.a === a && e.b === b) || (e.a === b && e.b === a))) continue;
+        const kinds = (e.kinds || []).map(k => String(k).toLowerCase());
+        const isWater = kinds.includes('river') || kinds.includes('canal') || kinds.includes('coast') || kinds.includes('lake') || kinds.includes('water') || kinds.includes('sea');
+        if (!isWater) return true;
+      }
+      return false;
+    }
+    const allowWater = isWaterEdge(from, nodeId);
+    const allowLand = isLandEdge(from, nodeId);
+    // Block if destination has any non-friendly piece
+    for (const pc of Object.values(state.pieces)) {
+      if (pc.location.kind !== 'node') continue;
+      if (pc.location.nodeId !== nodeId) continue;
+      const pf = pc.faction ?? (pc.ownerId ? state.players.find(p => p.id === pc.ownerId)?.faction : undefined);
+      if (pf && pf !== fac) { state.prompt = null; resumePendingIfAny(state); return; }
+    }
+    // Build convoy selection prompt
+    const atOrigin = Object.values(state.pieces).filter(pc => pc.location.kind === 'node' && pc.location.nodeId === from);
+    const friendlyAtOrigin = atOrigin.filter(pc => (pc.faction ?? (pc.ownerId ? state.players.find(p => p.id === pc.ownerId)?.faction : undefined)) === fac);
+    const shipIds = friendlyAtOrigin.filter(pc => pc.typeId === 'ship').map(pc => pc.id);
+    const nonShipIds = friendlyAtOrigin.filter(pc => pc.typeId !== 'ship').map(pc => pc.id);
+    // Defaults:
+    // - If water-only: require ship; default select exactly one ship
+    // - Else (land allowed): default select all non-ships
+    let selected: string[] = [];
+    let requireShipForWater = false;
+    if (allowWater && !allowLand) {
+      requireShipForWater = true;
+      if (shipIds.length === 0) { state.prompt = null; resumePendingIfAny(state); return; }
+      selected = [shipIds[0]];
+    } else {
+      selected = [...nonShipIds];
+    }
+    state.prompt = {
+      kind: 'selectConvoy',
+      playerId: state.prompt.playerId,
+      originNodeId: from,
+      destinationNodeId: nodeId,
+      allowLand,
+      allowWater,
+      options: friendlyAtOrigin.map(pc => pc.id),
+      selected,
+      requireShipForWater,
+      message: 'Choose units to convoy (click to toggle), then Confirm',
+    } as any;
   }
 }
 
@@ -824,6 +1111,52 @@ function finalizeCardPlay(state: GameState, playerId: PlayerId, card: Card) {
   state.lastPlayedCardId = card.id;
   state.playingCardId = undefined;
   (state as any).playingCard = undefined;
+}
+
+// Toggle a unit in the convoy selection
+export function inputToggleConvoyPiece(state: GameState, pieceId: PieceId): void {
+  if (!state.prompt || (state.prompt as any).kind !== 'selectConvoy') return;
+  const pr = state.prompt as any;
+  if (!pr.options.includes(pieceId)) return;
+  const idx = pr.selected.indexOf(pieceId);
+  if (idx >= 0) pr.selected.splice(idx, 1);
+  else pr.selected.push(pieceId);
+}
+
+// Confirm selected convoy and execute the general move
+export function inputConfirmConvoy(state: GameState): void {
+  if (!state.prompt || (state.prompt as any).kind !== 'selectConvoy') return;
+  const pr = state.prompt as any;
+  const { originNodeId: from, destinationNodeId: to } = pr;
+  const ch = Object.values(state.characters).find(c => c.playerId === pr.playerId);
+  if (!ch || ch.location.kind !== 'node' || ch.location.nodeId !== from) { state.prompt = null; resumePendingIfAny(state); return; }
+  const owner = state.players.find(p => p.id === pr.playerId);
+  const fac = owner?.faction;
+  // Determine effective mode
+  const selectedPieces = pr.selected.map((id: string) => state.pieces[id]).filter(Boolean);
+  const anyShipSelected = selectedPieces.some((pc: any) => pc.typeId === 'ship');
+  let water = false;
+  if (!pr.allowLand && pr.allowWater) water = true;
+  else if (pr.allowWater && anyShipSelected) water = true;
+  else water = false;
+  // Enforce water requires a ship
+  if (water) {
+    const hasShip = selectedPieces.some((pc: any) => pc.typeId === 'ship');
+    if (!hasShip) return; // keep prompt open until valid
+  } else {
+    // Land route cannot include ships; drop any ships from selection
+    pr.selected = pr.selected.filter((id: string) => state.pieces[id]?.typeId !== 'ship');
+  }
+  // Move character
+  ch.location = { kind: 'node', nodeId: to } as any;
+  // Move selected pieces
+  for (const pid of pr.selected) {
+    const pc = state.pieces[pid];
+    if (!pc) continue;
+    pc.location = { kind: 'node', nodeId: to };
+  }
+  state.prompt = null;
+  resumePendingIfAny(state);
 }
 
 function resolveFactionSelector(state: GameState, selfId: PlayerId, sel: FactionSelector | undefined): string | undefined {
