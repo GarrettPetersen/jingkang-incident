@@ -194,6 +194,7 @@ function describeCardRules(card: { verbs?: any[]; effect?: any }): string {
 
 function describeEffect(effect: any): string[] {
   if (!effect) return [];
+  if ((effect as any).label) return [String((effect as any).label)];
   if (effect.kind === "all" && Array.isArray(effect.effects)) {
     return effect.effects.flatMap((e: any) => describeEffect(e));
   }
@@ -1112,6 +1113,19 @@ function buildStateFromScenario(scn: any): GameState {
   const discardPile = {
     cards: asCards(scn.global?.discardPile ?? [], cardDict),
   };
+
+  // Auto-include all cards with backText "Jingkang" in the starting draw pile
+  try {
+    const existing = new Set(drawPile.cards.map((c) => c.id));
+    for (const [cid, def] of Object.entries(cardDict)) {
+      if (def && typeof def === 'object' && String((def as any).backText || '') === 'Jingkang') {
+        if (!existing.has(cid)) {
+          drawPile.cards.push(materializeCardFromDef({ id: cid, ...(def as any) }));
+          existing.add(cid);
+        }
+      }
+    }
+  } catch {}
 
   const seatingOrder =
     scn.seating && Array.isArray(scn.seating.order)

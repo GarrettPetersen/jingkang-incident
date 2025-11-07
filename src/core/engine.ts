@@ -229,6 +229,11 @@ function evaluateCondition(state: GameState, playerId: PlayerId, cond: Condition
       if (!p) return false;
       return (p.coins ?? 0) >= Math.max(0, cond.atLeast);
     }
+    case 'handCountAtLeast': {
+      const p = state.players.find(pp => pp.id === playerId);
+      if (!p) return false;
+      return (p.hand?.length ?? 0) >= Math.max(0, cond.atLeast);
+    }
     case 'characterAt': {
       const ch = getControlledCharacter(state, playerId);
       if (!ch) return false;
@@ -355,6 +360,49 @@ function executeVerb(
     return selfFaction !== otherFaction;
   }
   switch (verb.type) {
+    case 'discardFromHand': {
+      const self = state.players.find((p) => p.id === playerId)!;
+      const hand = self.hand || [];
+      let eligible = hand as any[];
+      if ((verb as any).excludeStar) {
+        eligible = eligible.filter((c) => !String(c?.name || '').includes('*'));
+      }
+      if (eligible.length === 0) {
+        // Nothing to discard; no-op
+        break;
+      }
+      if (eligible.length === 1) {
+        const [card] = eligible;
+        // remove from hand
+        const idx = self.hand.indexOf(card);
+        if (idx >= 0) self.hand.splice(idx, 1);
+        state.discardPile = pushBottom(state.discardPile, [card]);
+        state.log.push({ message: `${self.name} discards ${card.name || 'a card'}.` });
+        break;
+      }
+      // Prompt to choose one to discard
+      state.prompt = {
+        kind: 'choose',
+        playerId,
+        choices: eligible.map((c) => ({
+          kind: 'verb',
+          verb: { type: 'discardCardById', cardId: c.id } as VerbSpec,
+          label: `Discard ${c.name || c.id}`,
+        })) as any,
+        message: 'Choose a card to discard',
+      } as any;
+      return;
+    }
+    case 'discardCardById': {
+      const self = state.players.find((p) => p.id === playerId)!;
+      const idx = self.hand.findIndex((c: any) => c.id === (verb as any).cardId);
+      if (idx >= 0) {
+        const [card] = self.hand.splice(idx, 1);
+        state.discardPile = pushBottom(state.discardPile, [card]);
+        state.log.push({ message: `${self.name} discards ${card.name || 'a card'}.` });
+      }
+      break;
+    }
     case 'addCardToHand': {
       const self = state.players.find((p) => p.id === playerId)!;
       const catalog = (state as any).cardCatalog as Record<string, any> | undefined;

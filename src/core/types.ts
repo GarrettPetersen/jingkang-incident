@@ -114,6 +114,8 @@ export type VerbSpec =
   | { type: "tuck"; target: "self" | "opponent" }
   | { type: "move"; steps?: number }
   | { type: "generalMove"; steps?: number }
+  | { type: "discardFromHand"; excludeStar?: boolean }
+  | { type: "discardCardById"; cardId: CardId }
   | { type: "addCardToHand"; cardId: CardId }
   | { type: "retrieveFromDiscard"; match?: string; target?: "self" | "opponent" }
   | {
@@ -207,6 +209,10 @@ export type Condition = {
 } | {
   // True if the current player has at least this many coins
   kind: "hasCoins";
+  atLeast: number;
+} | {
+  // True if the current player's hand count is at least this number
+  kind: "handCountAtLeast";
   atLeast: number;
 } | {
   // True if the current player's character is at any of the provided nodes
