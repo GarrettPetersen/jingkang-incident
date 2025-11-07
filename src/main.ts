@@ -106,8 +106,8 @@ async function loadScenarioOrFallback() {
     });
     if (!res.ok) throw new Error("fetch failed");
     const scenario: any = await res.json();
-    state = buildStateFromScenario(scenario);
     try { (window as any).__scenarioCardDict = scenario.cards || {}; } catch {}
+    state = buildStateFromScenario(scenario);
   } catch {
     state = initialState;
   }
@@ -272,13 +272,17 @@ function makeCharacterCardDataUrl(
   const r = 16;
   const gap = 12;
   const tokens = Array.isArray(displayIcons) ? displayIcons.filter(Boolean) : [];
-  const iconsCount = Math.max(0, tokens.length);
-  const totalW = iconsCount * (r * 2) + (iconsCount - 1) * gap;
+  const unitWidth = (r * 2) + gap;
+  const spanOf = (tok: string) => String(tok).startsWith('war') ? 2 : 1;
+  const totalUnits = tokens.reduce((s, t) => s + spanOf(String(t)), 0);
+  const totalW = totalUnits * (r * 2) + (totalUnits - 1) * gap;
   const startX = bandX + (bandW - totalW) / 2 + r;
   const cy = bandY + bandH / 2;
   let iconsMarkup = "";
-  tokens.forEach((tok, i) => {
-    const cx = startX + i * (2 * r + gap);
+  let u = 0; // unit cursor
+  tokens.forEach((tok) => {
+    const span = spanOf(String(tok));
+    const cx = span === 1 ? (startX + u * unitWidth) : (startX + u * unitWidth + unitWidth / 2);
     if (tok === 'character') {
       const initials = name.split(/\s+/).map(s=>s[0]||'').join('').slice(0,2).toUpperCase();
       iconsMarkup += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#fff" stroke="#222" stroke-width="2"/>
@@ -290,6 +294,28 @@ function makeCharacterCardDataUrl(
       const textFill = f === "jin" ? "#111" : "#fff";
       iconsMarkup += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" stroke="#222" stroke-width="2"/>
         <text x="${cx}" y="${cy + 5}" text-anchor="middle" font-size="16" font-weight="700" fill="${textFill}">${char}</text>`;
+    } else if (String(tok).startsWith('war')) {
+      // war-jin-song or war:jin:song
+      const parts = String(tok).includes(':') ? String(tok).split(':') : String(tok).split('-');
+      const fa = (parts[1] || '').toLowerCase() as FactionId;
+      const fb = (parts[2] || '').toLowerCase() as FactionId;
+      const fillA = (FactionColor as any)[fa] || '#999';
+      const fillB = (FactionColor as any)[fb] || '#999';
+      const charA = getFactionHan(fa);
+      const charB = getFactionHan(fb);
+      const textFillA = fa === 'jin' ? '#111' : '#fff';
+      const textFillB = fb === 'jin' ? '#111' : '#fff';
+      const rr = r; // use full radius for clarity
+      const leftX = cx - (unitWidth / 2);
+      const rightX = cx + (unitWidth / 2);
+      iconsMarkup += `<g>
+        <circle cx="${leftX}" cy="${cy}" r="${rr}" fill="${fillA}" stroke="#222" stroke-width="2"/>
+        <text x="${leftX}" y="${cy + 6}" text-anchor="middle" font-size="14" font-weight="800" fill="${textFillA}">${charA}</text>
+        <circle cx="${rightX}" cy="${cy}" r="${rr}" fill="${fillB}" stroke="#222" stroke-width="2"/>
+        <text x="${rightX}" y="${cy + 6}" text-anchor="middle" font-size="14" font-weight="800" fill="${textFillB}">${charB}</text>
+        <path d="M ${cx-6} ${cy-10} L ${cx+6} ${cy+10}" stroke="#111" stroke-width="3"/>
+        <path d="M ${cx-6} ${cy+10} L ${cx+6} ${cy-10}" stroke="#111" stroke-width="3"/>
+      </g>`;
     } else {
       // Treat any other token as a specific character icon; render initials from token
       const words = String(tok).split(/[^A-Za-z]+/).filter(Boolean);
@@ -297,6 +323,7 @@ function makeCharacterCardDataUrl(
       iconsMarkup += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#fff" stroke="#222" stroke-width="2"/>
         <text x="${cx}" y="${cy + 5}" text-anchor="middle" font-size="16" font-weight="700" fill="#111">${initials}</text>`;
     }
+    u += span;
   });
   // Rules text block (baked into SVG) — place higher up under title
   let rulesMarkup = "";
@@ -947,14 +974,24 @@ function materializeCardFromDef(def: any): Card {
       c.asset.backPath = makeCardBackDataUrl(String((def as any).backText));
     }
   }
-  // If no asset but backText specified, at least provide a backPath so card backs render
+  // If no asset or non-character template, render using character style for consistency
   if (!c.asset) {
+    const title = String(def.title ?? "");
+    const displayIcons = Array.isArray(def.icons)
+      ? (def.icons as string[])
+      : [];
     const rulesText = (c as any).rulesTextOverride || (def as any).rulesTextOverride || '';
-    const path = makeGenericCardDataUrl(name, rulesText, (def as any).backText ? String((def as any).backText) : undefined, (def as any).quote || (c as any).quote);
+    const path = makeCharacterCardDataUrl(name, title, displayIcons, (def as any).quote || (c as any).quote, rulesText);
     c.asset = {
       path,
       size: { width: TAROT_CARD_WIDTH, height: TAROT_CARD_HEIGHT },
       backPath: (def as any).backText ? makeCardBackDataUrl(String((def as any).backText)) : undefined,
+      iconSlot: {
+        x: ICON_BAND_X,
+        y: ICON_BAND_Y,
+        width: ICON_BAND_W,
+        height: ICON_BAND_H,
+      },
     } as any;
   }
   return c;
@@ -1117,7 +1154,7 @@ function buildStateFromScenario(scn: any): GameState {
   try {
     // Collect all character card ids from scenario
     const characterCardIds: string[] = Object.entries(cardDict)
-      .filter(([, def]) => def && typeof def === 'object' && def.template === 'character')
+      .filter(([, def]) => def && typeof def === 'object' && def.template === 'character' && String((def as any).backText || '') === 'START')
       .map(([id]) => id);
     if (characterCardIds.length > 0 && players.length > 0) {
       // Remove any character cards from hands first

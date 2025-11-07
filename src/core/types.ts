@@ -144,6 +144,13 @@ export type VerbSpec =
       faction?: FactionSelector;
     }
   | {
+      // Remove one matching piece at a specific node without prompting
+      type: "removeAt";
+      nodeId: NodeId;
+      pieceTypeId?: PieceTypeId;
+      faction?: FactionSelector;
+    }
+  | {
       // Convert N pieces at your character's location from one faction to another, preserving type
       type: "convertAtCharacter";
       fromFaction: FactionSelector;

@@ -76,15 +76,32 @@
       ]}
     }
     ,
+    "zhang-bangchang-ordered-to-drink-poison-star": {
+      "template": "character",
+      "name": "Zhang Bangchang Ordered to Drink Poison*",
+      "backText": "Jingkang",
+      "icons": ["war-jin-song"],
+      "rulesTextOverride": "Remove a :rebel-foot: from Bianjing. Tuck this card.",
+      "quote": { "text": "Facing north, Bangchang kowtowed to receive the investiture; he assumed a false throne as Great Chu and planned to make Jinling the capital.", "cite": "Songshi, Vol. 475" },
+      "playCondition": { "kind": "noStarCardInHand" },
+      "playConditionMessage": "Cannot be played with other * cards in hand.",
+      "keepOnPlay": false,
+      "effect": { "kind": "all", "effects": [
+        { "kind": "verb", "verb": { "type": "removeAt", "nodeId": "kaifeng", "pieceTypeId": "foot", "faction": "rebel" } },
+        { "kind": "verb", "verb": { "type": "tuck", "target": "self" } }
+      ] }
+    }
+    ,
     "liu-yu-defects-to-the-jin": {
       "template": "character",
       "name": "Liu Yu Defects to the Jin",
+      "backText": "CHARACTER",
       "icons": ["liu-yu","jin"],
       "rulesTextOverride": "Convert 2 :song-foot:/:song-horse:/:song-ship: to the same type of :jin-foot:/:jin-horse:/:jin-ship: in Liu Yu’s location.\nDestroy 1 :song-foot:/:song-horse:/:song-ship: in Liu Yu’s location.\nAll other :song-foot:/:song-horse:/:song-ship: and :song-character: in Liu Yu’s location retreat.\nTrash the [[start-liu-yu]] card and tuck this card in front of Liu Yu in its place.",
       "quote": { "text": "He killed his general and surrendered to the Jin.", "cite": "Songshi, Vol. 475" },
       "effect": { "kind": "all", "effects": [
-        { "kind": "verb", "verb": { "type": "convertAtCharacter", "fromFaction": "song", "toFaction": "jin", "pieceTypes": { "anyOf": ["foot","horse","ship"] }, "count": 2 } },
         { "kind": "verb", "verb": { "type": "destroyAtCharacter", "fromFaction": "song", "pieceTypes": { "anyOf": ["foot","horse","ship"] }, "count": 1 } },
+        { "kind": "verb", "verb": { "type": "convertAtCharacter", "fromFaction": "song", "toFaction": "jin", "pieceTypes": { "anyOf": ["foot","horse","ship"] }, "count": 2 } },
         { "kind": "verb", "verb": { "type": "retreatAtCharacter", "faction": "song" } },
         { "kind": "verb", "verb": { "type": "trashTuckedCard", "matchCardId": "start-liu-yu", "target": "self" } },
         { "kind": "verb", "verb": { "type": "tuck", "target": "self" } }

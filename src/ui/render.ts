@@ -169,8 +169,12 @@ function renderLeftPanel(state: GameState, handlers: any): HTMLElement {
   undoBtn.onclick = () => handlers.onUndo();
   undoBtn.disabled = !state.hasActedThisTurn;
   if (undoBtn.disabled) undoBtn.style.opacity = '0.5';
+  const deckBtn = document.createElement('button');
+  deckBtn.textContent = 'Deck Explorer';
+  deckBtn.onclick = () => showDeckExplorer();
   controls.appendChild(endBtn);
   controls.appendChild(undoBtn);
+  controls.appendChild(deckBtn);
   div.appendChild(controls);
 
   if (state.prompt) {
@@ -1068,12 +1072,12 @@ function renderCard(card: { name: string; asset?: { path: string; size: { width:
   }
   container.addEventListener('click', () => {
     const origin = __getAbsRect(container);
-    showCardModal(card, onClick, origin);
+    showCardModal(card, onClick, origin, { allowPlay: true });
   });
   container.addEventListener('dblclick', (ev) => {
     ev.preventDefault(); ev.stopPropagation();
     const origin = __getAbsRect(container);
-    showCardModal(card, onClick, origin);
+    showCardModal(card, onClick, origin, { allowPlay: true });
   });
 
   const img = document.createElement('img');
@@ -1307,7 +1311,53 @@ function showCardPreview(card: any): void {
   document.body.appendChild(overlay);
 }
 
-function showCardModal(card: any, onPlay: () => void, originRect?: { x: number; y: number; width: number; height: number }): void {
+function showDeckExplorer(): void {
+  const existing = document.getElementById('deck-explorer-overlay');
+  if (existing) existing.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'deck-explorer-overlay';
+  overlay.style.position = 'fixed'; overlay.style.left = '0'; overlay.style.top = '0'; overlay.style.right = '0'; overlay.style.bottom = '0';
+  overlay.style.background = 'rgba(0,0,0,0.6)'; overlay.style.zIndex = '9999';
+  overlay.addEventListener('click', () => overlay.remove());
+  const panel = document.createElement('div');
+  panel.style.position = 'absolute'; panel.style.left = '50%'; panel.style.top = '50%'; panel.style.transform = 'translate(-50%, -50%)';
+  panel.style.width = '80vw'; panel.style.height = '80vh';
+  panel.style.background = '#111'; panel.style.color = '#eee'; panel.style.border = '1px solid #333'; panel.style.borderRadius = '10px';
+  panel.style.display = 'flex'; panel.style.flexDirection = 'column'; panel.style.gap = '10px'; panel.style.padding = '12px';
+  panel.addEventListener('click', (e) => e.stopPropagation());
+  const header = document.createElement('div'); header.style.display = 'flex'; header.style.alignItems = 'center'; header.style.gap = '8px';
+  const title = document.createElement('div'); title.textContent = 'Deck Explorer'; title.style.fontWeight = '800';
+  const search = document.createElement('input'); search.type = 'search'; search.placeholder = 'Search cards…'; search.style.flex = '1';
+  const close = document.createElement('button'); close.textContent = 'Close'; close.onclick = () => overlay.remove();
+  header.appendChild(title); header.appendChild(search); header.appendChild(close);
+  const body = document.createElement('div'); body.style.flex = '1'; body.style.overflow = 'auto';
+  body.style.display = 'grid'; body.style.gridTemplateColumns = 'repeat(auto-fill, minmax(160px, 1fr))'; body.style.gap = '10px';
+  function renderCatalog(filter: string) {
+    body.innerHTML = '';
+    const cat = (window as any).__cardCatalog as Record<string, any> | undefined;
+    if (!cat) return;
+    const entries = Object.entries(cat).sort((a,b) => String(a[1]?.name||a[0]).localeCompare(String(b[1]?.name||b[0])));
+    const q = (filter||'').toLowerCase();
+    for (const [id, card] of entries) {
+      const name: string = String(card?.name || id);
+      const text: string = String(card?.rulesTextOverride || '');
+      const hay = `${id} ${name} ${text}`.toLowerCase();
+      if (q && !hay.includes(q)) continue;
+      const cell = document.createElement('div'); cell.style.display = 'flex'; cell.style.flexDirection = 'column'; cell.style.gap = '6px'; cell.style.alignItems = 'center';
+      const el = renderCard(card, () => {});
+      const cap = document.createElement('div'); cap.textContent = name; cap.style.fontSize = '12px'; cap.style.textAlign = 'center'; cap.style.color = '#ccc';
+      // open modal on click for preview
+      el.addEventListener('click', (ev) => { ev.stopPropagation(); const rect = (el as HTMLElement).getBoundingClientRect(); showCardModal(card, () => {}, { x: rect.left + window.scrollX, y: rect.top + window.scrollY, width: rect.width, height: rect.height }, { allowPlay: false }); });
+      cell.appendChild(el); cell.appendChild(cap);
+      body.appendChild(cell);
+    }
+  }
+  renderCatalog('');
+  search.addEventListener('input', () => renderCatalog(search.value));
+  panel.appendChild(header); panel.appendChild(body); overlay.appendChild(panel); document.body.appendChild(overlay);
+}
+
+function showCardModal(card: any, onPlay: () => void, originRect?: { x: number; y: number; width: number; height: number }, opts?: { allowPlay?: boolean }): void {
   if (!card || !card.asset) return;
   const existing = document.getElementById('card-preview-overlay');
   if (existing) existing.remove();
@@ -1511,16 +1561,22 @@ function showCardModal(card: any, onPlay: () => void, originRect?: { x: number; 
   row.style.justifyContent = 'center';
   row.style.width = '100%';
 
-  const playBtn = document.createElement('button');
-  const isPlaying = ((window as any).__playingCardId === card.id);
-  const playLocked = !!(window as any).__playLocked;
-  playBtn.textContent = isPlaying ? 'Undo' : 'Play';
-  playBtn.style.padding = '8px 12px';
-  playBtn.style.background = '#2e86de';
-  playBtn.style.color = '#fff';
-  playBtn.style.border = 'none';
-  playBtn.style.borderRadius = '6px';
-  playBtn.style.cursor = 'pointer';
+  const allowPlay = opts && opts.allowPlay === false ? false : true;
+  let playBtn: HTMLButtonElement | null = null;
+  let isPlaying = false;
+  let playLocked = false;
+  if (allowPlay) {
+    playBtn = document.createElement('button');
+    isPlaying = ((window as any).__playingCardId === card.id);
+    playLocked = !!(window as any).__playLocked;
+    playBtn.textContent = isPlaying ? 'Undo' : 'Play';
+    playBtn.style.padding = '8px 12px';
+    playBtn.style.background = '#2e86de';
+    playBtn.style.color = '#fff';
+    playBtn.style.border = 'none';
+    playBtn.style.borderRadius = '6px';
+    playBtn.style.cursor = 'pointer';
+  }
 
   const closeBtn = document.createElement('button');
   closeBtn.textContent = 'Close';
@@ -1531,7 +1587,7 @@ function showCardModal(card: any, onPlay: () => void, originRect?: { x: number; 
   closeBtn.style.borderRadius = '6px';
   closeBtn.style.cursor = 'pointer';
 
-  if (!(playLocked && !isPlaying)) {
+  if (allowPlay && playBtn && !(playLocked && !isPlaying)) {
     row.appendChild(playBtn);
   }
   row.appendChild(closeBtn);
@@ -1566,7 +1622,7 @@ function showCardModal(card: any, onPlay: () => void, originRect?: { x: number; 
     setTimeout(() => ghost.remove(), 200);
   }
 
-  playBtn.addEventListener('click', () => {
+  if (allowPlay && playBtn) playBtn.addEventListener('click', () => {
     if (isPlaying && (window as any).onUndo) {
       overlay.remove();
       (window as any).onUndo();

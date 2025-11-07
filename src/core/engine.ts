@@ -41,6 +41,43 @@ export function startTurn(state: GameState): void {
   state.hasActedThisTurn = false;
 }
 
+function parseWarIcon(tok: string): [string, string] | null {
+  const s = String(tok).toLowerCase();
+  const parts = s.includes(':') ? s.split(':') : s.split('-');
+  if (parts[0] !== 'war') return null;
+  if (parts.length < 3) return null;
+  return [parts[1], parts[2]];
+}
+
+function recomputeDiplomacyFromTucked(state: GameState): void {
+  // Reset to neutral baseline among known factions
+  const factions = new Set<string>();
+  for (const p of state.players) if (p.faction) factions.add(String(p.faction));
+  for (const pc of Object.values(state.pieces)) if (pc.faction) factions.add(String(pc.faction));
+  for (const a of factions) {
+    (state.diplomacy as any)[a] = (state.diplomacy as any)[a] || {};
+    for (const b of factions) (state.diplomacy as any)[a][b] = 'neutral';
+  }
+  // Apply war icons from any tucked card
+  for (const p of state.players) {
+    for (const c of p.tucked) {
+      const icons = ((c as any).icons || []) as string[];
+      for (const ic of icons) {
+        const war = parseWarIcon(ic);
+        if (war) {
+          const [a, b] = war;
+          if ((state.diplomacy as any)[a]) {
+            (state.diplomacy as any)[a][b] = 'enemy';
+          }
+          if ((state.diplomacy as any)[b]) {
+            (state.diplomacy as any)[b][a] = 'enemy';
+          }
+        }
+      }
+    }
+  }
+}
+
 export function endTurn(state: GameState): void {
   // Advance authoritative turn owner by seating
   const prevId = state.currentPlayerId ?? state.players[state.currentPlayerIndex].id;
@@ -352,6 +389,7 @@ function executeVerb(
         opp.tucked.push(card);
         state.log.push({ message: `${self.name} tucks ${card.name} in front of ${opp.name}` });
       }
+      recomputeDiplomacyFromTucked(state);
       break;
     }
     case 'gainCoin': {
@@ -471,6 +509,20 @@ function executeVerb(
       placePiece(state, playerId, verb.pieceTypeId, ch.location.nodeId, faction as any);
       break;
     }
+    case 'removeAt': {
+      const nodeId = String((verb as any).nodeId);
+      const pieceTypeId = (verb as any).pieceTypeId ? String((verb as any).pieceTypeId) : undefined;
+      const faction = resolveFactionSelector(state, playerId, (verb as any).faction);
+      const matchId = Object.entries(state.pieces).find(([id, pc]) =>
+        pc.location.kind === 'node' && pc.location.nodeId === nodeId && (!pieceTypeId || pc.typeId === pieceTypeId) && (!faction || pc.faction === (faction as any))
+      )?.[0];
+      if (matchId) {
+        delete state.pieces[matchId];
+      } else {
+        state.log.push({ message: `No matching piece to remove at ${nodeId}.` });
+      }
+      break;
+    }
     case 'convertAtCharacter': {
       const ch = getControlledCharacter(state, playerId);
       if (!ch) { state.log.push({ message: `No character to convert at.` }); break; }
@@ -517,25 +569,67 @@ function executeVerb(
       if (!ch) { state.log.push({ message: `No character to retreat from.` }); break; }
       const here = ch.location.nodeId;
       const faction = resolveFactionSelector(state, playerId, (verb as any).faction);
-      const adj = findAdjacentNodes(state.map, here);
-      const dest = adj[0]; // simple heuristic; future: prompt defending owners
-      if (!dest) break;
-      // Retreat pieces
-      for (const pc of Object.values(state.pieces)) {
-        if (pc.location.kind !== 'node') continue;
-        if (pc.location.nodeId !== here) continue;
-        const fac = pc.faction ?? undefined;
-        if (faction && fac !== faction) continue;
-        pc.location = { kind: 'node', nodeId: dest };
+      if (!faction) { state.log.push({ message: `No faction to retreat.` }); break; }
+
+      // Helper: classify edges
+      function adjacentByMode(nodeId: string, mode: 'water' | 'land'): string[] {
+        const nodes = new Set<string>();
+        for (const e of Object.values(state.map.edges)) {
+          const kinds = (e.kinds || []).map(k => String(k).toLowerCase());
+          const isWater = kinds.includes('river') || kinds.includes('water') || kinds.includes('sea');
+          if (mode === 'water' && !isWater) continue;
+          if (mode === 'land' && isWater) continue;
+          if (e.a === nodeId) nodes.add(e.b);
+          else if (e.b === nodeId) nodes.add(e.a);
+        }
+        // Fallback to any adjacency if no typed edges
+        if (nodes.size === 0) return findAdjacentNodes(state.map, nodeId);
+        return Array.from(nodes);
       }
-      // Retreat characters of that faction (by owner faction fallback)
+      function isSafeNode(nodeId: string, fac: any): boolean {
+        for (const pc of Object.values(state.pieces)) {
+          if (pc.location.kind !== 'node') continue;
+          if (pc.location.nodeId !== nodeId) continue;
+          // Unsafe if any piece of a different faction is present
+          if ((pc.faction ?? undefined) !== fac) return false;
+        }
+        return true;
+      }
+      // Retreat units first (excluding any that are not of target faction)
+      const pcsHere = Object.values(state.pieces).filter(pc => pc.location.kind === 'node' && pc.location.nodeId === here && (pc.faction ?? undefined) === faction);
+      for (const pc of pcsHere) {
+        const mode: 'water' | 'land' = pc.typeId === 'ship' ? 'water' : 'land';
+        const adj = adjacentByMode(here, mode);
+        const dest = adj.find(n => isSafeNode(n, faction));
+        if (dest) {
+          pc.location = { kind: 'node', nodeId: dest };
+        } else {
+          // No safe adjacent — destroy the unit
+          delete state.pieces[pc.id];
+        }
+      }
+      // Retreat characters of that faction at the same location (excluding the acting character)
       for (const cc of Object.values(state.characters)) {
+        if (cc.id === ch.id) continue;
         if (cc.location.kind !== 'node') continue;
         if (cc.location.nodeId !== here) continue;
         const owner = state.players.find(p => p.id === cc.playerId);
         const cf = cc.faction ?? owner?.faction;
-        if (faction && cf !== faction) continue;
-        cc.location = { kind: 'node', nodeId: dest } as any;
+        if (cf !== faction) continue;
+        // Try adjacent safe (land mode for characters by default)
+        const adj = adjacentByMode(here, 'land');
+        const destAdj = adj.find(n => isSafeNode(n, faction));
+        if (destAdj) { cc.location = { kind: 'node', nodeId: destAdj } as any; continue; }
+        // Try capital
+        const capital = Object.values(state.pieces).find(pc => pc.typeId === 'capital' && (pc.faction ?? undefined) === faction);
+        if (capital && capital.location.kind === 'node' && isSafeNode(capital.location.nodeId, faction)) {
+          cc.location = { kind: 'node', nodeId: capital.location.nodeId } as any; continue;
+        }
+        // Try any safe space anywhere
+        const anySafe = Object.keys(state.map.nodes).find(nid => isSafeNode(nid, faction));
+        if (anySafe) { cc.location = { kind: 'node', nodeId: anySafe } as any; continue; }
+        // Eliminated: no safe spaces
+        cc.location = { kind: 'offboard' } as any;
       }
       break;
     }
