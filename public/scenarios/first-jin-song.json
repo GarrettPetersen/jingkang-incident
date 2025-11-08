@@ -81,6 +81,131 @@
       ]}
     }
     ,
+    "maritime-trade-offices": {
+      "template": "character",
+      "name": "Maritime Trade Offices",
+      "backText": "Jianyan",
+      "events-referenced": ["song-1129-reinstate-shibo-liangzhe-fujian", "song-1129-1142-mingzhou-maritime-customs", "song-1129-1142-quanzhou-maritime-customs", "song-1129-1142-guangzhou-maritime-customs"],
+      "rulesTextOverride": "Gain 1 :coin: for each city your faction controls among [Ningbo, Quanzhou, Fuzhou, Guangzhou].",
+      "quote": {
+        "text": "“In the fifth month, the court restored the maritime trade offices (Shibo) for Liangzhe and Fujian.”",
+        "cite": "Songshi, Vol. 26"
+      },
+      "effect": {
+        "kind": "all",
+        "effects": [
+          { "kind": "if", "condition": { "kind": "nodeControlledBy", "nodeId": "ningbo", "faction": "selfFaction" }, "then": { "kind": "verb", "verb": { "type": "gainCoin", "amount": 1 } } },
+          { "kind": "if", "condition": { "kind": "nodeControlledBy", "nodeId": "quanzhou", "faction": "selfFaction" }, "then": { "kind": "verb", "verb": { "type": "gainCoin", "amount": 1 } } },
+          { "kind": "if", "condition": { "kind": "nodeControlledBy", "nodeId": "fuzhou", "faction": "selfFaction" }, "then": { "kind": "verb", "verb": { "type": "gainCoin", "amount": 1 } } },
+          { "kind": "if", "condition": { "kind": "nodeControlledBy", "nodeId": "guangzhou", "faction": "selfFaction" }, "then": { "kind": "verb", "verb": { "type": "gainCoin", "amount": 1 } } }
+        ]
+      }
+    }
+    ,
+    "guangxi-horse-imports": {
+      "template": "character",
+      "name": "Guangxi Horse Imports",
+      "backText": "Jianyan",
+      "events-referenced": ["song-1129-guangxi-horse-procurement"],
+      "rulesTextOverride": "If your faction controls Guangzhou: Pay up to 5 :coin: to convert your faction’s :foot: in Guangzhou to :horse:, one per :coin: paid.\nThen choose one: Move; Raid (destroy an adjacent enemy); Assault (destroy any piece).",
+      "quote": {
+        "text": "“Emperor Gaozong ordered Li Yu to purchase horses among the Guangxi tribes and to establish a stock‑raising office at Yongzhou.”",
+        "cite": "Songshi, Vol. 26"
+      },
+      "effect": {
+        "kind": "all",
+        "effects": [
+          {
+            "kind": "if",
+            "condition": { "kind": "nodeControlledBy", "nodeId": "guangzhou", "faction": "selfFaction" },
+            "then": {
+              "kind": "all",
+              "effects": [
+                {
+                  "kind": "any",
+                  "effects": [
+                    {
+                      "kind": "all",
+                      "effects": [
+                        { "kind": "verb", "verb": { "type": "gainCoin", "amount": -1 } },
+                        { "kind": "verb", "verb": { "type": "removeAt", "nodeId": "guangzhou", "pieceTypeId": "foot", "faction": "selfFaction" } },
+                        { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "horse", "at": { "nodes": ["guangzhou"] }, "faction": "selfFaction" } }
+                      ]
+                    },
+                    { "kind": "all", "effects": [] }
+                  ]
+                },
+                {
+                  "kind": "any",
+                  "effects": [
+                    {
+                      "kind": "all",
+                      "effects": [
+                        { "kind": "verb", "verb": { "type": "gainCoin", "amount": -1 } },
+                        { "kind": "verb", "verb": { "type": "removeAt", "nodeId": "guangzhou", "pieceTypeId": "foot", "faction": "selfFaction" } },
+                        { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "horse", "at": { "nodes": ["guangzhou"] }, "faction": "selfFaction" } }
+                      ]
+                    },
+                    { "kind": "all", "effects": [] }
+                  ]
+                },
+                {
+                  "kind": "any",
+                  "effects": [
+                    {
+                      "kind": "all",
+                      "effects": [
+                        { "kind": "verb", "verb": { "type": "gainCoin", "amount": -1 } },
+                        { "kind": "verb", "verb": { "type": "removeAt", "nodeId": "guangzhou", "pieceTypeId": "foot", "faction": "selfFaction" } },
+                        { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "horse", "at": { "nodes": ["guangzhou"] }, "faction": "selfFaction" } }
+                      ]
+                    },
+                    { "kind": "all", "effects": [] }
+                  ]
+                },
+                {
+                  "kind": "any",
+                  "effects": [
+                    {
+                      "kind": "all",
+                      "effects": [
+                        { "kind": "verb", "verb": { "type": "gainCoin", "amount": -1 } },
+                        { "kind": "verb", "verb": { "type": "removeAt", "nodeId": "guangzhou", "pieceTypeId": "foot", "faction": "selfFaction" } },
+                        { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "horse", "at": { "nodes": ["guangzhou"] }, "faction": "selfFaction" } }
+                      ]
+                    },
+                    { "kind": "all", "effects": [] }
+                  ]
+                },
+                {
+                  "kind": "any",
+                  "effects": [
+                    {
+                      "kind": "all",
+                      "effects": [
+                        { "kind": "verb", "verb": { "type": "gainCoin", "amount": -1 } },
+                        { "kind": "verb", "verb": { "type": "removeAt", "nodeId": "guangzhou", "pieceTypeId": "foot", "faction": "selfFaction" } },
+                        { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "horse", "at": { "nodes": ["guangzhou"] }, "faction": "selfFaction" } }
+                      ]
+                    },
+                    { "kind": "all", "effects": [] }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "kind": "any",
+            "effects": [
+              { "kind": "verb", "verb": { "type": "move" } },
+              { "kind": "verb", "verb": { "type": "raid" } },
+              { "kind": "verb", "verb": { "type": "assault" } }
+            ]
+          }
+        ]
+      }
+    }
+    ,
     "tea-tickets-and-fees": {
       "template": "character",
       "name": "Tea Tickets and Fees",
@@ -108,13 +233,14 @@
       "backText": "Jingkang",
       "icons": ["war-jin-song"],
       "events-referenced": ["song-1127-enforce-zhang-bangchang-suicide"],
-      "rulesTextOverride": "Remove a :rebel-foot: from Bianjing. Tuck this card.",
+      "rulesTextOverride": "Remove a :rebel-foot: from Bianjing. Shuffle the Jianyan deck into the draw pile. Tuck this card.",
       "quote": { "text": "Facing north, Bangchang kowtowed to receive the investiture; he assumed a false throne as Great Chu and planned to make Jinling the capital.", "cite": "Songshi, Vol. 475" },
       "playCondition": { "kind": "noStarCardInHand" },
       "playConditionMessage": "Cannot be played with other * cards in hand.",
       "keepOnPlay": false,
       "effect": { "kind": "all", "effects": [
         { "kind": "verb", "verb": { "type": "removeAt", "nodeId": "kaifeng", "pieceTypeId": "foot", "faction": "rebel" } },
+        { "kind": "verb", "verb": { "type": "shuffleInByBackText", "backText": "Jianyan" } },
         { "kind": "verb", "verb": { "type": "tuck", "target": "self" } }
       ] }
     }

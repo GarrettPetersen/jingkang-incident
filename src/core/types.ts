@@ -114,6 +114,9 @@ export type VerbSpec =
   | { type: "tuck"; target: "self" | "opponent" }
   | { type: "move"; steps?: number }
   | { type: "generalMove"; steps?: number }
+  | { type: "shuffleInByBackText"; backText: string }
+  | { type: "raid" } // destroy an eligible adjacent enemy foot via specific modes
+  | { type: "assault" } // sacrifice one of your units to destroy an adjacent enemy (mode-specific adjacency)
   | {
       type: "recruitAtCapital";
       pieceTypeId: PieceTypeId;
@@ -290,7 +293,11 @@ export type Prompt =
       kind: "selectPiece";
       playerId: PlayerId;
       pieceIds: PieceId[];
-      next: { kind: "forMove"; steps: number } | { kind: "forDestroy" };
+      next:
+        | { kind: "forMove"; steps: number }
+        | { kind: "forDestroy" }
+        | { kind: "forAssaultSelectTarget"; fromPieceId: PieceId }
+        | { kind: "forAssaultResolve"; fromPieceId: PieceId };
       message: string;
     }
   | {

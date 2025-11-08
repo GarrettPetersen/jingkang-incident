@@ -25,17 +25,6 @@ import { FactionColor } from "./core/types";
 import { map as boardMap } from "./map/board";
 
 let state: GameState = initialState;
-function resolveReferences(text: string): string {
-  try {
-    const cat = (window as any).__cardCatalog as Record<string, any> | undefined;
-    const dict = (window as any).__scenarioCardDict as Record<string, any> | undefined;
-    const getName = (id: string) =>
-      (cat && cat[id] && cat[id].name) || (dict && dict[id] && String(dict[id].name || dict[id].title || id)) || id;
-    return String(text || '').replace(/\[\[([\w:-]+)\]\]/g, (_m, id) => getName(String(id)));
-  } catch {
-    return String(text || '').replace(/\[\[([\w:-]+)\]\]/g, (_m, id) => String(id));
-  }
-}
 
 const root = document.querySelector<HTMLDivElement>("#app")!;
 
@@ -881,6 +870,11 @@ function makeGenericCardDataUrl(
   const fontSize = 14;
   const bandX = 30;
   const bandW = TAROT_CARD_WIDTH - 60;
+  // Generic cards don't render an icon band; set safe defaults
+  const hasIcons = false;
+  const bandY = 0;
+  const bandH = 0;
+  let iconsMarkup = '';
   // Measurer
   const __msvg = document.createElementNS('http://www.w3.org/2000/svg','svg');
   __msvg.setAttribute('width','0'); __msvg.setAttribute('height','0');

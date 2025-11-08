@@ -248,7 +248,7 @@ function renderLeftPanel(state: GameState, handlers: any): HTMLElement {
   if (state.prompt) {
     const p = document.createElement('div');
     p.style.marginTop = '8px';
-    p.textContent = state.prompt.message;
+    p.textContent = state.prompt.message ?? null;
     div.appendChild(p);
   }
 
@@ -1446,7 +1446,6 @@ function showCardModal(card: any, onPlay: () => void, originRect?: { x: number; 
   modal.style.padding = '12px';
   modal.addEventListener('click', (ev) => ev.stopPropagation());
 
-  const showBack = !!(opts && (opts as any).showBack);
   const hasBack = !!(card.asset && (card.asset as any).backPath);
   let showingBack = false;
   const imgRow = document.createElement('div');
@@ -1466,7 +1465,7 @@ function showCardModal(card: any, onPlay: () => void, originRect?: { x: number; 
   img.style.borderRadius = '8px';
   img.style.objectFit = 'contain';
   imgRow.appendChild(img);
-  function glyphChar(kind: string): string {
+  /* function glyphChar(kind: string): string {
     // Private Use Area mapping for icon font
     if (kind === 'foot') return '\uE001';
     if (kind === 'horse') return '\uE002';
@@ -1569,8 +1568,8 @@ function showCardModal(card: any, onPlay: () => void, originRect?: { x: number; 
     }
     wrap.appendChild(svg);
     return wrap;
-  }
-  function parseAndRender(raw: string) {
+  } */
+/* function parseAndRender(raw: string) {
     function resolveCardTitleById(id: string): string {
       try {
         const catalog = (window as any).__cardCatalog as Record<string, any> | undefined;
@@ -1618,12 +1617,9 @@ function showCardModal(card: any, onPlay: () => void, originRect?: { x: number; 
         last = end;
       }
       if (last < paras[i].length) appendWithRefs(line, paras[i].slice(last));
-      text.appendChild(line);
+      // rules container was removed; skip appending to avoid runtime errors
     }
-  }
-  // const raw = card.rulesTextOverride || describeCardRules(card);
-  // if (raw) parseAndRender(raw);
-  // side.appendChild(text);
+  } */
 
   const row = document.createElement('div');
   row.style.display = 'flex';
@@ -1784,12 +1780,7 @@ function showCardModal(card: any, onPlay: () => void, originRect?: { x: number; 
   });
 }
 
-function describeCardRules(card: any): string {
-  if (card.rulesTextOverride) return card.rulesTextOverride;
-  if (card.effect) return describeEffect(card.effect).join('\n');
-  if (Array.isArray(card.verbs)) return card.verbs.map(describeVerb).join('\n');
-  return '';
-}
+// Note: describeCardRules is not currently used in UI flow; keep logic below for effect/verb text
 
 function describeEffect(effect: any): string[] {
   if (!effect) return [];
