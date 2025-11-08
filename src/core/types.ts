@@ -114,6 +114,8 @@ export type VerbSpec =
   | { type: "tuck"; target: "self" | "opponent" }
   | { type: "move"; steps?: number }
   | { type: "generalMove"; steps?: number }
+  | { type: "recruitAtCapital"; pieceTypeId: PieceTypeId; faction?: FactionSelector }
+  | { type: "moveCapital"; steps?: number }
   | { type: "discardFromHand"; excludeStar?: boolean }
   | { type: "discardCardById"; cardId: CardId }
   | { type: "addCardToHand"; cardId: CardId }
@@ -300,7 +302,8 @@ export type Prompt =
       next:
         | { kind: "forRecruit"; pieceTypeId: PieceTypeId; remaining?: number; unique?: boolean; faction?: FactionId }
         | { kind: "forPlaceCharacter"; characterId: CharacterId }
-        | { kind: "forGeneralMove"; characterId: CharacterId; fromNode: NodeId; steps: number };
+        | { kind: "forGeneralMove"; characterId: CharacterId; fromNode: NodeId; steps: number }
+        | { kind: "forMoveCapital"; fromNode: NodeId };
       message: string;
     }
   | {

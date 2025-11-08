@@ -283,6 +283,9 @@ function makeCharacterCardDataUrl(
   const r = 16;
   const gap = 12;
   const tokens = Array.isArray(displayIcons) ? displayIcons.filter(Boolean) : [];
+  const hasIcons = tokens.length > 0;
+  // Determine a primary faction from icon tokens (used to color unqualified piece icons)
+  const primaryFaction = (tokens.find((t) => t === 'song' || t === 'jin' || t === 'daqi' || t === 'rebel') as FactionId | undefined);
   const unitWidth = (r * 2) + gap;
   const spanOf = (tok: string) => String(tok).startsWith('war') ? 2 : 1;
   const totalUnits = tokens.reduce((s, t) => s + spanOf(String(t)), 0);
@@ -533,15 +536,9 @@ function makeCharacterCardDataUrl(
           faction = "jin" as FactionId;
         if (facStr === "daqi" || facStr === "green")
           faction = "daqi" as FactionId;
-        if (
-          !faction &&
-          (which === "foot" ||
-            which === "horse" ||
-            which === "ship" ||
-            which === "capital" ||
-            which === "character")
-        )
+        if (!faction && (which === "foot" || which === "horse" || which === "ship" || which === "capital" || which === "character")) {
           faction = primaryFaction;
+        }
         out.push({ kind: "icon", which, faction });
         last = end;
       }
@@ -642,24 +639,20 @@ function makeCharacterCardDataUrl(
     const qLines = wrapTextToLines(rawQ, bandW, 13, 8).map((s) =>
       s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
     );
-    const c = quote.cite
-      ? quote.cite
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-      : "";
+    const c = quote.cite ? quote.cite.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : "";
     const minY = rulesBottomY ? rulesBottomY + 10 : 90;
-    const byBand = bandY - 30 - (qLines.length - 1) * 14;
-    const baseY = Math.max(minY, byBand);
+    // Determine the lowest safe baseline based on whether an icon band is present
+    const targetBottom = hasIcons ? (bandY - 10) : (TAROT_CARD_HEIGHT - SAFE_MARGIN_TOP - 10);
+    const quoteBlockHeight = qLines.length * 14 + (c ? 12 : 0);
+    // Place the quote so that its bottom (including cite) sits at or above targetBottom
+    const baseY = Math.max(minY, targetBottom - quoteBlockHeight);
     const tspans = qLines
       .map(
         (ln, i) => `<tspan x="${bandX}" dy="${i === 0 ? 0 : 14}">${ln}</tspan>`
       )
       .join("");
     const naturalCiteY = baseY + qLines.length * 14 + 12;
-    const minClearance = 10;
-    const maxCiteY = bandY - minClearance;
-    const citeY = Math.min(maxCiteY, naturalCiteY);
+    const citeY = Math.min(targetBottom, naturalCiteY);
     quoteMarkup = `
   <text x="${bandX}" y="${baseY}" text-anchor="start" font-size="13" fill="#333" font-style="italic">${tspans}</text>
   ${
@@ -700,12 +693,12 @@ function makeCharacterCardDataUrl(
     ]]></style>
   </defs>
   <rect x="0" y="0" width="${width}" height="${height}" fill="url(#cardGrad)" rx="12" ry="12"/>
-  <text x="50%" y="42" text-anchor="middle" font-size="20" font-weight="700" fill="#111"${nameAttrs}>${name}</text>
+  <text x="50%" y="42" text-anchor="middle" font-size="20" font-weight="700" fill="#111"${nameAttrs}>${(name || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</text>
   ${title ? `<text x="50%" y="70" text-anchor="middle" font-size="16" fill="#333"${titleAttrs}>${title}</text>` : ``}
   ${quoteMarkup}
   ${rulesMarkup}
-  <rect x="${bandX}" y="${bandY}" width="${bandW}" height="${bandH}" fill="#eee" rx="8" ry="8"/>
-  ${iconsMarkup}
+  ${hasIcons ? `<rect x="${bandX}" y="${bandY}" width="${bandW}" height="${bandH}" fill="#eee" rx="8" ry="8"/>` : ``}
+  ${hasIcons ? iconsMarkup : ``}
 </svg>`;
   const encoded = encodeURIComponent(svg)
     .replace(/'/g, "%27")
@@ -918,6 +911,8 @@ function makeGenericCardDataUrl(
   <text x="50%" y="56" text-anchor="middle" font-size="22" font-weight="800" fill="#111"${headAttrs}>${safeName}</text>
   ${rulesMarkup}
   ${quoteBlock}
+  ${hasIcons ? `<rect x="${bandX}" y="${bandY}" width="${bandW}" height="${bandH}" fill="#eee" rx="8" ry="8"/>` : ``}
+  ${hasIcons ? iconsMarkup : ``}
 </svg>`;
   const encoded = encodeURIComponent(svg)
     .replace(/'/g, "%27")
@@ -1008,6 +1003,9 @@ function materializeCardFromDef(def: any): Card {
   }
   return c;
 }
+
+// Expose for engine fallback (e.g., addCardToHand resolving scenario-only cards)
+try { (window as any).__materializeCard = materializeCardFromDef; } catch {}
 
 function asCards(
   arr: any[] | undefined,
@@ -1125,6 +1123,19 @@ function buildStateFromScenario(scn: any): GameState {
         }
       }
     }
+    // Also include any cards listed in scenario decks.*.cards (e.g., event, ops)
+    if (scn.decks && typeof scn.decks === 'object') {
+      for (const deck of Object.values(scn.decks) as any[]) {
+        if (deck && Array.isArray(deck.cards)) {
+          for (const cid of deck.cards) {
+            if (!existing.has(cid) && cardDict[cid]) {
+              drawPile.cards.push(materializeCardFromDef({ id: cid, ...(cardDict[cid] as any) }));
+              existing.add(cid);
+            }
+          }
+        }
+      }
+    }
   } catch {}
 
   const seatingOrder =
@@ -1170,10 +1181,37 @@ function buildStateFromScenario(scn: any): GameState {
   try {
     const catalog: Record<string, any> = {};
     for (const [cid, def] of Object.entries(cardDict)) {
-      try { catalog[cid] = materializeCardFromDef({ id: cid, ...(def as any) }); } catch {}
+      try {
+        catalog[cid] = materializeCardFromDef({ id: cid, ...(def as any) });
+      } catch (e) {
+        // Fallback: ensure card still exists in catalog with a generic face
+        try {
+          const name = String((def as any).name || cid);
+          const rules = String((def as any).rulesTextOverride || '');
+          const backText = String((def as any).backText || 'Card');
+          const quote = (def as any).quote;
+          const assetPath = makeGenericCardDataUrl(name, rules, backText, quote);
+          catalog[cid] = {
+            id: cid,
+            name,
+            verbs: [],
+            rulesTextOverride: rules,
+            asset: {
+              path: assetPath,
+              size: { width: TAROT_CARD_WIDTH, height: TAROT_CARD_HEIGHT },
+              backPath: makeCardBackDataUrl(backText),
+            },
+          };
+        } catch {
+          // Last resort: minimal placeholder
+          catalog[cid] = { id: cid, name: String((def as any).name || cid), verbs: [] };
+        }
+      }
     }
     (state as any).cardCatalog = catalog;
     try { (window as any).__cardCatalog = catalog; } catch {}
+    // Keep a copy of raw scenario definitions available to the engine
+    (state as any).scenarioCardDict = cardDict;
   } catch {}
   // Randomly deal identity (character) cards to players and bind characters to owners
   try {

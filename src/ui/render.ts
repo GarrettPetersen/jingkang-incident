@@ -1159,19 +1159,7 @@ function renderCard(card: { name: string; asset?: { path: string; size: { width:
 
   // Note: Flavor text is baked into the card asset SVG (for print & preview)
 
-  // Always show the icon slot overlay if present
-  if (card.asset?.iconSlot) {
-    const overlay = document.createElement('div');
-    const scale = w / card.asset.size.width;
-    overlay.style.position = 'absolute';
-    overlay.style.left = `${card.asset.iconSlot.x * scale}px`;
-    overlay.style.top = `${card.asset.iconSlot.y * scale}px`;
-    overlay.style.width = `${card.asset.iconSlot.width * scale}px`;
-    overlay.style.height = `${card.asset.iconSlot.height * scale}px`;
-    overlay.style.outline = '2px solid #0006';
-    overlay.style.pointerEvents = 'none';
-    container.appendChild(overlay);
-  }
+  // No icon-slot outline overlay in thumbnail; rely on baked SVG for consistency
 
   return container;
 }

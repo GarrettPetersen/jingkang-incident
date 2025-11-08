@@ -360,6 +360,128 @@ function executeVerb(
     return selfFaction !== otherFaction;
   }
   switch (verb.type) {
+    case 'recruitAtCapital': {
+      // Find the capital piece for this player's faction
+      const self = state.players.find((p) => p.id === playerId)!;
+      const fac = self.faction;
+      if (!fac) break;
+      const cap = Object.values(state.pieces).find((pc) => pc.typeId === 'capital' && (pc.faction ?? (pc.ownerId ? state.players.find(p => p.id === pc.ownerId)?.faction : undefined)) === fac);
+      if (!cap || cap.location.kind !== 'node') break;
+      const nodeId = cap.location.nodeId;
+      // Disallow if capital is controlled by a faction other than self (enemy-controlled)
+      const enemyControls = (() => {
+        // Presence at node by other faction implies control
+        for (const pc of Object.values(state.pieces)) {
+          if (pc.location.kind !== 'node') continue;
+          if (pc.location.nodeId !== nodeId) continue;
+          const pf = pc.faction ?? (pc.ownerId ? state.players.find((p) => p.id === pc.ownerId)?.faction : undefined);
+          if (pf && pf !== fac) return true;
+        }
+        // Else, exclusive adjacency by movement mode
+        const landKinds = new Set(['road', 'path']);
+        const waterKinds = new Set(['river', 'canal', 'coast', 'lake']);
+        function neighborsByKinds(nid: string, kinds: Set<string>): string[] {
+          const out: string[] = [];
+          for (const e of Object.values(state.map.edges)) {
+            if (!e.kinds || e.kinds.length === 0) continue;
+            const has = e.kinds.some((k) => kinds.has(k));
+            if (!has) continue;
+            if (e.a === nid) out.push(e.b);
+            else if (e.b === nid) out.push(e.a);
+          }
+          return out;
+        }
+        const contenders: Set<string> = new Set();
+        // Consider factions present in players or pieces
+        const factions = new Set<string>();
+        for (const p of state.players) if (p.faction) factions.add(String(p.faction));
+        for (const pc of Object.values(state.pieces)) if (pc.faction) factions.add(String(pc.faction));
+        for (const f of Array.from(factions)) {
+          let qualifies = false;
+          for (const pc of Object.values(state.pieces)) {
+            if (pc.location.kind !== 'node') continue;
+            const pf = pc.faction ?? (pc.ownerId ? state.players.find((p) => p.id === pc.ownerId)?.faction : undefined);
+            if (pf !== f) continue;
+            const from = pc.location.nodeId;
+            const isShip = pc.typeId === 'ship';
+            const neigh = isShip ? neighborsByKinds(from, waterKinds) : neighborsByKinds(from, landKinds);
+            if (neigh.includes(nodeId)) { qualifies = true; break; }
+          }
+          if (qualifies) {
+            contenders.add(f);
+            if (contenders.size > 1) break;
+          }
+        }
+        // If exactly one contender and it's not self, enemy controls
+        return contenders.size === 1 && !contenders.has(String(fac));
+      })();
+      if (enemyControls) {
+        state.log.push({ message: `${self.name} cannot recruit at the capital while it is enemy-controlled.` });
+        break;
+      }
+      const pieceId = genId('pc');
+      state.pieces[pieceId] = {
+        id: pieceId,
+        faction: fac as any,
+        typeId: (verb as any).pieceTypeId,
+        location: { kind: 'node', nodeId },
+      } as any;
+      const label = (state.map.nodes as any)[nodeId]?.label ?? nodeId;
+      const playerName = self.name ?? playerId;
+      const ptName = (state.pieceTypes as any)[(verb as any).pieceTypeId]?.name ?? String((verb as any).pieceTypeId);
+      state.log.push({ message: `${playerName} recruits ${String(fac).toUpperCase()} ${ptName.toLowerCase()} at ${label}` });
+      break;
+    }
+    case 'moveCapital': {
+      const self = state.players.find((p) => p.id === playerId)!;
+      const fac = self.faction;
+      if (!fac) break;
+      const cap = Object.values(state.pieces).find((pc) => pc.typeId === 'capital' && (pc.faction ?? (pc.ownerId ? state.players.find(p => p.id === pc.ownerId)?.faction : undefined)) === fac);
+      if (!cap || cap.location.kind !== 'node') break;
+      const from = cap.location.nodeId;
+      // BFS up to N steps over any edges
+      const maxSteps = Math.max(1, Number((verb as any).steps ?? 2));
+      const visited = new Set<string>([from]);
+      const queue: Array<{ nid: string; d: number }> = [{ nid: from, d: 0 }];
+      const reachable = new Set<string>();
+      while (queue.length) {
+        const { nid, d } = queue.shift()!;
+        if (d >= maxSteps) continue;
+        const neigh = findAdjacentNodes(state.map, nid);
+        for (const nb of neigh) {
+          if (visited.has(nb)) continue;
+          visited.add(nb);
+          const nd = d + 1;
+          if (nd <= maxSteps) {
+            reachable.add(nb);
+            queue.push({ nid: nb, d: nd });
+          }
+        }
+      }
+      // Filter to safe nodes: no enemy or neutral pieces
+      function isSafe(nid: string): boolean {
+        for (const pc of Object.values(state.pieces)) {
+          if (pc.location.kind !== 'node') continue;
+          if (pc.location.nodeId !== nid) continue;
+          const pf = pc.faction ?? (pc.ownerId ? state.players.find(p => p.id === pc.ownerId)?.faction : undefined);
+          if (pf && pf !== fac) return false;
+        }
+        return true;
+      }
+      const options = Array.from(reachable).filter(isSafe);
+      if (options.length === 0) {
+        state.log.push({ message: `No safe destination within ${maxSteps} of the capital.` });
+        break;
+      }
+      state.prompt = {
+        kind: 'selectNode',
+        playerId,
+        nodeOptions: options,
+        next: { kind: 'forMoveCapital', fromNode: from } as any,
+        message: `Choose a city (≤ ${maxSteps} steps) to move your capital to`,
+      } as any;
+      return;
+    }
     case 'discardFromHand': {
       const self = state.players.find((p) => p.id === playerId)!;
       const hand = self.hand || [];
@@ -406,14 +528,26 @@ function executeVerb(
     case 'addCardToHand': {
       const self = state.players.find((p) => p.id === playerId)!;
       const catalog = (state as any).cardCatalog as Record<string, any> | undefined;
-      const src = catalog?.[verb.cardId];
+      let src = catalog?.[verb.cardId];
+      try {
+        if (!src && (window as any).__cardCatalog) {
+          src = (window as any).__cardCatalog[verb.cardId];
+        }
+        if (!src && ((state as any).scenarioCardDict || (window as any).__scenarioCardDict) && (window as any).__materializeCard) {
+          const def = ((state as any).scenarioCardDict || (window as any).__scenarioCardDict)[verb.cardId];
+          if (def) {
+            src = (window as any).__materializeCard({ id: verb.cardId, ...(def as any) });
+          }
+        }
+      } catch {}
       if (src) {
         // shallow clone is fine for Card
         const cardCopy = { ...(src as any) };
         self.hand.push(cardCopy);
-        state.log.push({ message: `${self.name} adds a card to hand.` });
+        const nm = (cardCopy as any).name || (cardCopy as any).id || String(verb.cardId);
+        state.log.push({ message: `${self.name} adds ${nm} to hand.` });
       } else {
-        state.log.push({ message: `Card ${verb.cardId} not found.` });
+        state.log.push({ message: `Card ${verb.cardId} not found in catalog.` });
       }
       break;
     }
@@ -919,6 +1053,23 @@ export function inputSelectPiece(state: GameState, pieceId: PieceId): void {
   } else if (state.prompt.next.kind === 'forDestroy') {
     delete state.pieces[pieceId];
     state.log.push({ message: `Destroyed piece ${pieceId}` });
+    state.prompt = null;
+    resumePendingIfAny(state);
+  } else if ((next as any).kind === 'forMoveCapital') {
+    const from = String((next as any).fromNode);
+    const self = state.players.find((p) => p.id === state.prompt!.playerId)!;
+    const fac = self.faction;
+    if (!fac) { state.prompt = null; resumePendingIfAny(state); return; }
+    // Validate safe destination
+    for (const pc of Object.values(state.pieces)) {
+      if (pc.location.kind !== 'node') continue;
+      if (pc.location.nodeId !== nodeId) continue;
+      const pf = pc.faction ?? (pc.ownerId ? state.players.find(p => p.id === pc.ownerId)?.faction : undefined);
+      if (pf && pf !== fac) { state.prompt = null; resumePendingIfAny(state); return; }
+    }
+    const cap = Object.values(state.pieces).find((pc) => pc.typeId === 'capital' && (pc.faction ?? (pc.ownerId ? state.players.find(p => p.id === pc.ownerId)?.faction : undefined)) === fac);
+    if (!cap || cap.location.kind !== 'node' || cap.location.nodeId !== from) { state.prompt = null; resumePendingIfAny(state); return; }
+    cap.location = { kind: 'node', nodeId };
     state.prompt = null;
     resumePendingIfAny(state);
   }

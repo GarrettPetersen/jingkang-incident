@@ -115,6 +115,7 @@
       ] }
     },
     "yue-fei-cuts-horses-legs-star": {
+      "template": "character",
       "name": "Yue Fei Cuts the Horses' Legs*",
       "backText": "CHARACTER",
       "rulesTextOverride": "Cannot be played with other * cards in hand.\nKeep this card when played.\nDestroy an enemy :horse: or :foot: in a city adjacent to Yue Fei’s location.\nDraw up to a hand of 6 cards.",
@@ -175,6 +176,7 @@
       ] }
     },
     "liu-yu-sea-routes-map-star": {
+      "template": "character",
       "name": "Liu Yu's Sea Routes Map*",
       "backText": "CHARACTER",
       "events-referenced": ["song-1135-liu-yu-sea-routes-map-presented"],
@@ -237,6 +239,19 @@
         ] },
         "else": { "kind": "verb", "verb": { "type": "draw", "count": 2 } }
       }
+    }
+    ,
+    "imperial-court-threatened": {
+      "template": "character",
+      "name": "Imperial Court Threatened",
+      "backText": "Jingkang",
+      "events-referenced": ["song-1127-court-moves-to-huaiyang"],
+      "rulesTextOverride": "Choose one:\n- Recruit 1 :foot: in your faction’s :capital: (only if your :capital: is not enemy-controlled).\n- Move your faction’s :capital: up to 2 cities to a city with no enemy or neutral units.",
+      "quote": { "text": "In the tenth month, the emperor boarded boats and went to the Huai; the Empress Dowager arrived at Yangzhou.", "cite": "Songshi, Vol. 24" },
+      "effect": { "kind": "any", "effects": [
+        { "kind": "verb", "verb": { "type": "recruitAtCapital", "pieceTypeId": "foot", "faction": "selfFaction" } },
+        { "kind": "verb", "verb": { "type": "moveCapital", "steps": 2 } }
+      ] }
     }
   },
   "players": [
