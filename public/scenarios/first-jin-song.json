@@ -289,7 +289,7 @@
       "name": "Imperial Court Threatened",
       "backText": "Jingkang",
       "events-referenced": ["song-1127-court-moves-to-huaiyang"],
-      "rulesTextOverride": "Choose one:\n- Recruit 1 :foot: in your faction’s :capital: (only if your :capital: is not enemy-controlled).\n- Move your faction’s :capital: up to 2 cities to a city with no enemy or neutral units.",
+      "rulesTextOverride": "Choose one:\n- Recruit 1 :foot: in your faction’s :capital: (only if your :capital: is not enemy-controlled).\n- Move your faction’s :capital: up to 2 steps along any connections to a city with no enemy or neutral units.",
       "quote": { "text": "In the tenth month, the emperor boarded boats and went to the Huai; the Empress Dowager arrived at Yangzhou.", "cite": "Songshi, Vol. 24" },
       "effect": { "kind": "any", "effects": [
         { "kind": "verb", "verb": { "type": "recruitAtCapital", "pieceTypeId": "foot", "faction": "selfFaction" } },
