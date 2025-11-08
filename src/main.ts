@@ -204,7 +204,51 @@ function describeEffect(effect: any): string[] {
   }
   if (effect.kind === "verb") return [describeVerb(effect.verb)];
   if (effect.kind === "if") {
-    const cond = `If has ${effect?.condition?.icon ?? "icon"} tucked`;
+    function describeCondition(cond: any): string {
+      if (!cond || typeof cond !== "object") return "If condition";
+      switch (cond.kind) {
+        case "hasTuckedIcon": {
+          const who =
+            cond.who === "others"
+              ? "an opponent has"
+              : "you have";
+          const need = Math.max(1, Number(cond.atLeast ?? 1));
+          const icon = String(cond.icon ?? "icon");
+          return need > 1
+            ? `If ${who} at least ${need} ${icon} tucked`
+            : `If ${who} ${icon} tucked`;
+        }
+        case "noStarCardInHand":
+          return "If you have no '*' card in hand";
+        case "hasCoins":
+          return `If you have at least ${Math.max(0, Number(cond.atLeast ?? 0))} coins`;
+        case "handCountAtLeast":
+          return `If your hand has at least ${Math.max(0, Number(cond.atLeast ?? 0))} cards`;
+        case "characterAt": {
+          const nodes = Array.isArray(cond.nodes) ? cond.nodes.join(", ") : "specified cities";
+          return `If your character is at ${nodes}`;
+        }
+        case "characterAtCityWithPiece": {
+          const pt = String(cond.pieceTypeId ?? "piece");
+          const fac = cond.faction ? String(cond.faction) : "";
+          const label = fac ? `${fac} ${pt}` : pt;
+          return `If your character is at a city with ${label}`;
+        }
+        case "nodeHasFaction": {
+          const node = String(cond.nodeId ?? "a city");
+          const fac = String(cond.faction ?? "a faction");
+          return `If ${node} has ${fac} presence`;
+        }
+        case "nodeControlledBy": {
+          const node = String(cond.nodeId ?? "a city");
+          const fac = String(cond.faction ?? "a faction");
+          return `If ${node} is controlled by ${fac}`;
+        }
+        default:
+          return "If condition";
+      }
+    }
+    const cond = describeCondition(effect?.condition);
     const thenLines = describeEffect(effect.then);
     const elseLines = effect.else ? describeEffect(effect.else) : [];
     return [
@@ -235,6 +279,93 @@ function describeVerb(verb: any): string {
       return `Destroy any piece`;
     case "move":
       return `Move a piece ${verb.steps ?? 1} step(s)`;
+    case "generalMove": {
+      const steps = Math.max(1, Number(verb.steps ?? 1));
+      return `General move your character up to ${steps} step(s) (with convoy)`;
+    }
+    case "recruitAtCapital": {
+      const kind = String(verb.pieceTypeId ?? "unit");
+      const fac = verb.faction ? String(verb.faction) : "";
+      const facLabel = fac ? ` (${fac})` : "";
+      return `Recruit ${kind}${facLabel} at your capital`;
+    }
+    case "moveCapital": {
+      const steps = Math.max(1, Number(verb.steps ?? 2));
+      return `Move your capital up to ${steps} step(s)`;
+    }
+    case "discardFromHand":
+      return verb.excludeStar
+        ? "Discard a non-'*' card from your hand"
+        : "Discard a card from your hand";
+    case "discardCardById":
+      return `Discard the specified card`;
+    case "addCardToHand":
+      return `Add ${String(verb.cardId)} to your hand`;
+    case "retrieveFromDiscard": {
+      const match = String(verb.match ?? "card");
+      const tgt =
+        verb.target === "opponent"
+          ? "an opponent"
+          : (verb.target && (verb.target as any).playerId)
+          ? "a player"
+          : "you";
+      return `Retrieve a card matching "${match}" from discard and tuck it in front of ${tgt}`;
+    }
+    case "destroyNearby": {
+      const kinds = (verb.pieceTypes && verb.pieceTypes.anyOf) || [];
+      const label =
+        Array.isArray(kinds) && kinds.length
+          ? kinds.join(", ")
+          : "enemy";
+      return `Destroy an adjacent enemy ${label}`;
+    }
+    case "recruitAtCharacter": {
+      const kind = String(verb.pieceTypeId ?? "unit");
+      const fac = verb.faction ? String(verb.faction) : "";
+      const facLabel = fac ? ` (${fac})` : "";
+      return `Recruit ${kind}${facLabel} at your character`;
+    }
+    case "removeAt": {
+      const node = String(verb.nodeId ?? "a city");
+      const pt = verb.pieceTypeId ? String(verb.pieceTypeId) : "a piece";
+      const fac = verb.faction ? ` (${String(verb.faction)})` : "";
+      return `Remove ${pt}${fac} at ${node}`;
+    }
+    case "convertAtCharacter": {
+      const from = verb.fromFaction ? String(verb.fromFaction) : "any faction";
+      const to = String(verb.toFaction ?? "target faction");
+      const kinds = (verb.pieceTypes && verb.pieceTypes.anyOf) || [];
+      const label =
+        Array.isArray(kinds) && kinds.length
+          ? kinds.join(", ")
+          : "pieces";
+      const count = Math.max(1, Number(verb.count ?? 1));
+      return `Convert up to ${count} ${label} from ${from} to ${to} at your character`;
+    }
+    case "destroyAtCharacter": {
+      const from = verb.fromFaction ? ` (${String(verb.fromFaction)})` : "";
+      const kinds = (verb.pieceTypes && verb.pieceTypes.anyOf) || [];
+      const label =
+        Array.isArray(kinds) && kinds.length
+          ? kinds.join(", ")
+          : "pieces";
+      const count = Math.max(1, Number(verb.count ?? 1));
+      return `Destroy up to ${count} ${label}${from} at your character`;
+    }
+    case "retreatAtCharacter": {
+      const fac = String(verb.faction ?? "faction");
+      return `Retreat ${fac} units and characters from your character's city`;
+    }
+    case "trashTuckedCard": {
+      const id = String(verb.matchCardId ?? "card");
+      const tgt =
+        verb.target === "opponent"
+          ? "an opponent"
+          : (verb.target && (verb.target as any).playerId)
+          ? "a player"
+          : "you";
+      return `Trash tucked card ${id} in front of ${tgt}`;
+    }
     case "recruit": {
       const kind = String(
         verb.pieceTypeId || (verb.pieceTypes?.anyOf?.[0] ?? "piece")

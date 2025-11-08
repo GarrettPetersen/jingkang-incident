@@ -434,7 +434,7 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
       const x1 = na.x + ox, y1 = na.y + oy;
       const x2 = nb.x + ox, y2 = nb.y + oy;
       if (kind === 'river') {
-    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         line.setAttribute('x1', String(x1));
         line.setAttribute('y1', String(y1));
         line.setAttribute('x2', String(x2));
@@ -455,7 +455,7 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
           line.setAttribute('stroke-dasharray', '6 4');
         }
         mapLayer.appendChild(line);
-  }
+      }
     }
   });
 

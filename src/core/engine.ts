@@ -144,9 +144,9 @@ export function playCard(state: GameState, cardId: string): void {
   if (card.effect) {
     executeEffect(state, player.id, card, card.effect);
   } else {
-    for (const verb of card.verbs) {
-      if (state.gameOver) break;
-      executeVerb(state, player.id, card, verb);
+  for (const verb of card.verbs) {
+    if (state.gameOver) break;
+    executeVerb(state, player.id, card, verb);
       if (state.prompt) {
         // pause and queue remaining implicit verbs
         const remaining = card.verbs.slice(card.verbs.indexOf(verb) + 1).map((v) => ({ kind: 'verb', verb: v } as any));
@@ -260,66 +260,81 @@ function evaluateCondition(state: GameState, playerId: PlayerId, cond: Condition
       const faction = resolveFactionSelector(state, playerId, (cond as any).faction);
       if (!faction) return false;
       const nodeId = (cond as any).nodeId as string;
-      // Presence rule: any piece of faction at node -> control
-      const present = Object.values(state.pieces).some((pc) => {
-        if (pc.location.kind !== 'node') return false;
-        if (pc.location.nodeId !== nodeId) return false;
-        const pf = pc.faction ?? (pc.ownerId ? state.players.find((p) => p.id === pc.ownerId)?.faction : undefined);
-        return pf === faction;
-      });
-      if (present) return true;
-      // Else, exclusive adjacency by movement type
-      // Precompute neighbors by movement type
-      const landKinds = new Set(['road', 'path']);
-      const waterKinds = new Set(['river', 'canal', 'coast', 'lake']);
-      function neighborsByKinds(nid: string, kinds: Set<string>): string[] {
-        const out: string[] = [];
-        for (const e of Object.values(state.map.edges)) {
-          if (!e.kinds || e.kinds.length === 0) continue;
-          const has = e.kinds.some((k) => kinds.has(k));
-          if (!has) continue;
-          if (e.a === nid) out.push(e.b);
-          else if (e.b === nid) out.push(e.a);
-        }
-        return out;
+      return __nodeControlledByFaction(state, nodeId, faction);
+    }
+    case 'nodesControlledAtLeast': {
+      const faction = resolveFactionSelector(state, playerId, (cond as any).faction);
+      if (!faction) return false;
+      const nodes = Array.isArray((cond as any).nodes) ? ((cond as any).nodes as string[]) : [];
+      const need = Math.max(0, Number((cond as any).atLeast ?? 0));
+      let count = 0;
+      for (const nid of nodes) {
+        if (__nodeControlledByFaction(state, nid, faction)) count += 1;
+        if (count >= need) return true;
       }
-      // Build faction -> any piece adjacent via its movement type?
-      const factions = Array.from(
-        new Set(
-          Object.values(state.players)
-            .map((p) => p.faction)
-            .concat(
-              Object.values(state.pieces).map((pc) =>
-                pc.faction ?? (pc.ownerId ? state.players.find((p) => p.id === pc.ownerId)?.faction : undefined)
-              ) as any
-            )
-        )
-      ).filter(Boolean) as string[];
-      const contenders: Set<string> = new Set();
-      for (const fac of factions) {
-        let qualifies = false;
-        for (const pc of Object.values(state.pieces)) {
-          if (pc.location.kind !== 'node') continue;
-          const pf = pc.faction ?? (pc.ownerId ? state.players.find((p) => p.id === pc.ownerId)?.faction : undefined);
-          if (pf !== fac) continue;
-          const from = pc.location.nodeId;
-          const isShip = pc.typeId === 'ship';
-          const neigh = isShip ? neighborsByKinds(from, waterKinds) : neighborsByKinds(from, landKinds);
-          if (neigh.includes(nodeId)) {
-            qualifies = true;
-            break;
-          }
-        }
-        if (qualifies) {
-          contenders.add(fac);
-          if (contenders.size > 1) break;
-        }
-      }
-      return contenders.size === 1 && contenders.has(faction);
+      return false;
     }
   }
 }
 
+// Helper: determine if a node is controlled by a faction per presence or exclusive adjacency
+function __nodeControlledByFaction(state: GameState, nodeId: string, faction: string | undefined): boolean {
+  if (!faction) return false;
+  // Presence at node by faction
+  const present = Object.values(state.pieces).some((pc) => {
+    if (pc.location.kind !== 'node') return false;
+    if (pc.location.nodeId !== nodeId) return false;
+    const pf = pc.faction ?? (pc.ownerId ? state.players.find((p) => p.id === pc.ownerId)?.faction : undefined);
+    return pf === faction;
+  });
+  if (present) return true;
+  // Else, exclusive adjacency by movement mode
+  const landKinds = new Set(['road', 'path']);
+  const waterKinds = new Set(['river', 'canal', 'coast', 'lake']);
+  function neighborsByKinds(nid: string, kinds: Set<string>): string[] {
+    const out: string[] = [];
+    for (const e of Object.values(state.map.edges)) {
+      if (!e.kinds || e.kinds.length === 0) continue;
+      const has = e.kinds.some((k) => kinds.has(k));
+      if (!has) continue;
+      if (e.a === nid) out.push(e.b);
+      else if (e.b === nid) out.push(e.a);
+    }
+    return out;
+  }
+  const factions = Array.from(
+    new Set(
+      Object.values(state.players)
+        .map((p) => p.faction)
+        .concat(
+          Object.values(state.pieces).map((pc) =>
+            pc.faction ?? (pc.ownerId ? state.players.find((p) => p.id === pc.ownerId)?.faction : undefined)
+          ) as any
+        )
+    )
+  ).filter(Boolean) as string[];
+  const contenders: Set<string> = new Set();
+  for (const fac of factions) {
+    let qualifies = false;
+    for (const pc of Object.values(state.pieces)) {
+      if (pc.location.kind !== 'node') continue;
+      const pf = pc.faction ?? (pc.ownerId ? state.players.find((p) => p.id === pc.ownerId)?.faction : undefined);
+      if (pf !== fac) continue;
+      const from = pc.location.nodeId;
+      const isShip = pc.typeId === 'ship';
+      const neigh = isShip ? neighborsByKinds(from, waterKinds) : neighborsByKinds(from, landKinds);
+      if (neigh.includes(nodeId)) {
+        qualifies = true;
+        break;
+      }
+    }
+    if (qualifies) {
+      contenders.add(fac);
+      if (contenders.size > 1) break;
+    }
+  }
+  return contenders.size === 1 && contenders.has(faction);
+}
 function countTuckedIcon(state: GameState, playerId: PlayerId, icon: IconId): number {
   const p = state.players.find((pp) => pp.id === playerId);
   if (!p) return 0;

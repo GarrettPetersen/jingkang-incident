@@ -81,6 +81,27 @@
       ]}
     }
     ,
+    "tea-tickets-and-fees": {
+      "template": "character",
+      "name": "Tea Tickets and Fees",
+      "backText": "Jingkang",
+      "events-referenced": ["song-1127-1142-common-granary-relief-rollout"],
+      "rulesTextOverride": "Gain 1 :coin: for every 2 of the following tea‑producing cities your faction controls (rounded down): Jianzhou, Shaoxing, Hangzhou, Tanzhou, Chengdu, Lizhou, Xingyuan, Nanchang, Jiujiang.",
+      "quote": {
+        "text": "“All tea was under prohibition; only in Chuanxia and Lingnan could people buy and sell for personal use; export beyond the frontier was forbidden.”",
+        "cite": "Songshi, Treatises (Fiscal V: Salt/Tea)"
+      },
+      "effect": {
+        "kind": "all",
+        "effects": [
+          { "kind": "if", "condition": { "kind": "nodesControlledAtLeast", "nodes": ["jianzhou-fj","shaoxing","hangzhou","tanzhou","chengdu","lizhou","xingyuan","nanchang","jiujiang"], "faction": "selfFaction", "atLeast": 2 }, "then": { "kind": "verb", "verb": { "type": "gainCoin", "amount": 1 } } },
+          { "kind": "if", "condition": { "kind": "nodesControlledAtLeast", "nodes": ["jianzhou-fj","shaoxing","hangzhou","tanzhou","chengdu","lizhou","xingyuan","nanchang","jiujiang"], "faction": "selfFaction", "atLeast": 4 }, "then": { "kind": "verb", "verb": { "type": "gainCoin", "amount": 1 } } },
+          { "kind": "if", "condition": { "kind": "nodesControlledAtLeast", "nodes": ["jianzhou-fj","shaoxing","hangzhou","tanzhou","chengdu","lizhou","xingyuan","nanchang","jiujiang"], "faction": "selfFaction", "atLeast": 6 }, "then": { "kind": "verb", "verb": { "type": "gainCoin", "amount": 1 } } },
+          { "kind": "if", "condition": { "kind": "nodesControlledAtLeast", "nodes": ["jianzhou-fj","shaoxing","hangzhou","tanzhou","chengdu","lizhou","xingyuan","nanchang","jiujiang"], "faction": "selfFaction", "atLeast": 8 }, "then": { "kind": "verb", "verb": { "type": "gainCoin", "amount": 1 } } }
+        ]
+      }
+    }
+    ,
     "zhang-bangchang-ordered-to-drink-poison-star": {
       "template": "character",
       "name": "Zhang Bangchang Ordered to Drink Poison*",
@@ -200,7 +221,6 @@
       "template": "character",
       "name": "Meng’an–Mouke System",
       "backText": "Jingkang",
-      "icons": ["jin"],
       "events-referenced": ["jin-1127-1142-mengan-mouke-system"],
       "rulesTextOverride": "Recruit 1 :jin-horse: at Shangjing if Shangjing is Jin‑controlled.\nThen Move.",
       "quote": { "text": "Organized under Meng’an and Mouke, military and civil registers are unified and offices pass down the generations to provide forces for campaigns and frontier garrisons.", "cite": "Jinshi, Vol. 44" },
@@ -238,6 +258,29 @@
           { "kind": "verb", "verb": { "type": "gainCoin", "amount": 1 } }
         ] },
         "else": { "kind": "verb", "verb": { "type": "draw", "count": 2 } }
+      }
+    }
+    ,
+    "imperial-salt-monopoly": {
+      "template": "character",
+      "name": "Imperial Salt Monopoly",
+      "backText": "Jingkang",
+      "events-referenced": ["jin-1127-1142-salt-tea-tax-network", "song-1127-1142-fujian-sea-salt-markets"],
+      "rulesTextOverride": "Gain 1 :coin: for each city your faction controls among the salt-producing cities: Cangzhou, Haizhou, Taizhou, Fuzhou, Quanzhou, and Taiyuan.",
+      "quote": {
+        "text": "Under the Jin system, among the ten categories of monopolized goods, salt ranked first.",
+        "cite": "Jinshi, Vol. 49"
+      },
+      "effect": {
+        "kind": "all",
+        "effects": [
+          { "kind": "if", "condition": { "kind": "nodeControlledBy", "nodeId": "cangzhou", "faction": "selfFaction" }, "then": { "kind": "verb", "verb": { "type": "gainCoin", "amount": 1 } } },
+          { "kind": "if", "condition": { "kind": "nodeControlledBy", "nodeId": "haizhou",  "faction": "selfFaction" }, "then": { "kind": "verb", "verb": { "type": "gainCoin", "amount": 1 } } },
+          { "kind": "if", "condition": { "kind": "nodeControlledBy", "nodeId": "taizhou",  "faction": "selfFaction" }, "then": { "kind": "verb", "verb": { "type": "gainCoin", "amount": 1 } } },
+          { "kind": "if", "condition": { "kind": "nodeControlledBy", "nodeId": "fuzhou",   "faction": "selfFaction" }, "then": { "kind": "verb", "verb": { "type": "gainCoin", "amount": 1 } } },
+          { "kind": "if", "condition": { "kind": "nodeControlledBy", "nodeId": "quanzhou", "faction": "selfFaction" }, "then": { "kind": "verb", "verb": { "type": "gainCoin", "amount": 1 } } },
+          { "kind": "if", "condition": { "kind": "nodeControlledBy", "nodeId": "taiyuan",  "faction": "selfFaction" }, "then": { "kind": "verb", "verb": { "type": "gainCoin", "amount": 1 } } }
+        ]
       }
     }
     ,

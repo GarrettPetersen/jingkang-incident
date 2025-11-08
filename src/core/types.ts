@@ -114,12 +114,20 @@ export type VerbSpec =
   | { type: "tuck"; target: "self" | "opponent" }
   | { type: "move"; steps?: number }
   | { type: "generalMove"; steps?: number }
-  | { type: "recruitAtCapital"; pieceTypeId: PieceTypeId; faction?: FactionSelector }
+  | {
+      type: "recruitAtCapital";
+      pieceTypeId: PieceTypeId;
+      faction?: FactionSelector;
+    }
   | { type: "moveCapital"; steps?: number }
   | { type: "discardFromHand"; excludeStar?: boolean }
   | { type: "discardCardById"; cardId: CardId }
   | { type: "addCardToHand"; cardId: CardId }
-  | { type: "retrieveFromDiscard"; match?: string; target?: "self" | "opponent" }
+  | {
+      type: "retrieveFromDiscard";
+      match?: string;
+      target?: "self" | "opponent";
+    }
   | {
       type: "recruit";
       pieceTypeId?: PieceTypeId;
@@ -200,44 +208,59 @@ export type Effect =
   | { kind: "any"; effects: Effect[] } // choice / OR (UI may prompt later)
   | { kind: "if"; condition: Condition; then: Effect; else?: Effect };
 
-export type Condition = {
-  kind: "hasTuckedIcon";
-  who: "self" | "others";
-  icon: IconId;
-  atLeast?: number;
-} | {
-  // True when the current player's hand has NO card whose title contains '*'
-  kind: "noStarCardInHand";
-} | {
-  // True if the current player has at least this many coins
-  kind: "hasCoins";
-  atLeast: number;
-} | {
-  // True if the current player's hand count is at least this number
-  kind: "handCountAtLeast";
-  atLeast: number;
-} | {
-  // True if the current player's character is at any of the provided nodes
-  kind: "characterAt";
-  nodes: NodeId[];
-} | {
-  // True if the current player's character is in a city that contains a given piece type (optionally faction)
-  kind: "characterAtCityWithPiece";
-  pieceTypeId: PieceTypeId;
-  faction?: FactionSelector;
-} | {
-  // True if the specified node currently contains a piece of the given faction (presence check)
-  kind: "nodeHasFaction";
-  nodeId: NodeId;
-  faction: FactionSelector;
-} | {
-  // True if the specified node is controlled by a faction:
-  // (a) presence of that faction at the node, OR
-  // (b) exactly one adjacent contender by movement type, and it is that faction
-  kind: "nodeControlledBy";
-  nodeId: NodeId;
-  faction: FactionSelector;
-};
+export type Condition =
+  | {
+      kind: "hasTuckedIcon";
+      who: "self" | "others";
+      icon: IconId;
+      atLeast?: number;
+    }
+  | {
+      // True when the current player's hand has NO card whose title contains '*'
+      kind: "noStarCardInHand";
+    }
+  | {
+      // True if the current player has at least this many coins
+      kind: "hasCoins";
+      atLeast: number;
+    }
+  | {
+      // True if the current player's hand count is at least this number
+      kind: "handCountAtLeast";
+      atLeast: number;
+    }
+  | {
+      // True if the current player's character is at any of the provided nodes
+      kind: "characterAt";
+      nodes: NodeId[];
+    }
+  | {
+      // True if the current player's character is in a city that contains a given piece type (optionally faction)
+      kind: "characterAtCityWithPiece";
+      pieceTypeId: PieceTypeId;
+      faction?: FactionSelector;
+    }
+  | {
+      // True if the specified node currently contains a piece of the given faction (presence check)
+      kind: "nodeHasFaction";
+      nodeId: NodeId;
+      faction: FactionSelector;
+    }
+  | {
+      // True if the specified node is controlled by a faction:
+      // (a) presence of that faction at the node, OR
+      // (b) exactly one adjacent contender by movement type, and it is that faction
+      kind: "nodeControlledBy";
+      nodeId: NodeId;
+      faction: FactionSelector;
+    }
+  | {
+      // True if at least N nodes from the provided set are controlled by a faction
+      kind: "nodesControlledAtLeast";
+      nodes: NodeId[];
+      faction: FactionSelector;
+      atLeast: number;
+    };
 
 // Selectors and parameter helpers for verb arguments
 export type PlayerSelector = "self" | "opponent" | { playerId: PlayerId };
@@ -300,9 +323,20 @@ export type Prompt =
       playerId: PlayerId;
       nodeOptions: NodeId[];
       next:
-        | { kind: "forRecruit"; pieceTypeId: PieceTypeId; remaining?: number; unique?: boolean; faction?: FactionId }
+        | {
+            kind: "forRecruit";
+            pieceTypeId: PieceTypeId;
+            remaining?: number;
+            unique?: boolean;
+            faction?: FactionId;
+          }
         | { kind: "forPlaceCharacter"; characterId: CharacterId }
-        | { kind: "forGeneralMove"; characterId: CharacterId; fromNode: NodeId; steps: number }
+        | {
+            kind: "forGeneralMove";
+            characterId: CharacterId;
+            fromNode: NodeId;
+            steps: number;
+          }
         | { kind: "forMoveCapital"; fromNode: NodeId };
       message: string;
     }
