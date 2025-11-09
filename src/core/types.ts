@@ -112,11 +112,27 @@ export type VerbSpec =
   | { type: "draw"; count: number; target?: PlayerSelector }
   | { type: "drawUpTo"; limit: number }
   | { type: "tuck"; target: "self" | "opponent" }
-  | { type: "move"; steps?: number }
+  | { type: "move"; steps?: number; actingFaction?: FactionSelector }
   | { type: "generalMove"; steps?: number }
   | { type: "shuffleInByBackText"; backText: string }
-  | { type: "raid" } // destroy an eligible adjacent enemy foot via specific modes
-  | { type: "assault" } // sacrifice one of your units to destroy an adjacent enemy (mode-specific adjacency)
+  | { type: "raid"; actingFaction?: FactionSelector } // destroy an eligible adjacent enemy foot via specific modes
+  | { type: "assault"; actingFaction?: FactionSelector } // sacrifice one of your units to destroy an adjacent enemy (mode-specific adjacency)
+  | {
+      // Destroy up to N pieces at a specific node, optionally filtering by faction (include/exclude) and piece types
+      type: "destroyAtNode";
+      nodeId: NodeId;
+      fromFaction?: FactionSelector; // only this faction
+      notFaction?: FactionSelector; // exclude this faction
+      pieceTypes?: PieceTypeSelector;
+      count?: number;
+    }
+  | {
+      // Force units/characters of targeted factions at a node to retreat to adjacent safe nodes
+      type: "retreatAtNode";
+      nodeId: NodeId;
+      faction?: FactionSelector; // only this faction
+      excludeFaction?: FactionSelector; // retreat everyone except this faction
+    }
   | {
       type: "recruitAtCapital";
       pieceTypeId: PieceTypeId;
@@ -126,6 +142,45 @@ export type VerbSpec =
   | { type: "discardFromHand"; excludeStar?: boolean }
   | { type: "discardCardById"; cardId: CardId }
   | { type: "addCardToHand"; cardId: CardId }
+  | {
+      type: "addCardToPlayerHand";
+      cardId: CardId;
+      player: PlayerSelector | { playerId: PlayerId };
+    }
+  | {
+      type: "addCardToDrawPile";
+      cardId: CardId;
+      shuffle?: boolean;
+    }
+  | {
+      type: "discardCardFromPlayerById";
+      cardId: CardId;
+      player: PlayerSelector | { playerId: PlayerId };
+    }
+  | {
+      type: "trashCardFromPlayerById";
+      cardId: CardId;
+      player: PlayerSelector | { playerId: PlayerId };
+    }
+  | {
+      // Remove all instances of a card id from anywhere (all hands, all tucked, draw/discard piles)
+      type: "trashCardById";
+      cardId: CardId;
+    }
+  | {
+      // Remove all instances of a card id from any player's hand/tucked, and from decks
+      type: "trashCardByIdAnywhere";
+      cardId: CardId;
+    }
+  | {
+      type: "tuckToPlayer";
+      player: PlayerSelector | { playerId: PlayerId };
+    }
+  | {
+      // Establish Da Qi: choose a Jin-controlled city (excluding some), place Da Qi base and neighbors
+      type: "establishDaqi";
+      excludeNodes?: NodeId[];
+    }
   | {
       type: "retrieveFromDiscard";
       match?: string;
@@ -266,7 +321,11 @@ export type Condition =
     };
 
 // Selectors and parameter helpers for verb arguments
-export type PlayerSelector = "self" | "opponent" | { playerId: PlayerId };
+export type PlayerSelector =
+  | "self"
+  | "opponent"
+  | { playerId: PlayerId }
+  | { controllerOfCharacterId: CharacterId };
 
 export type FactionSelector = FactionId | "selfFaction" | "opponentFaction";
 
@@ -294,7 +353,7 @@ export type Prompt =
       playerId: PlayerId;
       pieceIds: PieceId[];
       next:
-        | { kind: "forMove"; steps: number }
+        | { kind: "forMove"; steps: number; actingFaction?: FactionId }
         | { kind: "forDestroy" }
         | { kind: "forAssaultSelectTarget"; fromPieceId: PieceId }
         | { kind: "forAssaultResolve"; fromPieceId: PieceId };
@@ -323,6 +382,7 @@ export type Prompt =
       pieceId: PieceId;
       nodeOptions: NodeId[];
       stepsRemaining: number;
+      controlFaction?: FactionId;
       message: string;
     }
   | {
@@ -344,7 +404,8 @@ export type Prompt =
             fromNode: NodeId;
             steps: number;
           }
-        | { kind: "forMoveCapital"; fromNode: NodeId };
+        | { kind: "forMoveCapital"; fromNode: NodeId }
+        | { kind: "forEstablishDaqi" };
       message: string;
     }
   | {

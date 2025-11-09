@@ -81,6 +81,57 @@
       ]}
     }
     ,
+    "liu-yu-puppet-emperor-of-da-qi-star": {
+      "template": "character",
+      "name": "Liu Yu, Puppet Emperor of Da Qi*",
+      "backText": "CHARACTER",
+      "icons": ["liu-yu","daqi","war-daqi-song","war-daqi-rebel","ally-daqi-jin"],
+      "events-referenced": ["jin-1130-liu-yu-enthroned-qi","song-1130-liu-yu-installed-as-qi"],
+      "rulesTextOverride": "Choose any Jin-controlled city excluding Shangjing and Yanjing. Place :daqi-capital: there and 3 :daqi-foot:. Place 3 :daqi-foot: and 2 :daqi-ship: in cities adjacent to :daqi-capital: that contain no Song or Rebel pieces (if possible). Shuffle the Da Qi deck into the draw deck. Trash [[liu-yu-defects-to-the-jin]] and tuck this card in front of Liu Yu’s player.",
+      "quote": { "text": "“With full investiture rites, they established Liu Yu as Emperor of Great Qi, with the capital at Daming.”", "cite": "Jinshi, Vol. 77" },
+      "keepOnPlay": false,
+      "effect": {
+        "kind": "all",
+        "effects": [
+          { "kind": "verb", "verb": { "type": "establishDaqi", "excludeNodes": ["shangjing","yanjing"] } },
+          { "kind": "verb", "verb": { "type": "trashCardById", "cardId": "liu-yu-defects-to-the-jin" } },
+          { "kind": "verb", "verb": { "type": "tuckToPlayer", "player": { "controllerOfCharacterId": "char-liu-yu" } } }
+        ]
+      }
+    }
+    ,
+    "li-cheng-rebels-star": {
+      "template": "character",
+      "name": "Li Cheng Rebels*",
+      "backText": "Jingkang",
+      "icons": ["war-rebel-song","war-rebel-jin"],
+      "events-referenced": ["song-1129-jianghuai-uprisings-li-cheng-emerges","song-1129-li-cheng-enters-shuzhou","song-1131-jiangzhou-siege-li-cheng"],
+      "rulesTextOverride": "Destroy one non‑rebel :foot:/:horse:/:ship: in Yangzhou. All other non‑rebel pieces in Yangzhou retreat. Then add 2 :rebel-foot: and 1 :rebel-ship: in Yangzhou.\nThen choose one: Move; Raid; Assault.\nThen tuck this card.",
+      "quote": {
+        "text": "“In the Jiang–Huai region bandits rose up in swarms; Li Cheng was especially fierce, holding more than ten prefectures across Jiang–Huai and Huxiang.”",
+        "cite": "Songshi, Vol. 369"
+      },
+      "keepOnPlay": false,
+      "effect": {
+        "kind": "all",
+        "effects": [
+          { "kind": "verb", "verb": { "type": "destroyAtNode", "nodeId": "yangzhou", "notFaction": "rebel", "pieceTypes": { "anyOf": ["foot","horse","ship"] }, "count": 1 } },
+          { "kind": "verb", "verb": { "type": "retreatAtNode", "nodeId": "yangzhou", "excludeFaction": "rebel" } },
+          { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "foot", "count": 2, "at": { "nodes": ["yangzhou"] }, "faction": "rebel" } },
+          { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "ship", "count": 1, "at": { "nodes": ["yangzhou"] }, "faction": "rebel" } },
+          {
+            "kind": "any",
+            "effects": [
+              { "kind": "verb", "verb": { "type": "move", "actingFaction": "rebel" }, "label": "Move a rebel unit" },
+              { "kind": "verb", "verb": { "type": "raid", "actingFaction": "rebel" }, "label": "Raid with a rebel unit" },
+              { "kind": "verb", "verb": { "type": "assault", "actingFaction": "rebel" }, "label": "Assault with a rebel unit" }
+            ]
+          },
+          { "kind": "verb", "verb": { "type": "tuck", "target": "self" } }
+        ]
+      }
+    }
+    ,
     "maritime-trade-offices": {
       "template": "character",
       "name": "Maritime Trade Offices",
@@ -233,14 +284,13 @@
       "backText": "Jingkang",
       "icons": ["war-jin-song"],
       "events-referenced": ["song-1127-enforce-zhang-bangchang-suicide"],
-      "rulesTextOverride": "Remove a :rebel-foot: from Bianjing. Shuffle the Jianyan deck into the draw pile. Tuck this card.",
+      "rulesTextOverride": "Remove a :rebel-foot: from Bianjing. \nShuffle the Jianyan deck into the draw pile. \nGive [[liu-yu-defects-to-the-jin]] to Liu Yu’s player. \nTuck this card.",
       "quote": { "text": "Facing north, Bangchang kowtowed to receive the investiture; he assumed a false throne as Great Chu and planned to make Jinling the capital.", "cite": "Songshi, Vol. 475" },
-      "playCondition": { "kind": "noStarCardInHand" },
-      "playConditionMessage": "Cannot be played with other * cards in hand.",
       "keepOnPlay": false,
       "effect": { "kind": "all", "effects": [
         { "kind": "verb", "verb": { "type": "removeAt", "nodeId": "kaifeng", "pieceTypeId": "foot", "faction": "rebel" } },
         { "kind": "verb", "verb": { "type": "shuffleInByBackText", "backText": "Jianyan" } },
+        { "kind": "verb", "verb": { "type": "addCardToPlayerHand", "cardId": "liu-yu-defects-to-the-jin", "player": { "controllerOfCharacterId": "char-liu-yu" } } },
         { "kind": "verb", "verb": { "type": "tuck", "target": "self" } }
       ] }
     }
@@ -254,6 +304,7 @@
       "rulesTextOverride": "Convert 2 :song-foot:/:song-horse:/:song-ship: to the same type of :jin-foot:/:jin-horse:/:jin-ship: in Liu Yu’s location.\nDestroy 1 :song-foot:/:song-horse:/:song-ship: in Liu Yu’s location.\nAll other :song-foot:/:song-horse:/:song-ship: and :song-character: in Liu Yu’s location retreat.\nTrash the [[start-liu-yu]] card and tuck this card in front of Liu Yu in its place.",
       "quote": { "text": "He killed his general and surrendered to the Jin.", "cite": "Songshi, Vol. 475" },
       "effect": { "kind": "all", "effects": [
+        { "kind": "verb", "verb": { "type": "addCardToDrawPile", "cardId": "liu-yu-puppet-emperor-of-da-qi-star", "shuffle": true } },
         { "kind": "verb", "verb": { "type": "destroyAtCharacter", "fromFaction": "song", "pieceTypes": { "anyOf": ["foot","horse","ship"] }, "count": 1 } },
         { "kind": "verb", "verb": { "type": "convertAtCharacter", "fromFaction": "song", "toFaction": "jin", "pieceTypes": { "anyOf": ["foot","horse","ship"] }, "count": 2 } },
         { "kind": "verb", "verb": { "type": "retreatAtCharacter", "faction": "song" } },
@@ -432,7 +483,7 @@
   ],
   "global": {
     "tucked": [],
-    "drawPile": [],
+    "drawPile": ["li-cheng-rebels-star"],
     "discardPile": []
   },
   "decks": {
@@ -440,11 +491,11 @@
     "ops": { "cards": [] }
   },
   "characters": [
-    { "id": "char-yue-fei", "playerId": "a", "name": "Yue Fei",   "portrait": "/portraits/yue-fei.svg" },
-    { "id": "char-qin-hui", "playerId": "b", "name": "Qin Hui",  "portrait": "/portraits/qin-hui.svg" },
-    { "id": "char-wuzhu",   "playerId": "c", "name": "Wuzhu",    "portrait": "/portraits/wuzhu.svg" },
-    { "id": "char-talan",   "playerId": "d", "name": "Talan",    "portrait": "/portraits/talan.svg" },
-    { "id": "char-liu-yu",  "playerId": "e", "name": "Liu Yu",   "portrait": "/portraits/liu-yu.svg" }
+    { "id": "char-yue-fei", "name": "Yue Fei",   "portrait": "/portraits/yue-fei.svg" },
+    { "id": "char-qin-hui", "name": "Qin Hui",  "portrait": "/portraits/qin-hui.svg" },
+    { "id": "char-wuzhu",   "name": "Wuzhu",    "portrait": "/portraits/wuzhu.svg" },
+    { "id": "char-talan",   "name": "Talan",    "portrait": "/portraits/talan.svg" },
+    { "id": "char-liu-yu",  "name": "Liu Yu",   "portrait": "/portraits/liu-yu.svg" }
   ],
   "pieces": []
 }

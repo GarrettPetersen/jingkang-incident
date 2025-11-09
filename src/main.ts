@@ -408,15 +408,34 @@ function makeCharacterCardDataUrl(
   const primaryFaction = (tokens.find((t) => t === 'song' || t === 'jin' || t === 'daqi' || t === 'rebel') as FactionId | undefined);
   const unitWidth = (r * 2) + gap;
   const spanOf = (tok: string) => String(tok).startsWith('war') ? 2 : 1;
-  const totalUnits = tokens.reduce((s, t) => s + spanOf(String(t)), 0);
-  const totalW = totalUnits * (r * 2) + (totalUnits - 1) * gap;
-  const startX = bandX + (bandW - totalW) / 2 + r;
-  const cy = bandY + bandH / 2;
+  // Multi-row layout if needed
+  const maxUnitsPerRow = Math.max(1, Math.floor(bandW / unitWidth));
+  const rows: Array<{ tokens: string[]; units: number }> = [];
+  let cur: string[] = [];
+  let usedUnits = 0;
+  for (const t of tokens) {
+    const need = spanOf(String(t));
+    if (usedUnits > 0 && usedUnits + need > maxUnitsPerRow) {
+      rows.push({ tokens: cur, units: usedUnits });
+      cur = [];
+      usedUnits = 0;
+    }
+    cur.push(t);
+    usedUnits += need;
+  }
+  if (cur.length) rows.push({ tokens: cur, units: usedUnits });
+  const rowGap = 10;
+  const contentH = rows.length * (r * 2) + (rows.length > 1 ? (rows.length - 1) * rowGap : 0);
+  const startY = bandY + (bandH - contentH) / 2 + r;
   let iconsMarkup = "";
-  let u = 0; // unit cursor
-  tokens.forEach((tok) => {
-    const span = spanOf(String(tok));
-    const cx = span === 1 ? (startX + u * unitWidth) : (startX + u * unitWidth + unitWidth / 2);
+  rows.forEach((row, ri) => {
+    const totalW = row.units * (r * 2) + (row.units - 1) * gap;
+    const startX = bandX + (bandW - totalW) / 2 + r;
+    let u = 0;
+    const cy = startY + ri * ((r * 2) + rowGap);
+    row.tokens.forEach((tok) => {
+      const span = spanOf(String(tok));
+      const cx = span === 1 ? (startX + u * unitWidth) : (startX + u * unitWidth + unitWidth / 2);
     if (tok === 'character') {
       const initials = name.split(/\s+/).map(s=>s[0]||'').join('').slice(0,2).toUpperCase();
       iconsMarkup += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#fff" stroke="#222" stroke-width="2"/>
@@ -450,6 +469,27 @@ function makeCharacterCardDataUrl(
         <path d="M ${cx-6} ${cy-10} L ${cx+6} ${cy+10}" stroke="#111" stroke-width="3"/>
         <path d="M ${cx-6} ${cy+10} L ${cx+6} ${cy-10}" stroke="#111" stroke-width="3"/>
       </g>`;
+    } else if (String(tok).startsWith('ally')) {
+      // ally-jin-song or ally:jin:song
+      const parts = String(tok).includes(':') ? String(tok).split(':') : String(tok).split('-');
+      const fa = (parts[1] || '').toLowerCase() as FactionId;
+      const fb = (parts[2] || '').toLowerCase() as FactionId;
+      const fillA = (FactionColor as any)[fa] || '#999';
+      const fillB = (FactionColor as any)[fb] || '#999';
+      const charA = getFactionHan(fa);
+      const charB = getFactionHan(fb);
+      const textFillA = fa === 'jin' ? '#111' : '#fff';
+      const textFillB = fb === 'jin' ? '#111' : '#fff';
+      const rr = r;
+      const leftX = cx - (unitWidth / 2);
+      const rightX = cx + (unitWidth / 2);
+      iconsMarkup += `<g>
+        <circle cx="${leftX}" cy="${cy}" r="${rr}" fill="${fillA}" stroke="#222" stroke-width="2"/>
+        <text x="${leftX}" y="${cy + 6}" text-anchor="middle" font-size="14" font-weight="800" fill="${textFillA}">${charA}</text>
+        <circle cx="${rightX}" cy="${cy}" r="${rr}" fill="${fillB}" stroke="#222" stroke-width="2"/>
+        <text x="${rightX}" y="${cy + 6}" text-anchor="middle" font-size="14" font-weight="800" fill="${textFillB}">${charB}</text>
+        <path d="M ${leftX + rr} ${cy} L ${rightX - rr} ${cy}" stroke="#0a0" stroke-width="3"/>
+      </g>`;
     } else {
       // Treat any other token as a specific character icon; render initials from token
       const words = String(tok).split(/[^A-Za-z]+/).filter(Boolean);
@@ -458,6 +498,7 @@ function makeCharacterCardDataUrl(
         <text x="${cx}" y="${cy + 5}" text-anchor="middle" font-size="16" font-weight="700" fill="#111">${initials}</text>`;
     }
     u += span;
+    });
   });
   // Rules text block (baked into SVG) — place higher up under title
   let rulesMarkup = "";
