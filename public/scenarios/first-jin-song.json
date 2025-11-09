@@ -7,7 +7,7 @@
       "template": "character", "name": "Yue Fei, Loyal Song Officer",
       "backText": "START",
       "icons": ["yue-fei","song"],
-      "quote": { "text": "If civil officials don’t love money and military men don’t fear death, the realm will be at peace.", "cite": "Yue Fei, Songshi, Vol. 365" },
+      "quote": { "text": "“If civil officials don’t love money and military men don’t fear death, the realm will be at peace.”", "cite": "Yue Fei, Songshi, Vol. 365" },
       "rulesTextOverride": "Add [[yue-fei-cuts-horses-legs-star]] to your hand.\nRecruit one :song-foot: in 5 separate cities without :dot: or :star:.\nPlace Yue Fei in Ezhou or a city adjacent to Ezhou.\nDraw up to a hand of 6 cards.\nTuck this card.",
       "effect": { "kind": "all", "effects": [
         { "kind": "verb", "verb": { "type": "addCardToHand", "cardId": "yue-fei-cuts-horses-legs-star" } },
@@ -21,7 +21,7 @@
       "template": "character", "name": "Qin Hui, Jin Captive",
       "backText": "START",
       "icons": ["qin-hui","jin"],
-      "quote": { "text": "Let the South keep to the South, the North to the North.", "cite": "Qin Hui, Songshi, Vol. 473" },
+      "quote": { "text": "“Let the South keep to the South, the North to the North.”", "cite": "Qin Hui, Songshi, Vol. 473" },
       "rulesTextOverride": "Add [[qin-hui-treacherous-minister-star]] to your hand.\nPlace one :rebel-foot: in Bianjing.\nPlace :jin-capital: in Shangjing or Yanjing.\nPlace Qin Hui in any city with :dot:.\nDraw up to a hand of 6 cards.\nTuck this card.",
       "effect": { "kind": "all", "effects": [
         { "kind": "verb", "verb": { "type": "addCardToHand", "cardId": "qin-hui-treacherous-minister-star" } },
@@ -88,7 +88,7 @@
       "icons": ["liu-yu","daqi","war-daqi-song","war-daqi-rebel","ally-daqi-jin"],
       "events-referenced": ["jin-1130-liu-yu-enthroned-qi","song-1130-liu-yu-installed-as-qi"],
       "rulesTextOverride": "Choose any Jin-controlled city excluding Shangjing and Yanjing. Place :daqi-capital: there and 3 :daqi-foot:. Place 3 :daqi-foot: and 2 :daqi-ship: in cities adjacent to :daqi-capital: that contain no Song or Rebel pieces (if possible). Shuffle the Da Qi deck into the draw deck. Trash [[liu-yu-defects-to-the-jin]] and tuck this card in front of Liu Yu’s player.",
-      "quote": { "text": "“With full investiture rites, they established Liu Yu as Emperor of Great Qi, with the capital at Daming.”", "cite": "Jinshi, Vol. 77" },
+      "quote": { "text": "They performed the investiture with full rites, established Liu Yu as Emperor of Great Qi, and made Daming the capital.", "cite": "Jinshi, Vol. 77" },
       "keepOnPlay": false,
       "effect": {
         "kind": "all",
@@ -108,7 +108,7 @@
       "events-referenced": ["song-1129-jianghuai-uprisings-li-cheng-emerges","song-1129-li-cheng-enters-shuzhou","song-1131-jiangzhou-siege-li-cheng"],
       "rulesTextOverride": "Destroy one non‑rebel :foot:/:horse:/:ship: in Yangzhou. All other non‑rebel pieces in Yangzhou retreat. Then add 2 :rebel-foot: and 1 :rebel-ship: in Yangzhou.\nThen choose one: Move; Raid; Assault.\nThen tuck this card.",
       "quote": {
-        "text": "“In the Jiang–Huai region bandits rose up in swarms; Li Cheng was especially fierce, holding more than ten prefectures across Jiang–Huai and Huxiang.”",
+        "text": "In the Jiang–Huai region bandits rose up in swarms; Li Cheng was especially fierce, holding more than ten prefectures across Jiang–Huai and Huxiang.",
         "cite": "Songshi, Vol. 369"
       },
       "keepOnPlay": false,
@@ -139,7 +139,7 @@
       "events-referenced": ["song-1129-reinstate-shibo-liangzhe-fujian", "song-1129-1142-mingzhou-maritime-customs", "song-1129-1142-quanzhou-maritime-customs", "song-1129-1142-guangzhou-maritime-customs"],
       "rulesTextOverride": "Gain 1 :coin: for each city your faction controls among [Ningbo, Quanzhou, Fuzhou, Guangzhou].",
       "quote": {
-        "text": "“In the fifth month, the court restored the maritime trade offices (Shibo) for Liangzhe and Fujian.”",
+        "text": "In the fifth month, the court restored the maritime trade offices (Shibo) for Liangzhe and Fujian.",
         "cite": "Songshi, Vol. 26"
       },
       "effect": {
@@ -160,7 +160,7 @@
       "events-referenced": ["song-1129-guangxi-horse-procurement"],
       "rulesTextOverride": "If your faction controls Guangzhou: Pay up to 5 :coin: to convert your faction’s :foot: in Guangzhou to :horse:, one per :coin: paid.\nThen choose one: Move; Raid (destroy an adjacent enemy); Assault (destroy any piece).",
       "quote": {
-        "text": "“Emperor Gaozong ordered Li Yu to purchase horses among the Guangxi tribes and to establish a stock‑raising office at Yongzhou.”",
+        "text": "Emperor Gaozong ordered Li Yu to purchase horses among the Guangxi tribes and to establish a stock‑raising office at Yongzhou.",
         "cite": "Songshi, Vol. 26"
       },
       "effect": {
@@ -264,7 +264,7 @@
       "events-referenced": ["song-1127-1142-common-granary-relief-rollout"],
       "rulesTextOverride": "Gain 1 :coin: for every 2 of the following tea‑producing cities your faction controls (rounded down): Jianzhou, Shaoxing, Hangzhou, Tanzhou, Chengdu, Lizhou, Xingyuan, Nanchang, Jiujiang.",
       "quote": {
-        "text": "“All tea was under prohibition; only in Chuanxia and Lingnan could people buy and sell for personal use; export beyond the frontier was forbidden.”",
+        "text": "All tea was under prohibition; only in Chuanxia and Lingnan could people buy and sell for personal use; export beyond the frontier was forbidden.",
         "cite": "Songshi, Treatises (Fiscal V: Salt/Tea)"
       },
       "effect": {
