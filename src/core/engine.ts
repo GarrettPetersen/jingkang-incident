@@ -1658,8 +1658,8 @@ export function inputSelectNode(state: GameState, nodeId: NodeId): void {
   const next = state.prompt.next;
   if (next.kind === 'forRecruit') {
     const pieceId = genId('pc');
-    const ownerId = state.prompt.playerId;
-    const ownerFaction = state.players.find((p) => p.id === ownerId)?.faction;
+    const recruiterId = state.prompt.playerId;
+    const ownerFaction = state.players.find((p) => p.id === recruiterId)?.faction;
     state.pieces[pieceId] = {
       id: pieceId,
       faction: next.faction ?? (ownerFaction as any),
@@ -1668,7 +1668,7 @@ export function inputSelectNode(state: GameState, nodeId: NodeId): void {
     };
     const label = (state.map.nodes as any)[nodeId]?.label ?? nodeId;
     const rem = Math.max(0, (next.remaining ?? 1) - 1);
-    const playerName = state.players.find((p) => p.id === ownerId)?.name ?? ownerId;
+    const playerName = state.players.find((p) => p.id === recruiterId)?.name ?? recruiterId;
     const fac = next.faction ?? (ownerFaction as any);
     const facName = fac ? (String(fac).charAt(0).toUpperCase() + String(fac).slice(1)) : '';
     const ptName = (state.pieceTypes as any)[next.pieceTypeId]?.name ?? String(next.pieceTypeId);
