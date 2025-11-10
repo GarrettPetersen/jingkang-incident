@@ -137,7 +137,7 @@
       "name": "Maritime Trade Offices",
       "backText": "Jianyan",
       "events-referenced": ["song-1129-reinstate-shibo-liangzhe-fujian", "song-1129-1142-mingzhou-maritime-customs", "song-1129-1142-quanzhou-maritime-customs", "song-1129-1142-guangzhou-maritime-customs"],
-      "rulesTextOverride": "Gain 1 :coin: for each city your faction controls among [Ningbo, Quanzhou, Fuzhou, Guangzhou].",
+      "rulesTextOverride": "Gain 1 :coin: for each city your faction controls among coastal trading hubs: Ningbo, Quanzhou, Fuzhou, Guangzhou.",
       "quote": {
         "text": "In the fifth month, the court restored the maritime trade offices (Shibo) for Liangzhe and Fujian.",
         "cite": "Songshi, Vol. 26"

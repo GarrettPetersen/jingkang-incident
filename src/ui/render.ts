@@ -1784,6 +1784,7 @@ function showCardModal(card: any, onPlay: () => void, originRect?: { x: number; 
 
 function describeEffect(effect: any): string[] {
   if (!effect) return [];
+  if ((effect as any).label) return [String((effect as any).label)];
   if (effect.kind === 'all' && Array.isArray(effect.effects)) {
     return effect.effects.flatMap((e: any) => describeEffect(e));
   }
@@ -1816,7 +1817,21 @@ function describeVerb(verb: any): string {
     case 'tuck': return verb.target === 'opponent' ? `Tuck this in front of the opponent` : `Tuck this in front of you`;
     case 'gainCoin': return `Gain ${verb.amount} coin(s)`;
     case 'destroy': return `Destroy any piece`;
-    case 'move': return `Move a piece ${verb.steps ?? 1} step(s)`;
+    case 'move': {
+      const fac = (verb as any).actingFaction ? String((verb as any).actingFaction) : '';
+      const who = fac ? `${fac} unit` : `piece`;
+      return `Move a ${who} ${verb.steps ?? 1} step(s)`;
+    }
+    case 'raid': {
+      const fac = (verb as any).actingFaction ? String((verb as any).actingFaction) : '';
+      const who = fac ? `${fac} unit` : `unit`;
+      return `Raid: destroy an adjacent enemy foot with a ${who}`;
+    }
+    case 'assault': {
+      const fac = (verb as any).actingFaction ? String((verb as any).actingFaction) : '';
+      const who = fac ? `${fac} unit` : `unit`;
+      return `Assault: sacrifice one ${who} to destroy an adjacent enemy`;
+    }
     case 'recruit': {
       const kind = String(verb.pieceTypeId || (verb.pieceTypes?.anyOf?.[0] ?? 'piece'));
       const count = Math.max(1, Number(verb.count ?? 1));

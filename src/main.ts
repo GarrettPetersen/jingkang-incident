@@ -1408,7 +1408,22 @@ function buildStateFromScenario(scn: any): GameState {
         state.log.push({ message: `${players[i].name} receives an identity card.` });
         // Reassign character ownership to the player who received this identity
         const targetName = dealt.name;
-        const chEntry = Object.entries(characters).find(([, ch]) => ch.name === targetName);
+        let chEntry = Object.entries(characters).find(([, ch]) => ch.name === targetName);
+        if (!chEntry) {
+          // Fall back: match by character icon token on the dealt card (e.g., 'wuzhu', 'yue-fei')
+          const icons: string[] = Array.isArray((def as any)?.icons) ? ((def as any).icons as string[]) : [];
+          const charTokens = new Set(
+            icons
+              .map((s) => String(s))
+              .filter((s) => !!s && s !== 'song' && s !== 'jin' && s !== 'daqi' && s !== 'rebel' && !s.startsWith('war') && !s.startsWith('ally'))
+          );
+          function slugifyNameToIconToken(name: string): string {
+            return String(name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+          }
+          if (charTokens.size > 0) {
+            chEntry = Object.entries(characters).find(([, ch]) => charTokens.has(slugifyNameToIconToken(ch.name)));
+          }
+        }
         if (chEntry) {
           const [cid, ch] = chEntry as [string, Character];
           characters[cid] = { ...ch, playerId: players[i].id } as Character;

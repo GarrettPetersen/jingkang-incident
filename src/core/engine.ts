@@ -1121,8 +1121,19 @@ function executeVerb(
       break;
     }
     case 'placeCharacter': {
-      // Find the current player's character (first one)
-      const ch = getControlledCharacter(state, playerId);
+      // Find the current player's character; fall back to the character indicated by the playing card's icon
+      let ch = getControlledCharacter(state, playerId);
+      if (!ch) {
+        const pc: any = (state as any).playingCard;
+        const icons: string[] = (pc && Array.isArray(pc.icons)) ? pc.icons as string[] : [];
+        if (icons.length) {
+          const tokenSet = new Set(icons.map((s: any) => String(s)));
+          for (const cand of Object.values(state.characters)) {
+            const tok = slugifyNameToIconToken(cand.name);
+            if (tokenSet.has(tok)) { ch = cand; break; }
+          }
+        }
+      }
       if (!ch) { state.log.push({ message: `No character to place.` }); break; }
       let options: string[] | undefined;
       if ((verb as any).options && Array.isArray((verb as any).options)) {
