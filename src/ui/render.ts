@@ -71,6 +71,7 @@ export function renderApp(root: HTMLElement, state: GameState, handlers: {
   onSelectNode: (nodeId: NodeId) => void;
   onEndTurn: () => void;
   onUndo: () => void;
+  onSkipSetup?: () => void;
 }): void {
   // Capture pre-render rects for FLIP
   prevRects = collectRects(root);
@@ -135,45 +136,22 @@ export function renderApp(root: HTMLElement, state: GameState, handlers: {
     overlay.appendChild(panel);
     container.appendChild(overlay);
   }
-  // Convoy selection overlay (general move)
+  // Convoy inline controls (general move): no modal, show a floating confirm button
   if (state.prompt && (state.prompt as any).kind === 'selectConvoy') {
     const pr: any = state.prompt;
-    const overlay = document.createElement('div');
-    overlay.style.position = 'fixed';
-    overlay.style.left = '0'; overlay.style.top = '0'; overlay.style.right = '0'; overlay.style.bottom = '0';
-    overlay.style.background = 'rgba(0,0,0,0.45)';
-    overlay.style.display = 'flex'; overlay.style.alignItems = 'center'; overlay.style.justifyContent = 'center';
-    overlay.style.zIndex = '9999';
-    const panel = document.createElement('div');
-    panel.style.background = '#111'; panel.style.color = '#eee'; panel.style.border = '1px solid #333';
-    panel.style.borderRadius = '10px'; panel.style.padding = '16px'; panel.style.minWidth = '420px';
-    panel.style.display = 'flex'; panel.style.flexDirection = 'column'; panel.style.gap = '10px';
-    const title = document.createElement('div');
-    title.textContent = pr.message || 'Choose convoy:';
-    title.style.fontWeight = '700';
-    panel.appendChild(title);
-    const list = document.createElement('div');
-    list.style.display = 'flex';
-    list.style.flexWrap = 'wrap';
-    list.style.gap = '8px';
-    const selected = new Set<string>(pr.selected || []);
-    pr.options.forEach((pid: string) => {
-      const pc = state.pieces[pid];
-      if (!pc) return;
-      const btn = document.createElement('button');
-      const pt = state.pieceTypes[pc.typeId];
-      const isSel = selected.has(pid);
-      btn.textContent = pt?.name ?? pc.typeId;
-      btn.style.padding = '6px 10px';
-      btn.style.borderRadius = '8px';
-      btn.style.border = isSel ? '2px solid #2ecc71' : '1px solid #555';
-      btn.style.background = isSel ? '#1b2836' : '#222';
-      btn.style.color = '#eee';
-      btn.style.cursor = 'pointer';
-      btn.onclick = () => { (window as any).onToggleConvoy?.(pid); };
-      list.appendChild(btn);
-    });
-    panel.appendChild(list);
+    const floater = document.createElement('div');
+    floater.style.position = 'fixed';
+    floater.style.right = '16px';
+    floater.style.bottom = '16px';
+    floater.style.background = 'rgba(17,17,17,0.9)';
+    floater.style.color = '#eee';
+    floater.style.border = '1px solid #333';
+    floater.style.borderRadius = '10px';
+    floater.style.padding = '10px 12px';
+    floater.style.display = 'flex';
+    floater.style.alignItems = 'center';
+    floater.style.gap = '10px';
+    floater.style.zIndex = '10000';
     const hint = document.createElement('div');
     hint.style.fontSize = '12px';
     hint.style.color = '#bbb';
@@ -182,15 +160,10 @@ export function renderApp(root: HTMLElement, state: GameState, handlers: {
     } else {
       hint.textContent = pr.allowWater && !pr.allowLand
         ? 'Water crossing: ship required.'
-        : 'Land route by default; adding a ship will use water if available.';
+        : 'Select units to accompany your general, then finish move.';
     }
-    panel.appendChild(hint);
-    const actions = document.createElement('div');
-    actions.style.display = 'flex';
-    actions.style.gap = '8px';
-    actions.style.justifyContent = 'flex-end';
     const ok = document.createElement('button');
-    ok.textContent = 'Confirm Move';
+    ok.textContent = 'Finish Move';
     ok.style.padding = '8px 12px';
     ok.style.background = '#2e86de';
     ok.style.color = '#fff';
@@ -198,10 +171,9 @@ export function renderApp(root: HTMLElement, state: GameState, handlers: {
     ok.style.borderRadius = '6px';
     ok.style.cursor = 'pointer';
     ok.onclick = () => { (window as any).onConfirmConvoy?.(); };
-    actions.appendChild(ok);
-    panel.appendChild(actions);
-    overlay.appendChild(panel);
-    container.appendChild(overlay);
+    floater.appendChild(hint);
+    floater.appendChild(ok);
+    container.appendChild(floater);
   }
 
   root.appendChild(container);
@@ -227,6 +199,24 @@ function renderLeftPanel(state: GameState, handlers: any): HTMLElement {
   controls.style.display = 'flex';
   controls.style.flexDirection = 'column';
   controls.style.gap = '8px';
+  // Skip Setup button (visible while any START cards remain in hands)
+  try {
+    const dict = (window as any).__scenarioCardDict as Record<string, any> | undefined;
+    const anyStartInHands =
+      !!dict &&
+      state.players.some((p) =>
+        (p.hand || []).some((c: any) => {
+          const def = dict[c.id];
+          return def && String(def.backText || '') === 'START';
+        })
+      );
+    if (anyStartInHands) {
+      const skipBtn = document.createElement('button');
+      skipBtn.textContent = 'Skip Setup';
+      skipBtn.onclick = () => handlers.onSkipSetup?.();
+      controls.appendChild(skipBtn);
+    }
+  } catch {}
   const endBtn = document.createElement('button');
   endBtn.textContent = 'End Turn';
   endBtn.onclick = () => handlers.onEndTurn();
@@ -579,9 +569,13 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
   // Track the top-most pixel of any drawn piece per node for capital placement
   const pieceTopByNode: Record<string, number> = {};
   const byNode: Record<string, Piece[]> = {};
+  const isConvoy = state.prompt?.kind === 'selectConvoy';
+  const convoy: any = isConvoy ? (state.prompt as any) : null;
+  const selectedSet: Set<string> = new Set(isConvoy ? (convoy.selected || []) : []);
   for (const piece of Object.values(state.pieces)) {
     if (piece.location.kind === 'node') {
-      const nid = piece.location.nodeId;
+      // During convoy selection, render selected units at destination for preview
+      const nid = (isConvoy && selectedSet.has(piece.id)) ? convoy.destinationNodeId : piece.location.nodeId;
       (byNode[nid] ??= []).push(piece);
     }
   }
@@ -719,7 +713,7 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
     const t = (state.pieceTypes as any)[piece.typeId] as { shape?: string } | undefined;
     const shape = (t?.shape ?? '').toLowerCase();
     if (shape === 'capital' || piece.typeId === 'capital') {
-      const fac = piece.faction ?? (piece.ownerId ? state.players.find(p => p.id === piece.ownerId)?.faction : undefined);
+  const fac = piece.faction;
       capitals.push({ nodeId: piece.location.nodeId, filterId: factionFilterId(fac) });
     }
   }
@@ -759,9 +753,43 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
   }
 
   // Player character standees (initials in circular badges), rendered above pieces and capitals
+  const isGeneralMoveSelecting = state.prompt && (state.prompt as any).kind === 'selectConvoy';
+  const movingInfo: any = isGeneralMoveSelecting ? (state.prompt as any) : null;
+  // Helper to derive controlled character via tucked icons
+  function slugifyNameToIconToken(name: string): string {
+    return String(name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  }
+  function getControlledCharacterIdForPlayer(state: any, playerId: string): string | null {
+    const player = state.players.find((p: any) => p.id === playerId);
+    if (!player) return null;
+    const iconSet = new Set<string>();
+    for (const card of player.tucked) {
+      const arr = (card?.icons ?? []) as any[];
+      for (const ic of arr) iconSet.add(String(ic));
+    }
+    for (const ch of Object.values(state.characters)) {
+      const token = slugifyNameToIconToken((ch as any).name);
+      if (iconSet.has(token)) return (ch as any).id;
+    }
+    return null;
+  }
+  const movingGeneralId: string | null = (() => {
+    if (!isGeneralMoveSelecting) return null;
+    try {
+      const pid = (movingInfo as any).playerId;
+      // Prefer tucked-icon-based control; fall back to playerId on character
+      return getControlledCharacterIdForPlayer(state as any, pid)
+        ?? (Object.values((state as any).characters ?? {}).find((c: any) => c.playerId === pid) as any)?.id
+        ?? null;
+    } catch { return null; }
+  })();
   const charsByNode: Record<string, Array<{ id: string; name: string; playerId: string; faction?: string; portrait?: string }>> = {}
   for (const ch of Object.values((state as any).characters ?? {}) as any[]) {
     if (ch.location?.kind !== 'node') continue;
+    // During general move selection, do not render the moving general at origin; we'll draw it halfway instead
+    if (isGeneralMoveSelecting && movingGeneralId === ch.id && ch.location.nodeId === (movingInfo as any).originNodeId) {
+      continue;
+    }
     (charsByNode[ch.location.nodeId] ??= []).push({ id: ch.id, name: ch.name, playerId: ch.playerId, faction: ch.faction, portrait: ch.portrait });
   }
   function characterOffsets(k: number): number[] {
@@ -802,17 +830,19 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
     const xs = characterOffsets(visible.length);
     visible.forEach((ch, i) => {
       const cx = node.x * MAP_SCALE + xs[i];
-      // Border + background
-      const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       const facId = factionFromTucked((ch as any).playerId);
       const col = facId ? (FactionColor as any)[facId] ?? '#000' : '#000';
+      // Group for click handling
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      // Border + background
+      const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       ring.setAttribute('cx', String(cx));
       ring.setAttribute('cy', String(centerY));
       ring.setAttribute('r', String(outerR));
       ring.setAttribute('fill', '#fff');
       ring.setAttribute('stroke', col);
       ring.setAttribute('stroke-width', '3');
-      overlayLayer.appendChild(ring);
+      g.appendChild(ring);
       // Initials
       const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       label.setAttribute('x', String(cx));
@@ -822,8 +852,96 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
       label.setAttribute('font-weight', '700');
       label.setAttribute('text-anchor', 'middle');
       label.textContent = (ch.name || '?').split(/\s+/).map(s => s[0]).join('').slice(0,2).toUpperCase();
-      overlayLayer.appendChild(label);
+      g.appendChild(label);
+      // Make the character selectable during a Move piece selection
+      const selectable = state.prompt?.kind === 'selectPiece' && state.prompt.pieceIds.includes(`char:${ch.id}`);
+      if (selectable) {
+        (g as any).style.cursor = 'pointer';
+        // Highlight selectable general
+        ring.setAttribute('stroke', '#ff0');
+        ring.setAttribute('stroke-width', '4');
+        g.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          (window as any).onSelectPiece?.(`char:${ch.id}`);
+        });
+      }
+      // Allow cancelling a general move by clicking the moving general badge
+      if (isGeneralMoveSelecting && movingGeneralId === ch.id) {
+        (g as any).style.cursor = 'pointer';
+        g.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          (window as any).onCancelGeneralMove?.();
+        });
+      }
+      overlayLayer.appendChild(g);
     });
+  }
+
+  // Render moving general halfway between origin and destination during general move selection
+  if (isGeneralMoveSelecting && movingGeneralId) {
+    try {
+      const fromId = (movingInfo as any).originNodeId as string;
+      const toId = (movingInfo as any).destinationNodeId as string;
+      const from = state.map.nodes[fromId];
+      const to = state.map.nodes[toId];
+      if (from && to) {
+        const midX = (from.x + to.x) * 0.5 * MAP_SCALE;
+        // Compute vertical placement by averaging the two node character centers
+        const R = 12;
+        const outerR = R + 2;
+        const CHAR_GAP = 2;
+        function centerYForNode(nid: string, nodeY: number): number {
+          const top = (pieceTopByNode[nid] ?? (nodeY * MAP_SCALE - 24));
+          const bottom = top - CHAR_GAP;
+          return bottom - outerR;
+        }
+        const centerYFrom = centerYForNode(fromId, from.y);
+        const centerYTo = centerYForNode(toId, to.y);
+        const centerY = (centerYFrom + centerYTo) / 2;
+        // Color by faction derived from tucked
+        const facId = (() => {
+          const ch = (state as any).characters[movingGeneralId];
+          const pid = (ch as any)?.playerId;
+          if (!pid) return undefined;
+          const pl = (state.players as any[]).find(p => p.id === pid);
+          if (!pl || !Array.isArray(pl.tucked)) return undefined;
+          for (const card of pl.tucked) {
+            const icons = (card && Array.isArray(card.icons)) ? card.icons : [];
+            for (const ic of icons) {
+              const s = String(ic);
+              if (s === 'song' || s === 'jin' || s === 'daqi') return s;
+            }
+          }
+          return undefined;
+        })();
+        const col = facId ? (FactionColor as any)[facId] ?? '#000' : '#000';
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        ring.setAttribute('cx', String(midX));
+        ring.setAttribute('cy', String(centerY));
+        ring.setAttribute('r', String(outerR));
+        ring.setAttribute('fill', '#fff');
+        ring.setAttribute('stroke', col);
+        ring.setAttribute('stroke-width', '3');
+        g.appendChild(ring);
+        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        label.setAttribute('x', String(midX));
+        label.setAttribute('y', String(centerY + 4));
+        label.setAttribute('fill', '#000');
+        label.setAttribute('font-size', '10');
+        label.setAttribute('font-weight', '700');
+        label.setAttribute('text-anchor', 'middle');
+        const ch = (state as any).characters[movingGeneralId];
+        label.textContent = (ch?.name || '?').split(/\s+/).map((s: string) => s[0]).join('').slice(0,2).toUpperCase();
+        g.appendChild(label);
+        (g as any).style.cursor = 'pointer';
+        g.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          (window as any).onCancelGeneralMove?.();
+        });
+        overlayLayer.appendChild(g);
+      }
+    } catch {}
   }
 
   // Enable zoom & pan
@@ -868,14 +986,14 @@ function computeControllers(state: GameState): Record<string, string[]> {
   for (const piece of Object.values(state.pieces)) {
     if (piece.location.kind !== 'node') continue;
     const nodeId = piece.location.nodeId;
-    const faction = piece.faction ?? (piece.ownerId ? state.players.find(p => p.id === piece.ownerId)?.faction : undefined);
+  const faction = piece.faction;
     if (!faction) continue;
     piecesByNode[nodeId] ??= {};
     piecesByNode[nodeId][faction] = (piecesByNode[nodeId][faction] ?? 0) + 1;
   }
 
   const playerFactions = Array.from(new Set(Object.values(state.players).map(p => p.faction).filter(Boolean) as string[]));
-  const pieceFactions = Array.from(new Set(Object.values(state.pieces).map(pc => (pc.faction ?? (pc.ownerId ? state.players.find(p => p.id === pc.ownerId)?.faction : undefined))).filter(Boolean) as string[]));
+  const pieceFactions = Array.from(new Set(Object.values(state.pieces).map(pc => pc.faction).filter(Boolean) as string[]));
   const factions = Array.from(new Set([...playerFactions, ...pieceFactions]));
 
   // Precompute adjacency per piece (one-edge reach) by movement type
@@ -903,7 +1021,7 @@ function computeControllers(state: GameState): Record<string, string[]> {
   const piecesByFaction: Record<string, Array<{ nodeId: string; typeId: string }>> = {};
   for (const piece of Object.values(state.pieces)) {
     if (piece.location.kind !== 'node') continue;
-    const faction = piece.faction ?? (piece.ownerId ? state.players.find(p => p.id === piece.ownerId)?.faction : undefined);
+  const faction = piece.faction;
     if (!faction) continue;
     (piecesByFaction[faction] ??= []).push({ nodeId: piece.location.nodeId, typeId: piece.typeId });
   }
@@ -948,10 +1066,9 @@ function darken(hex: string, factor: number): string {
 
 function drawPieceAt(svg: SVGSVGElement, piece: Piece, state: GameState, x: number, y: number): void {
   if (piece.location.kind !== 'node') return;
-  const owner = piece.ownerId ? state.players.find((p) => p.id === piece.ownerId) : undefined;
-  const faction = piece.faction ?? owner?.faction;
-  const fill = faction ? FactionColor[faction as keyof typeof FactionColor] : (owner?.color ?? '#f44');
-  const stroke = faction === 'rebel' ? darken(fill, 1.6) : darken(fill, 0.8);
+  const faction = piece.faction;
+  const fill = faction ? FactionColor[faction as keyof typeof FactionColor] : '#f44';
+  let stroke = faction === 'rebel' ? darken(fill, 1.6) : darken(fill, 0.8);
 
   const type = (state.pieceTypes as any)[piece.typeId] as { shape?: string; width?: number } | undefined;
   const shape = type?.shape ?? 'cube';
@@ -1002,6 +1119,19 @@ function drawPieceAt(svg: SVGSVGElement, piece: Piece, state: GameState, x: numb
   }
 
   (el as any).setAttribute('data-key', `piece:${piece.id}`);
+
+  // Inline convoy selection UI
+  if (state.prompt?.kind === 'selectConvoy') {
+    const pr: any = state.prompt;
+    if (pr.options.includes(piece.id)) {
+      const isSel = pr.selected.includes(piece.id);
+      (el as any).style.cursor = 'pointer';
+      // Highlight selectable pieces; green if selected, yellow if available
+      el.setAttribute('stroke', isSel ? '#2ecc71' : '#ff0');
+      el.setAttribute('stroke-width', isSel ? '3' : '2');
+      el.addEventListener('click', () => (window as any).onToggleConvoy?.(piece.id));
+    }
+  }
 
   if (state.prompt?.kind === 'selectPiece' && state.prompt.pieceIds.includes(piece.id)) {
     (el as any).style.cursor = 'pointer';

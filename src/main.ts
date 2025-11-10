@@ -25,6 +25,7 @@ import { FactionColor } from "./core/types";
 import { map as boardMap } from "./map/board";
 
 let state: GameState = initialState;
+let __lastSelectPieceClickId: string | null = null;
 
 const root = document.querySelector<HTMLDivElement>("#app")!;
 
@@ -34,7 +35,22 @@ function rerender() {
       playCard(state, cardId);
       rerender();
     },
+    onSkipSetup: () => {
+      skipSetup();
+      rerender();
+    },
     onSelectPiece: (pieceId: string) => {
+      // Allow deselect by clicking the same piece again during a selectPiece prompt
+      if (state.prompt?.kind === "selectPiece") {
+        if (__lastSelectPieceClickId === pieceId) {
+          state.prompt = null as any;
+          __lastSelectPieceClickId = null;
+          rerender();
+          return;
+        }
+        __lastSelectPieceClickId = pieceId;
+        setTimeout(() => { if (__lastSelectPieceClickId === pieceId) __lastSelectPieceClickId = null; }, 1200);
+      }
       inputSelectPiece(state, pieceId);
       rerender();
     },
@@ -97,6 +113,12 @@ function rerender() {
   inputConfirmConvoy(state);
   rerender();
 };
+(window as any).onCancelGeneralMove = () => {
+  if (state.prompt && (state.prompt as any).kind === 'selectConvoy') {
+    state.prompt = null as any;
+    rerender();
+  }
+};
 
 async function loadScenarioOrFallback() {
   try {
@@ -112,6 +134,83 @@ async function loadScenarioOrFallback() {
   }
   startTurn(state);
   rerender();
+}
+
+function cardIsStart(cardId: string): boolean {
+  try {
+    const dict = (state as any).scenarioCardDict as Record<string, any> | undefined;
+    const def = dict?.[cardId];
+    return !!def && String(def.backText || '') === 'START';
+  } catch {
+    return false;
+  }
+}
+
+function resolveAnyPromptDefault() {
+  // Resolve prompts by picking the first available option
+  let guard = 0;
+  while (state.prompt && guard++ < 500) {
+    const pr: any = state.prompt;
+    if (!pr) break;
+    if (pr.kind === 'selectNode') {
+      const node = pr.nodeOptions?.[0];
+      if (node) inputSelectNode(state, node);
+      else { state.prompt = null as any; }
+      continue;
+    }
+    if (pr.kind === 'selectAdjacentNode') {
+      const node = pr.nodeOptions?.[0];
+      if (node) {
+        inputSelectAdjacentNode(state, node);
+      } else {
+        state.prompt = null as any;
+      }
+      continue;
+    }
+    if (pr.kind === 'selectPiece') {
+      const id = pr.pieceIds?.[0];
+      if (id) inputSelectPiece(state, id);
+      else { state.prompt = null as any; }
+      continue;
+    }
+    if (pr.kind === 'choose') {
+      inputChoose(state, 0);
+      continue;
+    }
+    // Unknown prompt; clear to avoid lock
+    state.prompt = null as any;
+  }
+}
+
+function skipSetup() {
+  try {
+    // For each player, find a START card and auto-play it with defaults
+    const originalViewer = state.viewPlayerId;
+    const originalCurrent = state.currentPlayerId;
+    for (const p of state.players) {
+      // Find first START card in this player's hand
+      const idx = p.hand.findIndex((c: any) => cardIsStart(c.id));
+      if (idx === -1) continue;
+      // Switch turn/view to this player and ensure flags allow play
+      state.currentPlayerId = p.id;
+      state.viewPlayerId = p.id;
+      (state as any).hasPlayedThisTurn = false;
+      (state as any).hasActedThisTurn = false;
+      const card = p.hand[idx];
+      playCard(state, card.id);
+      // Drive prompts with default selections
+      resolveAnyPromptDefault();
+      // If playing left more pending, try to resolve again
+      resolveAnyPromptDefault();
+    }
+    // Restore viewer/current if still valid
+    if (originalCurrent) state.currentPlayerId = originalCurrent;
+    if (originalViewer) state.viewPlayerId = originalViewer;
+    // Begin the next turn fresh for the current player (no action taken yet)
+    startTurn(state);
+  } catch (e) {
+    console.error('skipSetup error', e);
+  }
 }
 
 function getFactionHan(f: FactionId): string {

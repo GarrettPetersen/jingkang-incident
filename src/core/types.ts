@@ -50,8 +50,6 @@ export type Location =
 
 export interface Piece {
   id: PieceId;
-  // Future: player-character standees may use ownerId; normal forces are faction-owned
-  ownerId?: PlayerId;
   faction?: FactionId;
   typeId: PieceTypeId;
   location: Location;
