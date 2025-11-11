@@ -1027,6 +1027,21 @@ function executeVerb(
       state.log.push({ message: `${self.name} gains ${verb.amount} coin(s)` });
       break;
     }
+    case 'gainCoinPerTucked': {
+      const self = state.players.find((p) => p.id === playerId)!;
+      const icon = (verb as any).icon as IconId;
+      const base = Math.max(0, Number((verb as any).base ?? 0));
+      const per = Math.max(0, Number((verb as any).perIcon ?? 1));
+      const limit = (verb as any).limit !== undefined ? Math.max(0, Number((verb as any).limit)) : undefined;
+      const n = countTuckedIcon(state, playerId, icon);
+      let amt = base + n * per;
+      if (typeof limit === 'number') amt = Math.min(amt, limit);
+      if (amt !== 0) {
+        self.coins = (self.coins ?? 0) + amt;
+        state.log.push({ message: `${self.name} gains ${amt} coin(s)` });
+      }
+      break;
+    }
     case 'move': {
       // Single-step move; if a card needs multiple, include multiple move verbs
       const steps = 1;
@@ -1870,7 +1885,7 @@ function finalizeCardPlay(state: GameState, playerId: PlayerId, card: Card) {
     const trackedId = (state as any).__coinsCardId as string | undefined;
     const trackedPid = (state as any).__coinsPlayerId as string | undefined;
     const before = (state as any).__coinsBefore as number | undefined;
-    const summarizeIds = new Set<string>(['imperial-salt-monopoly', 'tea-tickets-and-fees']);
+    const summarizeIds = new Set<string>(['imperial-salt-monopoly', 'tea-tickets-and-fees', 'maritime-trade-offices']);
     if (trackedId === card.id && trackedPid === player.id && typeof before === 'number' && summarizeIds.has(card.id)) {
       const after = player.coins ?? 0;
       const delta = (after - before) | 0;

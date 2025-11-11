@@ -248,6 +248,17 @@ export type VerbSpec =
   | { type: "gainCoin"; amount: number }
   | { type: "endGame"; winner?: "self" | "none" }
   | {
+      // Gain coins based on number of tucked icons (e.g., +1 per :admin:)
+      type: "gainCoinPerTucked";
+      icon: IconId;
+      // Optional base amount added regardless of icons (default 0)
+      base?: number;
+      // Coins per icon (default 1)
+      perIcon?: number;
+      // Optional maximum total coins granted by this verb
+      limit?: number;
+    }
+  | {
       // Allow the current player to place/move their character to a chosen node
       type: "placeCharacter";
       // Provide explicit options, or use nearCurrent to derive options

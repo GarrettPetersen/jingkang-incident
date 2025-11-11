@@ -81,6 +81,25 @@
       ]}
     }
     ,
+    "household-registers-and-baojia": {
+      "template": "character",
+      "name": "Household Registers and Baojia",
+      "backText": "Jingkang",
+      "icons": ["admin"],
+      "events-referenced": ["jin-1127-1142-triennial-registers-and-five-household-bao"],
+      "rulesTextOverride": "Tuck this card.",
+      "quote": {
+        "text": "Require the people to form five‑household bao and compile household registers every three years, with ward and village heads overseeing levies and policing.",
+        "cite": "Jinshi, Vol. 46"
+      },
+      "effect": {
+        "kind": "all",
+        "effects": [
+          { "kind": "verb", "verb": { "type": "tuck", "target": "self" } }
+        ]
+      }
+    }
+    ,
     "liu-yu-puppet-emperor-of-da-qi-star": {
       "template": "character",
       "name": "Liu Yu, Puppet Emperor of Da Qi*",
@@ -137,7 +156,7 @@
       "name": "Maritime Trade Offices",
       "backText": "Jianyan",
       "events-referenced": ["song-1129-reinstate-shibo-liangzhe-fujian", "song-1129-1142-mingzhou-maritime-customs", "song-1129-1142-quanzhou-maritime-customs", "song-1129-1142-guangzhou-maritime-customs"],
-      "rulesTextOverride": "Gain 1 :coin: for each :maritime: city your faction controls: Mingzhou, Quanzhou, Fuzhou, Guangzhou.",
+      "rulesTextOverride": "Gain 1 :coin: for each :maritime: city your faction controls: Mingzhou, Quanzhou, Fuzhou, Guangzhou. Then gain +1 :coin: per :admin: tucked.",
       "quote": {
         "text": "In the fifth month, the court restored the maritime trade offices (Shibo) for Liangzhe and Fujian.",
         "cite": "Songshi, Vol. 26"
@@ -148,7 +167,8 @@
           { "kind": "if", "condition": { "kind": "nodeControlledBy", "nodeId": "ningbo", "faction": "selfFaction" }, "then": { "kind": "verb", "verb": { "type": "gainCoin", "amount": 1 } } },
           { "kind": "if", "condition": { "kind": "nodeControlledBy", "nodeId": "quanzhou", "faction": "selfFaction" }, "then": { "kind": "verb", "verb": { "type": "gainCoin", "amount": 1 } } },
           { "kind": "if", "condition": { "kind": "nodeControlledBy", "nodeId": "fuzhou", "faction": "selfFaction" }, "then": { "kind": "verb", "verb": { "type": "gainCoin", "amount": 1 } } },
-          { "kind": "if", "condition": { "kind": "nodeControlledBy", "nodeId": "guangzhou", "faction": "selfFaction" }, "then": { "kind": "verb", "verb": { "type": "gainCoin", "amount": 1 } } }
+          { "kind": "if", "condition": { "kind": "nodeControlledBy", "nodeId": "guangzhou", "faction": "selfFaction" }, "then": { "kind": "verb", "verb": { "type": "gainCoin", "amount": 1 } } },
+          { "kind": "verb", "verb": { "type": "gainCoinPerTucked", "icon": "admin", "perIcon": 1 } }
         ]
       }
     }
@@ -158,7 +178,7 @@
       "name": "Guangxi Horse Imports",
       "backText": "Jianyan",
       "events-referenced": ["song-1129-guangxi-horse-procurement"],
-      "rulesTextOverride": "If your faction controls Guangzhou: Pay up to 5 :coin: to convert your faction’s :foot: in Guangzhou to :horse:, one per :coin: paid.\nThen choose one: Move; Raid (destroy an adjacent enemy); Assault (destroy any piece).",
+      "rulesTextOverride": "If your faction controls Guangzhou: You may pay up to 3 :coin: to convert your faction’s :foot: in Guangzhou to :horse:, one per :coin: paid.\n:admin:: For each :admin: you have tucked, you may pay one additional :coin: and upgrade one additional :foot: to :horse:.\nThen choose one: Move; Raid (destroy an adjacent enemy); Assault (destroy any piece).",
       "quote": {
         "text": "Emperor Gaozong ordered Li Yu to purchase horses among the Guangxi tribes and to establish a stock‑raising office at Yongzhou.",
         "cite": "Songshi, Vol. 26"
@@ -214,23 +234,39 @@
                     { "kind": "all", "effects": [] }
                   ]
                 },
-                {
-                  "kind": "any",
-                  "effects": [
-                    {
-                      "kind": "all",
-                      "effects": [
-                        { "kind": "verb", "verb": { "type": "gainCoin", "amount": -1 } },
-                        { "kind": "verb", "verb": { "type": "removeAt", "nodeId": "guangzhou", "pieceTypeId": "foot", "faction": "selfFaction" } },
-                        { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "horse", "at": { "nodes": ["guangzhou"] }, "faction": "selfFaction" } }
-                      ]
-                    },
-                    { "kind": "all", "effects": [] }
-                  ]
+                { "kind": "if", "condition": { "kind": "hasTuckedIcon", "who": "self", "icon": "admin", "atLeast": 1 }, "then":
+                  { "kind": "any",
+                    "effects": [
+                      {
+                        "kind": "all",
+                        "effects": [
+                          { "kind": "verb", "verb": { "type": "gainCoin", "amount": -1 } },
+                          { "kind": "verb", "verb": { "type": "removeAt", "nodeId": "guangzhou", "pieceTypeId": "foot", "faction": "selfFaction" } },
+                          { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "horse", "at": { "nodes": ["guangzhou"] }, "faction": "selfFaction" } }
+                        ]
+                      },
+                      { "kind": "all", "effects": [] }
+                    ]
+                  }
                 },
-                {
-                  "kind": "any",
-                  "effects": [
+                { "kind": "if", "condition": { "kind": "hasTuckedIcon", "who": "self", "icon": "admin", "atLeast": 2 }, "then":
+                  { "kind": "any",
+                    "effects": [
+                      {
+                        "kind": "all",
+                        "effects": [
+                          { "kind": "verb", "verb": { "type": "gainCoin", "amount": -1 } },
+                          { "kind": "verb", "verb": { "type": "removeAt", "nodeId": "guangzhou", "pieceTypeId": "foot", "faction": "selfFaction" } },
+                          { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "horse", "at": { "nodes": ["guangzhou"] }, "faction": "selfFaction" } }
+                        ]
+                      },
+                      { "kind": "all", "effects": [] }
+                    ]
+                  }
+                },
+                { "kind": "if", "condition": { "kind": "hasTuckedIcon", "who": "self", "icon": "admin", "atLeast": 3 }, "then":
+                  { "kind": "any",
+                    "effects": [
                     {
                       "kind": "all",
                       "effects": [
@@ -240,7 +276,7 @@
                       ]
                     },
                     { "kind": "all", "effects": [] }
-                  ]
+                  ] }
                 }
               ]
             }
@@ -262,7 +298,7 @@
       "name": "Tea Tickets and Fees",
       "backText": "Jingkang",
       "events-referenced": ["song-1127-1142-common-granary-relief-rollout"],
-      "rulesTextOverride": "Gain 1 :coin: for every 2 :tea: cities your faction controls (rounded down): Jianzhou, Shaoxing, Hangzhou, Tanzhou, Chengdu, Lizhou, Xingyuan, Nanchang, Jiujiang.",
+      "rulesTextOverride": "Gain 1 :coin: for every 2 :tea: cities your faction controls (rounded down): Jianzhou, Shaoxing, Hangzhou, Tanzhou, Chengdu, Lizhou, Xingyuan, Nanchang, Jiujiang. Then gain +1 :coin: per :admin: tucked.",
       "quote": {
         "text": "All tea was under prohibition; only in Chuanxia and Lingnan could people buy and sell for personal use; export beyond the frontier was forbidden.",
         "cite": "Songshi, Treatises (Fiscal V: Salt/Tea)"
@@ -273,7 +309,8 @@
           { "kind": "if", "condition": { "kind": "nodesControlledAtLeast", "nodes": ["jianzhou-fj","shaoxing","hangzhou","tanzhou","chengdu","lizhou","xingyuan","nanchang","jiujiang"], "faction": "selfFaction", "atLeast": 2 }, "then": { "kind": "verb", "verb": { "type": "gainCoin", "amount": 1 } } },
           { "kind": "if", "condition": { "kind": "nodesControlledAtLeast", "nodes": ["jianzhou-fj","shaoxing","hangzhou","tanzhou","chengdu","lizhou","xingyuan","nanchang","jiujiang"], "faction": "selfFaction", "atLeast": 4 }, "then": { "kind": "verb", "verb": { "type": "gainCoin", "amount": 1 } } },
           { "kind": "if", "condition": { "kind": "nodesControlledAtLeast", "nodes": ["jianzhou-fj","shaoxing","hangzhou","tanzhou","chengdu","lizhou","xingyuan","nanchang","jiujiang"], "faction": "selfFaction", "atLeast": 6 }, "then": { "kind": "verb", "verb": { "type": "gainCoin", "amount": 1 } } },
-          { "kind": "if", "condition": { "kind": "nodesControlledAtLeast", "nodes": ["jianzhou-fj","shaoxing","hangzhou","tanzhou","chengdu","lizhou","xingyuan","nanchang","jiujiang"], "faction": "selfFaction", "atLeast": 8 }, "then": { "kind": "verb", "verb": { "type": "gainCoin", "amount": 1 } } }
+          { "kind": "if", "condition": { "kind": "nodesControlledAtLeast", "nodes": ["jianzhou-fj","shaoxing","hangzhou","tanzhou","chengdu","lizhou","xingyuan","nanchang","jiujiang"], "faction": "selfFaction", "atLeast": 8 }, "then": { "kind": "verb", "verb": { "type": "gainCoin", "amount": 1 } } },
+          { "kind": "verb", "verb": { "type": "gainCoinPerTucked", "icon": "admin", "perIcon": 1 } }
         ]
       }
     }
@@ -443,7 +480,7 @@
       "name": "Imperial Salt Monopoly",
       "backText": "Jingkang",
       "events-referenced": ["jin-1127-1142-salt-tea-tax-network", "song-1127-1142-fujian-sea-salt-markets"],
-      "rulesTextOverride": "Gain 1 :coin: for each :salt: city your faction controls: Cangzhou, Haizhou, Taizhou, Fuzhou, Quanzhou, and Taiyuan.",
+      "rulesTextOverride": "Gain 1 :coin: for each :salt: city your faction controls: Cangzhou, Haizhou, Taizhou, Fuzhou, Quanzhou, and Taiyuan. Then gain +1 :coin: per :admin: tucked.",
       "quote": {
         "text": "Under the Jin system, among the ten categories of monopolized goods, salt ranked first.",
         "cite": "Jinshi, Vol. 49"
@@ -456,7 +493,8 @@
           { "kind": "if", "condition": { "kind": "nodeControlledBy", "nodeId": "taizhou",  "faction": "selfFaction" }, "then": { "kind": "verb", "verb": { "type": "gainCoin", "amount": 1 } } },
           { "kind": "if", "condition": { "kind": "nodeControlledBy", "nodeId": "fuzhou",   "faction": "selfFaction" }, "then": { "kind": "verb", "verb": { "type": "gainCoin", "amount": 1 } } },
           { "kind": "if", "condition": { "kind": "nodeControlledBy", "nodeId": "quanzhou", "faction": "selfFaction" }, "then": { "kind": "verb", "verb": { "type": "gainCoin", "amount": 1 } } },
-          { "kind": "if", "condition": { "kind": "nodeControlledBy", "nodeId": "taiyuan",  "faction": "selfFaction" }, "then": { "kind": "verb", "verb": { "type": "gainCoin", "amount": 1 } } }
+          { "kind": "if", "condition": { "kind": "nodeControlledBy", "nodeId": "taiyuan",  "faction": "selfFaction" }, "then": { "kind": "verb", "verb": { "type": "gainCoin", "amount": 1 } } },
+          { "kind": "verb", "verb": { "type": "gainCoinPerTucked", "icon": "admin", "perIcon": 1 } }
         ]
       }
     }
