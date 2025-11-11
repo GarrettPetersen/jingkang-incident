@@ -562,6 +562,19 @@ function makeCharacterCardDataUrl(
           fill="#2ecc71" stroke="#1b8f4a" stroke-width="1.5"/>
         <path d="M ${cx} ${cy+3} L ${cx} ${cy-1}" stroke="#1b8f4a" stroke-width="1.2"/>
       </g>`;
+    } else if (tok === 'admin') {
+      // Administrative quality: brush over tally tablet inside a neutral badge
+      const tabletW = 14, tabletH = 18;
+      const tx = cx - tabletW / 2;
+      const ty = cy - tabletH / 2;
+      iconsMarkup += `<g>
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="#fff" stroke="#222" stroke-width="2"/>
+        <rect x="${tx}" y="${ty}" width="${tabletW}" height="${tabletH}" rx="2" ry="2" fill="#f7f3e8" stroke="#555" stroke-width="1.5"/>
+        <path d="M ${cx} ${ty + 3} L ${cx} ${ty + tabletH - 3}" stroke="#999" stroke-width="1"/>
+        <!-- brush -->
+        <path d="M ${cx - 8} ${cy + 7} L ${cx + 8} ${cy - 7}" stroke="#6b4f2a" stroke-width="2" stroke-linecap="round"/>
+        <path d="M ${cx + 8} ${cy - 7} l 3 1 l -2.5 2.5 Z" fill="#3d2a12"/>
+      </g>`;
     } else if (String(tok).startsWith('war')) {
       // war-jin-song or war:jin:song
       const parts = String(tok).includes(':') ? String(tok).split(':') : String(tok).split('-');
@@ -740,6 +753,15 @@ function makeCharacterCardDataUrl(
           <path d="M 6,9 L 6,6.5" stroke="#1b8f4a" stroke-width="1"/>
         </g>`;
       }
+      if (kind === "admin") {
+        // Brush over tally tablet in 12x12
+        return `<g>
+          <rect x="2" y="1" width="8" height="10" rx="1" ry="1" fill="#f7f3e8" stroke="#555" stroke-width="1"/>
+          <path d="M 6 2 L 6 10" stroke="#999" stroke-width="0.8"/>
+          <path d="M 2 10 L 10 2" stroke="#6b4f2a" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M 10 2 l 2 0.6 l -1.8 1.8 Z" fill="#3d2a12"/>
+        </g>`;
+      }
       if (kind === "maritime") {
         // Simple blue anchor in 12x12
         return `<g>
@@ -787,7 +809,7 @@ function makeCharacterCardDataUrl(
       | { kind: "bold"; text: string }
       | { kind: "icon"; which: string; faction?: FactionId };
     const tokenRe =
-      /:((rebel|black|song|red|jin|yellow|daqi|green)-)?(foot|horse|ship|capital|character|dot|star|dagger|coin|salt|tea|maritime):/g;
+      /:((rebel|black|song|red|jin|yellow|daqi|green)-)?(foot|horse|ship|capital|character|dot|star|dagger|coin|salt|tea|maritime|admin):/g;
     function resolveRefTitle(id: string): string {
       try {
         const cat = (window as any).__cardCatalog as
@@ -1120,10 +1142,18 @@ function makeGenericCardDataUrl(
       return `<circle cx="6" cy="6" r="6" fill="#fff" stroke="${f}" stroke-width="2"/>`;
     }
     if (kind === 'coin') { const outer = `<circle cx="6" cy="6" r="6" fill="#f0c419" stroke="#b78900" stroke-width="1.5"/>`; const hole = `<rect x="4" y="4" width="4" height="4" fill="#f9f9f9"/>`; return `<g>${outer}${hole}</g>`; }
+    if (kind === 'admin') {
+      return `<g>
+        <rect x="2" y="1" width="8" height="10" rx="1" ry="1" fill="#f7f3e8" stroke="#555" stroke-width="1"/>
+        <path d="M 6 2 L 6 10" stroke="#999" stroke-width="0.8"/>
+        <path d="M 2 10 L 10 2" stroke="#6b4f2a" stroke-width="1.6" stroke-linecap="round"/>
+        <path d="M 10 2 l 2 0.6 l -1.8 1.8 Z" fill="#3d2a12"/>
+      </g>`;
+    }
     return '';
   }
   type Item = { kind:'text'; text:string } | { kind:'bold'; text:string } | { kind:'icon'; which:string; faction?: FactionId };
-  const tokenRe = /:((rebel|black|song|red|jin|yellow|daqi|green)-)?(foot|horse|ship|capital|character|dot|star|dagger|coin):/g;
+  const tokenRe = /:((rebel|black|song|red|jin|yellow|daqi|green)-)?(foot|horse|ship|capital|character|dot|star|dagger|coin|admin):/g;
   function resolveRefTitle(id: string): string {
     try {
       const cat = (window as any).__cardCatalog as Record<string, any> | undefined;

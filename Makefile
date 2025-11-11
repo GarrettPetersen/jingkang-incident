@@ -2,6 +2,9 @@
 
 # Directory to write chapter scrapes and heading indexes
 SCRAPE_DIR ?= data/scrapes
+SCENARIOS_DIR ?= public/scenarios
+EVENTS ?= data/events-1127-1142.jsonl
+N ?= 20
 
 # Chapter number for scrape-songshi / scrape-jinshi, e.g. 369 or 024
 CHAP ?= 369
@@ -18,6 +21,7 @@ help:
 	@echo "  make headings-songshi            # Fetch Songshi index headings to $$(SCRAPE_DIR)/songshi-headings.json"
 	@echo "  make headings-jinshi             # Fetch Jinshi index headings to $$(SCRAPE_DIR)/jinshi-headings.json"
 	@echo "  make sort-events                 # Sort and normalize data/events-1127-1142.jsonl in-place"
+	@echo "  make list-unreferenced-events    # Print first N unreferenced events chronologically (N=$$(N))"
 	@echo ""
 
 scrape-songshi:
@@ -55,5 +59,8 @@ sort-events:
 	@echo "Sorting and normalizing data/events-1127-1142.jsonl (in-place) ..."
 	@node scripts/sortEvents.mjs "data/events-1127-1142.jsonl" --in-place
 	@echo "Done."
+
+list-unreferenced-events:
+	@node scripts/listUnreferencedEvents.mjs --events="$(EVENTS)" --scenarios="$(SCENARIOS_DIR)" --n="$(N)"
 
 
