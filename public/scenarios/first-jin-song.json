@@ -178,7 +178,7 @@
       "name": "Guangxi Horse Imports",
       "backText": "Jianyan",
       "events-referenced": ["song-1129-guangxi-horse-procurement"],
-      "rulesTextOverride": "If your faction controls Guangzhou: You may pay up to 3 :coin: to convert your faction’s :foot: in Guangzhou to :horse:, one per :coin: paid.\n:admin:: For each :admin: you have tucked, you may pay one additional :coin: and upgrade one additional :foot: to :horse:.\nThen choose one: Move; Raid (destroy an adjacent enemy); Assault (destroy any piece).",
+      "rulesTextOverride": "If your faction controls Guangzhou: You may pay up to 3 :coin: to upgrade any of your faction’s :foot: to :horse: anywhere on the map, one per :coin: paid.\n:admin:: For each :admin: you have tucked, you may pay one additional :coin: and upgrade one additional :foot: to :horse:.\nThen choose one: Move; Raid; Assault.",
       "quote": {
         "text": "Emperor Gaozong ordered Li Yu to purchase horses among the Guangxi tribes and to establish a stock‑raising office at Yongzhou.",
         "cite": "Songshi, Vol. 26"
@@ -190,95 +190,8 @@
             "kind": "if",
             "condition": { "kind": "nodeControlledBy", "nodeId": "guangzhou", "faction": "selfFaction" },
             "then": {
-              "kind": "all",
-              "effects": [
-                {
-                  "kind": "any",
-                  "effects": [
-                    {
-                      "kind": "all",
-                      "effects": [
-                        { "kind": "verb", "verb": { "type": "gainCoin", "amount": -1 } },
-                        { "kind": "verb", "verb": { "type": "removeAt", "nodeId": "guangzhou", "pieceTypeId": "foot", "faction": "selfFaction" } },
-                        { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "horse", "at": { "nodes": ["guangzhou"] }, "faction": "selfFaction" } }
-                      ]
-                    },
-                    { "kind": "all", "effects": [] }
-                  ]
-                },
-                {
-                  "kind": "any",
-                  "effects": [
-                    {
-                      "kind": "all",
-                      "effects": [
-                        { "kind": "verb", "verb": { "type": "gainCoin", "amount": -1 } },
-                        { "kind": "verb", "verb": { "type": "removeAt", "nodeId": "guangzhou", "pieceTypeId": "foot", "faction": "selfFaction" } },
-                        { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "horse", "at": { "nodes": ["guangzhou"] }, "faction": "selfFaction" } }
-                      ]
-                    },
-                    { "kind": "all", "effects": [] }
-                  ]
-                },
-                {
-                  "kind": "any",
-                  "effects": [
-                    {
-                      "kind": "all",
-                      "effects": [
-                        { "kind": "verb", "verb": { "type": "gainCoin", "amount": -1 } },
-                        { "kind": "verb", "verb": { "type": "removeAt", "nodeId": "guangzhou", "pieceTypeId": "foot", "faction": "selfFaction" } },
-                        { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "horse", "at": { "nodes": ["guangzhou"] }, "faction": "selfFaction" } }
-                      ]
-                    },
-                    { "kind": "all", "effects": [] }
-                  ]
-                },
-                { "kind": "if", "condition": { "kind": "hasTuckedIcon", "who": "self", "icon": "admin", "atLeast": 1 }, "then":
-                  { "kind": "any",
-                    "effects": [
-                      {
-                        "kind": "all",
-                        "effects": [
-                          { "kind": "verb", "verb": { "type": "gainCoin", "amount": -1 } },
-                          { "kind": "verb", "verb": { "type": "removeAt", "nodeId": "guangzhou", "pieceTypeId": "foot", "faction": "selfFaction" } },
-                          { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "horse", "at": { "nodes": ["guangzhou"] }, "faction": "selfFaction" } }
-                        ]
-                      },
-                      { "kind": "all", "effects": [] }
-                    ]
-                  }
-                },
-                { "kind": "if", "condition": { "kind": "hasTuckedIcon", "who": "self", "icon": "admin", "atLeast": 2 }, "then":
-                  { "kind": "any",
-                    "effects": [
-                      {
-                        "kind": "all",
-                        "effects": [
-                          { "kind": "verb", "verb": { "type": "gainCoin", "amount": -1 } },
-                          { "kind": "verb", "verb": { "type": "removeAt", "nodeId": "guangzhou", "pieceTypeId": "foot", "faction": "selfFaction" } },
-                          { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "horse", "at": { "nodes": ["guangzhou"] }, "faction": "selfFaction" } }
-                        ]
-                      },
-                      { "kind": "all", "effects": [] }
-                    ]
-                  }
-                },
-                { "kind": "if", "condition": { "kind": "hasTuckedIcon", "who": "self", "icon": "admin", "atLeast": 3 }, "then":
-                  { "kind": "any",
-                    "effects": [
-                    {
-                      "kind": "all",
-                      "effects": [
-                        { "kind": "verb", "verb": { "type": "gainCoin", "amount": -1 } },
-                        { "kind": "verb", "verb": { "type": "removeAt", "nodeId": "guangzhou", "pieceTypeId": "foot", "faction": "selfFaction" } },
-                        { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "horse", "at": { "nodes": ["guangzhou"] }, "faction": "selfFaction" } }
-                      ]
-                    },
-                    { "kind": "all", "effects": [] }
-                  ] }
-                }
-              ]
+              "kind": "verb",
+              "verb": { "type": "upgradeFootToHorseAnywhere", "base": 3 }
             }
           },
           {

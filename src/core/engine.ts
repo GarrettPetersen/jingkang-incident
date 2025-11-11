@@ -407,6 +407,33 @@ function executeVerb(
     return selfFaction !== otherFaction;
   }
   switch (verb.type) {
+    case 'upgradeFootToHorseAnywhere': {
+      // Determine max upgrades: base + admin icons tucked
+      const base = Math.max(0, Number((verb as any).base ?? 3));
+      const bonus = countTuckedIcon(state, playerId, 'admin' as any);
+      let remaining = base + bonus;
+      if (remaining <= 0) break;
+      const self = state.players.find((p) => p.id === playerId)!;
+      const fac = getPlayerFaction(state, playerId);
+      const hasCoins = (self.coins ?? 0) > 0;
+      if (!fac || !hasCoins) break;
+      function eligibleIds(): string[] {
+        return Object.values(state.pieces)
+          .filter(pc => pc.location.kind === 'node')
+          .filter(pc => pc.faction === (fac as any) && pc.typeId === 'foot')
+          .map(pc => pc.id);
+      }
+      const elig = eligibleIds();
+      if (elig.length === 0) break;
+      state.prompt = {
+        kind: 'selectPiece',
+        playerId,
+        pieceIds: elig,
+        next: { kind: 'forUpgradeFootToHorse', remaining } as any,
+        message: `Select a ${fac} foot to upgrade to horse (pay 1 coin). Remaining: ${remaining}`,
+      } as any;
+      break;
+    }
     case 'destroyAtNode': {
       const nodeId = String((verb as any).nodeId);
       const fromF = resolveFactionSelector(state, playerId, (verb as any).fromFaction);
@@ -1533,6 +1560,56 @@ export function inputSelectPiece(state: GameState, pieceId: PieceId): void {
     delete state.pieces[pieceId];
     if (state.pieces[fromId]) delete state.pieces[fromId];
     state.log.push({ message: `Assault trades your unit for enemy ${pieceId}` });
+    state.prompt = null;
+    resumePendingIfAny(state);
+  } else if (state.prompt.next.kind === 'forUpgradeFootToHorse') {
+    // Upgrade selected foot (own faction) at its node to a horse, paying 1 coin
+    const pid = state.prompt.playerId;
+    const self = state.players.find((p) => p.id === pid)!;
+    const fac = getPlayerFaction(state, pid);
+    const pc = state.pieces[pieceId];
+    if (!pc || pc.location.kind !== 'node' || pc.typeId !== 'foot' || (fac && pc.faction !== (fac as any))) {
+      state.prompt = null;
+      resumePendingIfAny(state);
+      return;
+    }
+    if ((self.coins ?? 0) <= 0) {
+      state.prompt = null;
+      resumePendingIfAny(state);
+      return;
+    }
+    // Pay coin
+    self.coins = (self.coins ?? 0) - 1;
+    const here = pc.location.nodeId;
+    const faction = pc.faction;
+    // Remove foot
+    delete state.pieces[pieceId];
+    // Add horse
+    const newId = genId('pc');
+    state.pieces[newId] = {
+      id: newId,
+      faction,
+      typeId: 'horse' as any,
+      location: { kind: 'node', nodeId: here },
+    } as any;
+    const remain = Math.max(0, Number((state.prompt.next as any).remaining ?? 1) - 1);
+    if (remain > 0) {
+      // Continue if coins and eligible remain
+      const elig = Object.values(state.pieces)
+        .filter(q => q.location.kind === 'node')
+        .filter(q => q.faction === faction && q.typeId === 'foot')
+        .map(q => q.id);
+      if (elig.length > 0 && (self.coins ?? 0) > 0) {
+        state.prompt = {
+          kind: 'selectPiece',
+          playerId: pid,
+          pieceIds: elig,
+          next: { kind: 'forUpgradeFootToHorse', remaining: remain } as any,
+          message: `Select a ${String(faction)} foot to upgrade to horse (pay 1 coin). Remaining: ${remain}`,
+        } as any;
+        return;
+      }
+    }
     state.prompt = null;
     resumePendingIfAny(state);
   }

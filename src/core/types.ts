@@ -116,6 +116,12 @@ export type VerbSpec =
   | { type: "raid"; actingFaction?: FactionSelector } // destroy an eligible adjacent enemy foot via specific modes
   | { type: "assault"; actingFaction?: FactionSelector } // sacrifice one of your units to destroy an adjacent enemy (mode-specific adjacency)
   | {
+      // Guangxi Horse Imports: upgrade any of your faction's foot anywhere to horse, paying 1 coin each, up to a limit
+      type: "upgradeFootToHorseAnywhere";
+      // Base maximum number of upgrades (before admin icon bonuses). Default 3.
+      base?: number;
+    }
+  | {
       // Destroy up to N pieces at a specific node, optionally filtering by faction (include/exclude) and piece types
       type: "destroyAtNode";
       nodeId: NodeId;
@@ -365,7 +371,8 @@ export type Prompt =
         | { kind: "forMove"; steps: number; actingFaction?: FactionId }
         | { kind: "forDestroy" }
         | { kind: "forAssaultSelectTarget"; fromPieceId: PieceId }
-        | { kind: "forAssaultResolve"; fromPieceId: PieceId };
+        | { kind: "forAssaultResolve"; fromPieceId: PieceId }
+        | { kind: "forUpgradeFootToHorse"; remaining: number };
       message: string;
     }
   | {
