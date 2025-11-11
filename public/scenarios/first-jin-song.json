@@ -137,7 +137,7 @@
       "name": "Maritime Trade Offices",
       "backText": "Jianyan",
       "events-referenced": ["song-1129-reinstate-shibo-liangzhe-fujian", "song-1129-1142-mingzhou-maritime-customs", "song-1129-1142-quanzhou-maritime-customs", "song-1129-1142-guangzhou-maritime-customs"],
-      "rulesTextOverride": "Gain 1 :coin: for each city your faction controls among coastal trading hubs: Ningbo, Quanzhou, Fuzhou, Guangzhou.",
+      "rulesTextOverride": "Gain 1 :coin: for each :maritime: city your faction controls: Mingzhou, Quanzhou, Fuzhou, Guangzhou.",
       "quote": {
         "text": "In the fifth month, the court restored the maritime trade offices (Shibo) for Liangzhe and Fujian.",
         "cite": "Songshi, Vol. 26"
@@ -262,7 +262,7 @@
       "name": "Tea Tickets and Fees",
       "backText": "Jingkang",
       "events-referenced": ["song-1127-1142-common-granary-relief-rollout"],
-      "rulesTextOverride": "Gain 1 :coin: for every 2 of the following tea‑producing cities your faction controls (rounded down): Jianzhou, Shaoxing, Hangzhou, Tanzhou, Chengdu, Lizhou, Xingyuan, Nanchang, Jiujiang.",
+      "rulesTextOverride": "Gain 1 :coin: for every 2 :tea: cities your faction controls (rounded down): Jianzhou, Shaoxing, Hangzhou, Tanzhou, Chengdu, Lizhou, Xingyuan, Nanchang, Jiujiang.",
       "quote": {
         "text": "All tea was under prohibition; only in Chuanxia and Lingnan could people buy and sell for personal use; export beyond the frontier was forbidden.",
         "cite": "Songshi, Treatises (Fiscal V: Salt/Tea)"
@@ -443,7 +443,7 @@
       "name": "Imperial Salt Monopoly",
       "backText": "Jingkang",
       "events-referenced": ["jin-1127-1142-salt-tea-tax-network", "song-1127-1142-fujian-sea-salt-markets"],
-      "rulesTextOverride": "Gain 1 :coin: for each city your faction controls among the salt-producing cities: Cangzhou, Haizhou, Taizhou, Fuzhou, Quanzhou, and Taiyuan.",
+      "rulesTextOverride": "Gain 1 :coin: for each :salt: city your faction controls: Cangzhou, Haizhou, Taizhou, Fuzhou, Quanzhou, and Taiyuan.",
       "quote": {
         "text": "Under the Jin system, among the ten categories of monopolized goods, salt ranked first.",
         "cite": "Jinshi, Vol. 49"

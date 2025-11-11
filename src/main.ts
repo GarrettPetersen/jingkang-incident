@@ -546,6 +546,22 @@ function makeCharacterCardDataUrl(
       const textFill = f === "jin" ? "#111" : "#fff";
       iconsMarkup += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" stroke="#222" stroke-width="2"/>
         <text x="${cx}" y="${cy + 5}" text-anchor="middle" font-size="16" font-weight="700" fill="${textFill}">${char}</text>`;
+    } else if (tok === 'salt') {
+      // Salt pile inside a neutral badge
+      iconsMarkup += `<g>
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="#fff" stroke="#222" stroke-width="2"/>
+        <path d="M ${cx-8} ${cy+4} L ${cx} ${cy-6} L ${cx+8} ${cy+4} Z" fill="#eee" stroke="#777" stroke-width="1.5"/>
+        <circle cx="${cx-2}" cy="${cy}" r="1" fill="#bbb"/>
+        <circle cx="${cx+2}" cy="${cy+1.5}" r="1" fill="#bbb"/>
+      </g>`;
+    } else if (tok === 'tea') {
+      // Green tea leaf inside a neutral badge
+      iconsMarkup += `<g>
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="#fff" stroke="#222" stroke-width="2"/>
+        <path d="M ${cx-6} ${cy+4} C ${cx-2} ${cy-2}, ${cx+2} ${cy-2}, ${cx+6} ${cy+4} C ${cx+2} ${cy+2}, ${cx-2} ${cy+2}, ${cx-6} ${cy+4} Z"
+          fill="#2ecc71" stroke="#1b8f4a" stroke-width="1.5"/>
+        <path d="M ${cx} ${cy+3} L ${cx} ${cy-1}" stroke="#1b8f4a" stroke-width="1.2"/>
+      </g>`;
     } else if (String(tok).startsWith('war')) {
       // war-jin-song or war:jin:song
       const parts = String(tok).includes(':') ? String(tok).split(':') : String(tok).split('-');
@@ -709,6 +725,31 @@ function makeCharacterCardDataUrl(
         const hole = `<rect x="4" y="4" width="4" height="4" fill="#f9f9f9" />`;
         return `<g>${outer}${hole}</g>`;
       }
+      if (kind === "salt") {
+        // Salt pile in 12x12
+        return `<g>
+          <path d="M 1,10 L 6,3 L 11,10 Z" fill="#eee" stroke="#777" stroke-width="1"/>
+          <circle cx="5" cy="7" r="0.8" fill="#bbb"/>
+          <circle cx="7.5" cy="8" r="0.8" fill="#bbb"/>
+        </g>`;
+      }
+      if (kind === "tea") {
+        // Green tea leaf in 12x12
+        return `<g>
+          <path d="M 2,10 C 5,5 7,5 10,10 C 7.8,9 4.2,9 2,10 Z" fill="#2ecc71" stroke="#1b8f4a" stroke-width="1"/>
+          <path d="M 6,9 L 6,6.5" stroke="#1b8f4a" stroke-width="1"/>
+        </g>`;
+      }
+      if (kind === "maritime") {
+        // Simple blue anchor in 12x12
+        return `<g>
+          <circle cx="6" cy="6" r="5.8" fill="none"/>
+          <path d="M 6,2 L 6,8" stroke="#2e86de" stroke-width="1.3" />
+          <circle cx="6" cy="3.2" r="0.8" fill="#2e86de"/>
+          <path d="M 2.5,8.5 C 4,10 8,10 9.5,8.5" fill="none" stroke="#2e86de" stroke-width="1.3"/>
+          <path d="M 2.5,8.5 L 4.1,7.2 M 9.5,8.5 L 7.9,7.2" stroke="#2e86de" stroke-width="1.3"/>
+        </g>`;
+      }
       if (kind === "dagger") {
         // simple dagger glyph in 12x12
         return `<g transform="translate(6,6) rotate(-20)"><rect x="-0.6" y="-5" width="1.2" height="7" fill="#555" stroke="#111" stroke-width="0.5"/><path d="M -1.8,1 L 1.8,1 L 0,4 Z" fill="#222"/></g>`;
@@ -746,7 +787,7 @@ function makeCharacterCardDataUrl(
       | { kind: "bold"; text: string }
       | { kind: "icon"; which: string; faction?: FactionId };
     const tokenRe =
-      /:((rebel|black|song|red|jin|yellow|daqi|green)-)?(foot|horse|ship|capital|character|dot|star|dagger|coin):/g;
+      /:((rebel|black|song|red|jin|yellow|daqi|green)-)?(foot|horse|ship|capital|character|dot|star|dagger|coin|salt|tea|maritime):/g;
     function resolveRefTitle(id: string): string {
       try {
         const cat = (window as any).__cardCatalog as

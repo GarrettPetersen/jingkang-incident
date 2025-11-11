@@ -162,12 +162,18 @@ export function playCard(state: GameState, cardId: string): void {
   state.log.push({ message: `${player.name} plays ${card.name}` });
   state.playingCardId = card.id;
   (state as any).playingCard = card;
+  // Track coins before to summarize earnings for specific economic cards
+  try {
+    (state as any).__coinsBefore = player.coins ?? 0;
+    (state as any).__coinsPlayerId = player.id;
+    (state as any).__coinsCardId = card.id;
+  } catch {}
   if (card.effect) {
     executeEffect(state, player.id, card, card.effect);
   } else {
-  for (const verb of card.verbs) {
-    if (state.gameOver) break;
-    executeVerb(state, player.id, card, verb);
+    for (const verb of card.verbs) {
+      if (state.gameOver) break;
+      executeVerb(state, player.id, card, verb);
       if (state.prompt) {
         // pause and queue remaining implicit verbs
         const remaining = card.verbs.slice(card.verbs.indexOf(verb) + 1).map((v) => ({ kind: 'verb', verb: v } as any));
@@ -1039,7 +1045,7 @@ function executeVerb(
             const pf = pc.faction;
             return pf === controlFaction;
           })
-          .map((pc) => pc.id);
+        .map((pc) => pc.id);
       } else {
         // No faction context — default to player's faction units
         movablePieceIds = Object.values(state.pieces)
@@ -1363,10 +1369,8 @@ function executeVerb(
         }
         (target as any).tucked = keep;
       }
-      if (removed.length > 0) {
-        state.discardPile = pushBottom(state.discardPile, removed as any);
-        state.log.push({ message: `Trashed ${removed.length} tucked card(s).` });
-      }
+      // Permanently remove from the game (do NOT add to discard)
+      if (removed.length > 0) state.log.push({ message: `Trashed ${removed.length} tucked card(s).` });
       break;
     }
     case 'endGame': {
@@ -1386,8 +1390,7 @@ export function inputSelectPiece(state: GameState, pieceId: PieceId): void {
     const ch = state.characters[chId];
     if (!ch || ch.location.kind !== 'node') return;
     const pid0 = state.prompt.playerId;
-    const owner = state.players.find(p => p.id === pid0);
-    const fac = owner?.faction;
+    const fac = getPlayerFaction(state, pid0);
     const from = ch.location.nodeId;
     function neighborsByMode(nodeId: string, mode: 'water' | 'land'): string[] {
       const nodes = new Set<string>();
@@ -1620,7 +1623,7 @@ export function inputSelectAdjacentNode(state: GameState, nodeId: NodeId): void 
           if (ret.queue.length > 0) {
             // Tail recurse to schedule next
             (state as any).__retreat = ret;
-            state.prompt = null;
+    state.prompt = null;
             resumePendingIfAny(state);
             return;
           }
@@ -1862,6 +1865,18 @@ function resumePendingIfAny(state: GameState) {
 
 function finalizeCardPlay(state: GameState, playerId: PlayerId, card: Card) {
   const player = state.players.find((p) => p.id === playerId)!;
+  // Summarize coin earnings for tea/salt cards regardless of amount
+  try {
+    const trackedId = (state as any).__coinsCardId as string | undefined;
+    const trackedPid = (state as any).__coinsPlayerId as string | undefined;
+    const before = (state as any).__coinsBefore as number | undefined;
+    const summarizeIds = new Set<string>(['imperial-salt-monopoly', 'tea-tickets-and-fees']);
+    if (trackedId === card.id && trackedPid === player.id && typeof before === 'number' && summarizeIds.has(card.id)) {
+      const after = player.coins ?? 0;
+      const delta = (after - before) | 0;
+      state.log.push({ message: `${player.name} earns ${delta} coin(s) from ${card.name}.` });
+    }
+  } catch {}
   const tuckedSomewhere = state.players.some((pl) => pl.tucked.includes(card));
   if (card.keepOnPlay) {
     player.hand.push(card);
@@ -1925,8 +1940,11 @@ export function inputConfirmConvoy(state: GameState): void {
 
 function resolveFactionSelector(state: GameState, selfId: PlayerId, sel: FactionSelector | undefined): string | undefined {
   if (!sel) return undefined;
-  if (sel === 'selfFaction') return state.players.find(p => p.id === selfId)?.faction;
-  if (sel === 'opponentFaction') return findOpponent(state, selfId)?.faction;
+  if (sel === 'selfFaction') return getPlayerFaction(state, selfId);
+  if (sel === 'opponentFaction') {
+    const opp = findOpponent(state, selfId);
+    return opp ? getPlayerFaction(state, opp.id) : undefined;
+  }
   return sel;
 }
 

@@ -424,7 +424,7 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
       const x1 = na.x + ox, y1 = na.y + oy;
       const x2 = nb.x + ox, y2 = nb.y + oy;
       if (kind === 'river') {
-        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         line.setAttribute('x1', String(x1));
         line.setAttribute('y1', String(y1));
         line.setAttribute('x2', String(x2));
@@ -445,7 +445,7 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
           line.setAttribute('stroke-dasharray', '6 4');
         }
         mapLayer.appendChild(line);
-      }
+  }
     }
   });
 
@@ -553,7 +553,7 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
           const ang = -Math.PI / 2 + (i * Math.PI) / 5;
           const rr = i % 2 === 0 ? R : r2;
           pts.push([cx + rr * Math.cos(ang), cy + rr * Math.sin(ang)]);
-        }
+  }
         const d = `M ${pts[0][0]} ${pts[0][1]} ` + pts.slice(1).map(p => `L ${p[0]} ${p[1]}`).join(' ') + ' Z';
         star.setAttribute('d', d);
         star.setAttribute('fill', '#000');
@@ -562,6 +562,122 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
         star.setAttribute('pointer-events', 'none');
         mapLayer.appendChild(star);
       }
+    }
+    // Resource/Trade markers
+    const saltNodes = new Set(['cangzhou','haizhou','taizhou','fuzhou','quanzhou','taiyuan']);
+    const teaNodes = new Set(['jianzhou-fj','shaoxing','hangzhou','tanzhou','chengdu','lizhou','xingyuan','nanchang','jiujiang']);
+    const maritimeNodes = new Set(['ningbo','quanzhou','fuzhou','guangzhou']);
+    // Salt: bottom-left
+    if (saltNodes.has(n.id)) {
+      const r = 10;
+      const offs = r * 0.7;
+      const sx = n.x - offs * Math.SQRT1_2;
+      const sy = n.y + offs * Math.SQRT1_2;
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      // small neutral badge
+      const badge = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      badge.setAttribute('cx', String(sx));
+      badge.setAttribute('cy', String(sy));
+      badge.setAttribute('r', '4.5');
+      badge.setAttribute('fill', '#fff');
+      badge.setAttribute('stroke', '#444');
+      badge.setAttribute('stroke-width', '0.8');
+      g.appendChild(badge);
+      // salt mound
+      const pile = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      const d = `M ${sx-3} ${sy+1.5} L ${sx} ${sy-2.5} L ${sx+3} ${sy+1.5} Z`;
+      pile.setAttribute('d', d);
+      pile.setAttribute('fill', '#eee');
+      pile.setAttribute('stroke', '#777');
+      pile.setAttribute('stroke-width', '0.8');
+      g.appendChild(pile);
+      const grain1 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      grain1.setAttribute('cx', String(sx-1));
+      grain1.setAttribute('cy', String(sy));
+      grain1.setAttribute('r', '0.6');
+      grain1.setAttribute('fill', '#bbb');
+      g.appendChild(grain1);
+      const grain2 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      grain2.setAttribute('cx', String(sx+1));
+      grain2.setAttribute('cy', String(sy+0.8));
+      grain2.setAttribute('r', '0.6');
+      grain2.setAttribute('fill', '#bbb');
+      g.appendChild(grain2);
+      g.setAttribute('pointer-events', 'none');
+      mapLayer.appendChild(g);
+    }
+    // Tea: bottom-right
+    if (teaNodes.has(n.id)) {
+      const r = 10;
+      const offs = r * 0.7;
+      const tx = n.x + offs * Math.SQRT1_2;
+      const ty = n.y + offs * Math.SQRT1_2;
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      const badge = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      badge.setAttribute('cx', String(tx));
+      badge.setAttribute('cy', String(ty));
+      badge.setAttribute('r', '4.5');
+      badge.setAttribute('fill', '#fff');
+      badge.setAttribute('stroke', '#444');
+      badge.setAttribute('stroke-width', '0.8');
+      g.appendChild(badge);
+      // leaf
+      const leaf = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      const d2 = `M ${tx-3} ${ty+1.5} C ${tx-1} ${ty-1.5}, ${tx+1} ${ty-1.5}, ${tx+3} ${ty+1.5} C ${tx+1} ${ty+0.8}, ${tx-1} ${ty+0.8}, ${tx-3} ${ty+1.5} Z`;
+      leaf.setAttribute('d', d2);
+      leaf.setAttribute('fill', '#2ecc71');
+      leaf.setAttribute('stroke', '#1b8f4a');
+      leaf.setAttribute('stroke-width', '0.8');
+      g.appendChild(leaf);
+      const vein = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      vein.setAttribute('d', `M ${tx} ${ty+1.2} L ${tx} ${ty-0.8}`);
+      vein.setAttribute('stroke', '#1b8f4a');
+      vein.setAttribute('stroke-width', '0.8');
+      g.appendChild(vein);
+      g.setAttribute('pointer-events', 'none');
+      mapLayer.appendChild(g);
+    }
+    // Maritime: top-right
+    if (maritimeNodes.has(n.id)) {
+      const r = 10;
+      const offs = r * 0.7;
+      // top-right badge
+      const ax = n.x + offs * Math.SQRT1_2;
+      const ay = n.y - offs * Math.SQRT1_2;
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      const badge = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      badge.setAttribute('cx', String(ax));
+      badge.setAttribute('cy', String(ay));
+      badge.setAttribute('r', '5.5');
+      badge.setAttribute('fill', '#fff');
+      badge.setAttribute('stroke', '#444');
+      badge.setAttribute('stroke-width', '1');
+      g.appendChild(badge);
+      // anchor shape
+      const anchor1 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      anchor1.setAttribute('d', `M ${ax} ${ay-2.6} L ${ax} ${ay+2.4}`);
+      anchor1.setAttribute('stroke', '#1f6ed6');
+      anchor1.setAttribute('stroke-width', '1.3');
+      g.appendChild(anchor1);
+      const eye = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      eye.setAttribute('cx', String(ax));
+      eye.setAttribute('cy', String(ay-2.0));
+      eye.setAttribute('r', '0.9');
+      eye.setAttribute('fill', '#1f6ed6');
+      g.appendChild(eye);
+      const curve = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      curve.setAttribute('d', `M ${ax-2.4} ${ay+2.2} C ${ax-0.8} ${ay+3.4}, ${ax+0.8} ${ay+3.4}, ${ax+2.4} ${ay+2.2}`);
+      curve.setAttribute('fill', 'none');
+      curve.setAttribute('stroke', '#1f6ed6');
+      curve.setAttribute('stroke-width', '1.3');
+      g.appendChild(curve);
+      const flukes = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      flukes.setAttribute('d', `M ${ax-2.4} ${ay+2.2} L ${ax-1.0} ${ay+0.9} M ${ax+2.4} ${ay+2.2} L ${ax+1.0} ${ay+0.9}`);
+      flukes.setAttribute('stroke', '#1f6ed6');
+      flukes.setAttribute('stroke-width', '1.3');
+      g.appendChild(flukes);
+      g.setAttribute('pointer-events', 'none');
+      mapLayer.appendChild(g);
     }
   }
 
@@ -1685,7 +1801,7 @@ function showCardModal(card: any, onPlay: () => void, originRect?: { x: number; 
       outer.setAttribute('fill', '#f0c419'); outer.setAttribute('stroke', '#b78900'); outer.setAttribute('stroke-width', '1.5');
       const hole = document.createElementNS(svgNS, 'rect');
       hole.setAttribute('x', '5'); hole.setAttribute('y', '5'); hole.setAttribute('width', '4'); hole.setAttribute('height', '4');
-      hole.setAttribute('fill', '#111'); // modal background to simulate hole
+      hole.setAttribute('fill', '#f9f9f9'); // match inline card background for cutout
       svg.appendChild(outer); svg.appendChild(hole);
     } else if (kind === 'character') {
       const c = document.createElementNS(svgNS, 'circle');
@@ -1994,6 +2110,15 @@ function renderCoins(count: number, size: 'sm' | 'md' = 'md'): HTMLElement {
     c.setAttribute('stroke', '#b78900');
     c.setAttribute('stroke-width', '2');
     svg.appendChild(c);
+    // square cutout
+    const hole = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    const side = Math.max(3, Math.round(r * 0.66));
+    hole.setAttribute('x', String(r - side / 2));
+    hole.setAttribute('y', String(r - side / 2));
+    hole.setAttribute('width', String(side));
+    hole.setAttribute('height', String(side));
+    hole.setAttribute('fill', '#f9f9f9');
+    svg.appendChild(hole);
     wrap.appendChild(svg);
   }
   if (count > 10) {
