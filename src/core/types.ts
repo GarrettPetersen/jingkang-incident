@@ -333,6 +333,10 @@ export type Condition =
       nodes: NodeId[];
       faction: FactionSelector;
       atLeast: number;
+    }
+  | {
+      // True if the current player's character is in a water-accessible city (river/canal/coast adjacency)
+      kind: "characterAtWaterAccessible";
     };
 
 // Selectors and parameter helpers for verb arguments
@@ -349,7 +353,8 @@ export type PieceTypeSelector = { anyOf: PieceTypeId[] };
 export type NodeSelector =
   | { nodes: NodeId[] }
   | { controlledBy: FactionSelector }
-  | { any: true };
+  | { any: true }
+  | { waterAccessible: true };
 
 // Player & Game state
 export interface PlayerState {

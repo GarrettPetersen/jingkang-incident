@@ -290,7 +290,7 @@ export const map: MapGraph = {
       "a": "huaiyin",
       "b": "kaifeng",
       "kinds": [
-        "river"
+        "canal"
       ]
     },
     "e6": {
@@ -340,7 +340,8 @@ export const map: MapGraph = {
       "a": "daming",
       "b": "kaifeng",
       "kinds": [
-        "road"
+        "road",
+        "canal"
       ]
     },
     "e12": {
@@ -356,7 +357,8 @@ export const map: MapGraph = {
       "a": "cangzhou",
       "b": "yanjing",
       "kinds": [
-        "road"
+        "road",
+        "canal"
       ]
     },
     "e14": {
@@ -364,7 +366,8 @@ export const map: MapGraph = {
       "a": "cangzhou",
       "b": "daming",
       "kinds": [
-        "road"
+        "road",
+        "canal"
       ]
     },
     "e15": {
@@ -423,7 +426,7 @@ export const map: MapGraph = {
       "b": "shaoxing",
       "kinds": [
         "path",
-        "river"
+        "canal"
       ]
     },
     "e22": {
@@ -440,7 +443,7 @@ export const map: MapGraph = {
       "b": "quanzhou",
       "kinds": [
         "path",
-        "river"
+        "coast"
       ]
     },
     "e24": {
@@ -480,7 +483,7 @@ export const map: MapGraph = {
       "a": "fuzhou",
       "b": "ningbo",
       "kinds": [
-        "river"
+        "coast"
       ]
     },
     "e29": {
@@ -564,7 +567,7 @@ export const map: MapGraph = {
       "b": "shaoxing",
       "kinds": [
         "path",
-        "river"
+        "canal"
       ]
     },
     "e39": {
@@ -612,7 +615,7 @@ export const map: MapGraph = {
       "a": "guangzhou",
       "b": "quanzhou",
       "kinds": [
-        "river"
+        "coast"
       ]
     },
     "e45": {
@@ -652,7 +655,7 @@ export const map: MapGraph = {
       "a": "suzhou-js",
       "b": "zhenjiang",
       "kinds": [
-        "river",
+        "canal",
         "road"
       ]
     },
@@ -661,7 +664,7 @@ export const map: MapGraph = {
       "a": "hangzhou",
       "b": "suzhou-js",
       "kinds": [
-        "river"
+        "canal"
       ]
     },
     "e51": {

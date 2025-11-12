@@ -70,9 +70,7 @@
         { "kind": "verb", "verb": { "type": "addCardToHand", "cardId": "liu-yu-sea-routes-map-star" } },
         { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "capital", "at": { "nodes": ["huaiyang"] }, "faction": "song" } },
         { "kind": "verb", "verb": { "type": "recruit", "pieceTypeId": "ship", "count": 4, "unique": true,
-          "at": { "nodes": [
-            "yangzhou","zhenjiang","nanjing","huaiyin","huaiyang","jiujiang","nanchang","taizhou","haizhou","xuanzhou","hangzhou","shaoxing","fuzhou","quanzhou","ningbo","tanzhou","yueyang","ezhou","xiangyang","suzhou-js","guangzhou"
-          ] },
+          "at": { "waterAccessible": true },
           "excludeNodes": ["kaifeng","yanjing","shangjing","daming","zhaozhou","cangzhou"],
           "faction": "song" } },
         { "kind": "verb", "verb": { "type": "placeCharacter", "options": ["huaiyin","yangzhou","huaiyang","haizhou","hefei"] } },
@@ -335,9 +333,7 @@
       "keepOnPlay": true,
       "effect": { "kind": "all", "effects": [
         { "kind": "any", "effects": [
-          { "kind": "if", "condition": { "kind": "hasCoins", "atLeast": 2 }, "then": { "kind": "if", "condition": { "kind": "characterAt", "nodes": [
-            "yangzhou","zhenjiang","nanjing","huaiyin","huaiyang","jiujiang","nanchang","taizhou","haizhou","xuanzhou","hangzhou","shaoxing","fuzhou","quanzhou","ningbo","tanzhou","yueyang","ezhou","xiangyang","suzhou-js","guangzhou"
-          ] }, "then": { "kind": "all", "effects": [ { "kind": "verb", "verb": { "type": "gainCoin", "amount": -2 } }, { "kind": "verb", "verb": { "type": "recruitAtCharacter", "pieceTypeId": "ship", "faction": "selfFaction" } } ] } } },
+          { "kind": "if", "condition": { "kind": "hasCoins", "atLeast": 2 }, "then": { "kind": "if", "condition": { "kind": "characterAtWaterAccessible" }, "then": { "kind": "all", "effects": [ { "kind": "verb", "verb": { "type": "gainCoin", "amount": -2 } }, { "kind": "verb", "verb": { "type": "recruitAtCharacter", "pieceTypeId": "ship", "faction": "selfFaction" } } ] } } },
           { "kind": "verb", "verb": { "type": "recruitAtCharacter", "pieceTypeId": "foot", "faction": "selfFaction" } }
         ] },
         { "kind": "verb", "verb": { "type": "drawUpTo", "limit": 6 } }

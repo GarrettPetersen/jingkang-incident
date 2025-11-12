@@ -261,6 +261,17 @@ function evaluateCondition(state: GameState, playerId: PlayerId, cond: Condition
         return false;
       }
     }
+    case 'characterAtWaterAccessible': {
+      const ch = getControlledCharacter(state, playerId);
+      if (!ch || ch.location.kind !== 'node') return false;
+      const here = ch.location.nodeId;
+      for (const e of Object.values(state.map.edges)) {
+        if (!((e.a === here) || (e.b === here))) continue;
+        const kinds = (e.kinds || []).map(k => String(k).toLowerCase());
+        if (kinds.includes('river') || kinds.includes('canal') || kinds.includes('coast')) return true;
+      }
+      return false;
+    }
     case 'noStarCardInHand': {
       const p = state.players.find(pp => pp.id === playerId);
       if (!p) return false;
@@ -2053,11 +2064,24 @@ function resolveNodeSelector(state: GameState, selfId: PlayerId, sel: NodeSelect
     const byNode: Record<string, Set<string>> = {};
     for (const pc of Object.values(state.pieces)) {
       if (pc.location.kind !== 'node') continue;
-    const f = pc.faction;
+      const f = pc.faction;
       if (!f) continue;
       (byNode[pc.location.nodeId] ??= new Set()).add(f);
     }
     return Object.keys(state.map.nodes).filter(nid => byNode[nid]?.has(faction));
+  }
+  if ((sel as any).waterAccessible) {
+    const nodes: string[] = [];
+    for (const nid of Object.keys(state.map.nodes)) {
+      let water = false;
+      for (const e of Object.values(state.map.edges)) {
+        if (!(e.a === nid || e.b === nid)) continue;
+        const kinds = (e.kinds || []).map(k => String(k).toLowerCase());
+        if (kinds.includes('river') || kinds.includes('canal') || kinds.includes('coast')) { water = true; break; }
+      }
+      if (water) nodes.push(nid);
+    }
+    return nodes;
   }
   return undefined;
 }

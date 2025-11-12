@@ -405,7 +405,9 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
   }
   const OFF = 6; // px between parallel edges
   const ROAD_STROKE = '#8b5a2b'; // brown
-  const WATER_STROKE = '#2e86de'; // blue
+  const RIVER_STROKE = '#2e86de'; // river blue
+  const CANAL_STROKE = '#48a9f8'; // lighter canal blue
+  const COAST_STROKE = '#1f6ed6'; // deeper coast blue
   groups.forEach(({ a, b, kinds }) => {
     const na = state.map.nodes[a];
     const nb = state.map.nodes[b];
@@ -423,13 +425,16 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
       const ox = px * offset, oy = py * offset;
       const x1 = na.x + ox, y1 = na.y + oy;
       const x2 = nb.x + ox, y2 = nb.y + oy;
-      if (kind === 'river') {
+      if (kind === 'river' || kind === 'canal' || kind === 'coast') {
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         line.setAttribute('x1', String(x1));
         line.setAttribute('y1', String(y1));
         line.setAttribute('x2', String(x2));
         line.setAttribute('y2', String(y2));
-        line.setAttribute('stroke', WATER_STROKE);
+        const stroke =
+          kind === 'river' ? RIVER_STROKE :
+          kind === 'canal' ? CANAL_STROKE : COAST_STROKE;
+        line.setAttribute('stroke', stroke);
         line.setAttribute('stroke-width', '6');
         line.setAttribute('stroke-linecap', 'round');
         mapLayer.appendChild(line);
@@ -459,6 +464,19 @@ function renderBoard(state: GameState, handlers: any): HTMLElement {
     circle.setAttribute('cy', String(n.y));
     circle.setAttribute('r', '10');
     circle.setAttribute('fill', '#bbb');
+    // Water-accessible highlight: if any adjacent edge is river/canal/coast
+    (function waterOutline() {
+      let water = false;
+      for (const e of Object.values(state.map.edges)) {
+        if (!((e.a === n.id) || (e.b === n.id))) continue;
+        const kinds = (e.kinds || []).map(k => String(k).toLowerCase());
+        if (kinds.includes('river') || kinds.includes('canal') || kinds.includes('coast')) { water = true; break; }
+      }
+      if (water) {
+        circle.setAttribute('stroke', '#48a9f8');
+        circle.setAttribute('stroke-width', '2');
+      }
+    })();
 
     if (state.prompt?.kind === 'selectNode') {
       if (state.prompt.nodeOptions.includes(n.id)) {
