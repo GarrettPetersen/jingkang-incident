@@ -635,6 +635,14 @@ function makeCharacterCardDataUrl(
           cy - 1
         }" stroke="#1b8f4a" stroke-width="1.2"/>
       </g>`;
+      } else if (tok === "grain") {
+        // Wheat sheaf inside a neutral badge
+        iconsMarkup += `<g>
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="#fff" stroke="#222" stroke-width="2"/>
+        <ellipse cx="${cx}" cy="${cy - 4}" rx="4.5" ry="2.8" fill="#d4a857" stroke="#8a601a" stroke-width="1.2"/>
+        <ellipse cx="${cx - 4}" cy="${cy + 1}" rx="3.6" ry="2.2" fill="#d4a857" stroke="#8a601a" stroke-width="1"/>
+        <ellipse cx="${cx + 4}" cy="${cy + 1}" rx="3.6" ry="2.2" fill="#d4a857" stroke="#8a601a" stroke-width="1"/>
+      </g>`;
       } else if (tok === "admin") {
         // Administrative quality: brush over tally tablet inside a neutral badge
         const tabletW = 14,
@@ -894,6 +902,14 @@ function makeCharacterCardDataUrl(
           <path d="M 10 2 l 2 0.6 l -1.8 1.8 Z" fill="#3d2a12"/>
         </g>`;
       }
+      if (kind === "grain") {
+        // Wheat sheaf in 12x12
+        return `<g>
+          <ellipse cx="6" cy="4" rx="3.8" ry="2.2" fill="#d4a857" stroke="#8a601a" stroke-width="0.8"/>
+          <ellipse cx="3.6" cy="8" rx="3.2" ry="1.8" fill="#d4a857" stroke="#8a601a" stroke-width="0.8"/>
+          <ellipse cx="8.4" cy="8" rx="3.2" ry="1.8" fill="#d4a857" stroke="#8a601a" stroke-width="0.8"/>
+        </g>`;
+      }
       if (kind === "maritime") {
         // Simple blue anchor in 12x12
         return `<g>
@@ -943,7 +959,7 @@ function makeCharacterCardDataUrl(
       | { kind: "bold"; text: string }
       | { kind: "icon"; which: string; faction?: FactionId };
     const tokenRe =
-      /:((rebel|black|song|red|jin|yellow|daqi|green)-)?(foot|horse|ship|capital|character|dot|star|dagger|coin|salt|tea|maritime|admin|song|jin|daqi|rebel):/g;
+      /:((rebel|black|song|red|jin|yellow|daqi|green)-)?(foot|horse|ship|capital|character|dot|star|dagger|coin|salt|tea|maritime|grain|admin|song|jin|daqi|rebel):/g;
     function resolveRefTitle(id: string): string {
       try {
         const cat = (window as any).__cardCatalog as
@@ -1398,6 +1414,13 @@ function makeGenericCardDataUrl(
         <path d="M 10 2 l 2 0.6 l -1.8 1.8 Z" fill="#3d2a12"/>
       </g>`;
     }
+    if (kind === "grain") {
+      return `<g>
+        <ellipse cx="6" cy="3" rx="2.2" ry="1.4" fill="#d4a857" stroke="#8a601a" stroke-width="0.6"/>
+        <ellipse cx="4.2" cy="6.2" rx="2" ry="1.2" fill="#d4a857" stroke="#8a601a" stroke-width="0.6"/>
+        <ellipse cx="7.8" cy="6.2" rx="2" ry="1.2" fill="#d4a857" stroke="#8a601a" stroke-width="0.6"/>
+      </g>`;
+    }
     return "";
   }
   type Item =
@@ -1405,7 +1428,7 @@ function makeGenericCardDataUrl(
     | { kind: "bold"; text: string }
     | { kind: "icon"; which: string; faction?: FactionId };
   const tokenRe =
-    /:((rebel|black|song|red|jin|yellow|daqi|green)-)?(foot|horse|ship|capital|character|dot|star|dagger|coin|admin):/g;
+    /:((rebel|black|song|red|jin|yellow|daqi|green)-)?(foot|horse|ship|capital|character|dot|star|dagger|coin|admin|grain):/g;
   function resolveRefTitle(id: string): string {
     try {
       const cat = (window as any).__cardCatalog as

@@ -110,11 +110,24 @@ export type VerbSpec =
   | { type: "draw"; count: number; target?: PlayerSelector }
   | { type: "drawUpTo"; limit: number }
   | { type: "tuck"; target: "self" | "opponent" }
-  | { type: "move"; steps?: number; actingFaction?: FactionSelector }
+  | {
+      type: "move";
+      steps?: number;
+      actingFaction?: FactionSelector;
+      pieceTypes?: PieceTypeSelector;
+    }
   | { type: "generalMove"; steps?: number }
   | { type: "shuffleInByBackText"; backText: string }
-  | { type: "raid"; actingFaction?: FactionSelector } // destroy an eligible adjacent enemy foot via specific modes
-  | { type: "assault"; actingFaction?: FactionSelector } // sacrifice one of your units to destroy an adjacent enemy (mode-specific adjacency)
+  | {
+      type: "raid";
+      actingFaction?: FactionSelector;
+      mode?: "any" | "ship" | "land";
+    } // destroy an eligible adjacent enemy foot via specific modes
+  | {
+      type: "assault";
+      actingFaction?: FactionSelector;
+      pieceTypes?: PieceTypeSelector;
+    } // sacrifice one of your units to destroy an adjacent enemy (mode-specific adjacency)
   | {
       // Guangxi Horse Imports: upgrade any of your faction's foot anywhere to horse, paying 1 coin each, up to a limit
       type: "upgradeFootToHorseAnywhere";
@@ -293,6 +306,16 @@ export type VerbSpec =
       nearCurrent?: boolean;
       // If provided, compute adjacency from this anchor node (useful when character starts offboard)
       nearNode?: NodeId;
+    }
+  | {
+      // Choose an isolated enemy city and apply supply-cut effect (discard enemy tucked grain or destroy all units there)
+      type: "supplyCutAtIsolatedEnemyCity";
+    }
+  | {
+      // Remove one tucked card that shows the specified icon from target player's tuck area
+      type: "trashOneTuckedWithIcon";
+      icon: IconId;
+      target: PlayerSelector | { playerId: PlayerId };
     };
 
 // Effect composition and conditions (focused on tucked icons)
@@ -460,7 +483,8 @@ export type Prompt =
             steps: number;
           }
         | { kind: "forMoveCapital"; fromNode: NodeId }
-        | { kind: "forEstablishDaqi" };
+        | { kind: "forEstablishDaqi" }
+        | { kind: "forSupplyCut" };
       message: string;
     }
   | {

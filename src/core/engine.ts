@@ -595,6 +595,7 @@ function executeVerb(
       const _self = state.players.find((p) => p.id === playerId)!;
       const selfFaction = _self.faction;
       const actingFaction = resolveFactionSelector(state, playerId, (verb as any).actingFaction) ?? selfFaction;
+      const mode = ((verb as any).mode ?? 'any') as 'any' | 'ship' | 'land';
       function neighborsByKinds(nodeId: string, kinds: Set<string>): string[] {
         const nodes = new Set<string>();
         for (const e of Object.values(state.map.edges)) {
@@ -617,8 +618,10 @@ function executeVerb(
         if (pc.location.kind !== 'node') continue;
         const from = pc.location.nodeId;
         if (pc.typeId === 'ship') {
+          if (mode === 'land') continue;
           neighborsByKinds(from, waterKinds).forEach(n => adjTargets.add(n));
         } else if (pc.typeId === 'foot' || pc.typeId === 'horse') {
+          if (mode === 'ship') continue;
           neighborsByKinds(from, roadOnly).forEach(n => adjTargets.add(n));
         }
       }
@@ -643,11 +646,14 @@ function executeVerb(
       const _self2 = state.players.find((p) => p.id === playerId)!;
       const selfFaction = _self2.faction;
       const actingFaction = resolveFactionSelector(state, playerId, (verb as any).actingFaction) ?? selfFaction;
+      const allowedTypes: string[] | undefined = (verb as any).pieceTypes?.anyOf;
       const ownIds = Object.values(state.pieces)
         .filter(pc => {
         const pf = pc.faction;
         const owned = actingFaction ? (pf === actingFaction) : (!!selfFaction && pf === selfFaction);
-          return owned && pc.location.kind === 'node';
+          if (!owned || pc.location.kind !== 'node') return false;
+          if (allowedTypes && !allowedTypes.includes(pc.typeId)) return false;
+          return true;
         })
         .map(pc => pc.id);
       if (ownIds.length === 0) { state.log.push({ message: `No unit to sacrifice for assault.` }); break; }
@@ -1178,6 +1184,94 @@ function executeVerb(
       state.log.push({ message: `${from.name} pays ${give} coin(s) to ${to.name}.` });
       break;
     }
+    case 'trashOneTuckedWithIcon': {
+      const icon = String((verb as any).icon);
+      const targetId = resolvePlayerSelector(state, playerId, (verb as any).target ?? 'self');
+      const target = state.players.find(p => p.id === targetId)!;
+      if (!Array.isArray(target.tucked) || target.tucked.length === 0) { state.log.push({ message: `${target.name} has no tucked cards.` }); break; }
+      const idx = target.tucked.findIndex((c: any) => Array.isArray(c?.icons) && (c.icons as any[]).some(ic => String(ic) === icon));
+      if (idx >= 0) {
+        const [removed] = (target.tucked as any[]).splice(idx, 1);
+        const nm = (removed as any).name || (removed as any).id || 'a card';
+        state.log.push({ message: `${target.name} trashes tucked ${nm} (icon: ${icon}).` });
+      } else {
+        state.log.push({ message: `${target.name} has no tucked ${icon}.` });
+      }
+      break;
+    }
+    case 'supplyCutAtIsolatedEnemyCity': {
+      // Determine acting faction
+      const fac = getPlayerFaction(state, playerId);
+      if (!fac) { state.log.push({ message: `No acting faction.` }); break; }
+      function getCapitalNodeOfFaction(f: any): string | undefined {
+        for (const pc of Object.values(state.pieces)) {
+          if (pc.typeId !== 'capital') continue;
+          if (pc.faction !== f) continue;
+          if (pc.location.kind !== 'node') continue;
+          return (pc.location as any).nodeId;
+        }
+        return undefined;
+      }
+      function isNodeHostileToFaction(nodeId: string, f: any): boolean {
+        // hostile if any piece present whose faction is enemy to f
+        for (const pc of Object.values(state.pieces)) {
+          if (pc.location.kind !== 'node' || pc.location.nodeId !== nodeId) continue;
+          const pf = pc.faction as any;
+          if (!pf) continue;
+          const rel = (state.diplomacy as any)?.[f]?.[pf];
+          const enemy = rel ? (rel === 'enemy') : (pf !== f);
+          if (enemy) return true;
+        }
+        return false;
+      }
+      function canTraceToCapitalThroughNonHostile(nodeId: string, f: any): boolean {
+        const capNode = getCapitalNodeOfFaction(f);
+        if (!capNode) return false;
+        const visited = new Set<string>();
+        const q: string[] = [nodeId];
+        visited.add(nodeId);
+        while (q.length > 0) {
+          const cur = q.shift()!;
+          if (cur === capNode) return true;
+          const adj = findAdjacentNodes(state.map, cur);
+          for (const n of adj) {
+            if (visited.has(n)) continue;
+            if (isNodeHostileToFaction(n, f)) continue;
+            visited.add(n);
+            q.push(n);
+          }
+        }
+        return false;
+      }
+      // Eligible nodes: contain enemy units (to fac) and for each enemy faction present, at least one is isolated for its own capital
+      const eligible = Object.keys(state.map.nodes).filter(nid => {
+        // enemy factions present
+        const presentF = new Set<string>();
+        for (const pc of Object.values(state.pieces)) {
+          if (pc.location.kind !== 'node' || pc.location.nodeId !== nid) continue;
+          const pf = pc.faction as any;
+          if (!pf) continue;
+          const rel = (state.diplomacy as any)?.[fac]?.[pf];
+          const enemy = rel ? (rel === 'enemy') : (pf !== fac);
+          if (enemy) presentF.add(pf);
+        }
+        if (presentF.size === 0) return false;
+        // check isolation for any present enemy faction
+        for (const ef of presentF) {
+          if (!canTraceToCapitalThroughNonHostile(nid, ef)) return true;
+        }
+        return false;
+      });
+      if (eligible.length === 0) { state.log.push({ message: `No isolated enemy city available.` }); break; }
+      state.prompt = {
+        kind: 'selectNode',
+        playerId,
+        nodeOptions: eligible,
+        next: { kind: 'forSupplyCut' } as any,
+        message: 'Choose an isolated enemy city for supply cut',
+      } as any;
+      return;
+    }
     case 'move': {
       // Single-step move; if a card needs multiple, include multiple move verbs
       const steps = 1;
@@ -1185,6 +1279,7 @@ function executeVerb(
       const actingFaction = resolveFactionSelector(state, playerId, (verb as any).actingFaction);
       const defaultFaction = getPlayerFaction(state, playerId);
       const controlFaction = actingFaction ?? defaultFaction;
+      const allowedTypes: string[] | undefined = (verb as any).pieceTypes?.anyOf;
       // Collect movable units:
       // - If controlFaction is defined: any units of that faction
       // - Else: fall back to units owned by the player
@@ -1194,7 +1289,9 @@ function executeVerb(
           .filter((pc) => pc.location.kind === 'node')
           .filter((pc) => {
             const pf = pc.faction;
-            return pf === controlFaction;
+            if (pf !== controlFaction) return false;
+            if (allowedTypes && !allowedTypes.includes(pc.typeId)) return false;
+            return true;
           })
         .map((pc) => pc.id);
       } else {
@@ -1203,7 +1300,9 @@ function executeVerb(
           .filter((pc) => pc.location.kind === 'node')
           .filter((pc) => {
             const pf = pc.faction;
-            return !!defaultFaction && pf === defaultFaction;
+            if (!(!!defaultFaction && pf === defaultFaction)) return false;
+            if (allowedTypes && !allowedTypes.includes(pc.typeId)) return false;
+            return true;
           })
           .map((pc) => pc.id);
       }
@@ -2016,6 +2115,56 @@ export function inputSelectNode(state: GameState, nodeId: NodeId): void {
         state.log.push({ message: `Shuffled ${toAdd.length} Da Qi card(s) into the draw pile.` });
       }
     } catch {}
+    state.prompt = null;
+    resumePendingIfAny(state);
+  } else if ((next as any).kind === 'forSupplyCut') {
+    const nid = nodeId;
+    // Determine acting player and faction
+    const pid = state.prompt.playerId;
+    const actingFaction = getPlayerFaction(state, pid);
+    // Identify enemy factions present at node
+    const enemyFactions = new Set<string>();
+    for (const pc of Object.values(state.pieces)) {
+      if (pc.location.kind !== 'node' || pc.location.nodeId !== nid) continue;
+      const pf = pc.faction as any;
+      if (!pf || !actingFaction) continue;
+      const rel = (state.diplomacy as any)?.[actingFaction]?.[pf];
+      const enemy = rel ? (rel === 'enemy') : (pf !== actingFaction);
+      if (enemy) enemyFactions.add(pf);
+    }
+    // Choose one enemy faction (if multiple, pick arbitrarily for now)
+    const ef = Array.from(enemyFactions)[0];
+    if (!ef) { state.prompt = null; resumePendingIfAny(state); return; }
+    // Find players of that faction who have a tucked grain
+    const candidates = state.players.filter(p => getPlayerFaction(state, p.id) === ef)
+      .filter(p => (p.tucked || []).some((c: any) => Array.isArray(c?.icons) && (c.icons as any[]).some((ic: any) => String(ic) === 'grain')));
+    if (candidates.length > 1) {
+      state.prompt = {
+        kind: 'choose',
+        playerId: pid,
+        choices: candidates.map((p) => ({
+          kind: 'verb',
+          verb: { type: 'trashOneTuckedWithIcon', icon: 'grain', target: { playerId: p.id } } as any,
+          label: `Discard a tucked :grain: from ${p.name}`,
+        })) as any,
+        message: 'Choose an enemy player to discard a tucked grain',
+      } as any;
+      return;
+    }
+    if (candidates.length === 1) {
+      const target = candidates[0];
+      executeEffect(state, pid, (state as any).playingCard as any, { kind: 'verb', verb: { type: 'trashOneTuckedWithIcon', icon: 'grain', target: { playerId: target.id } } as any });
+      state.prompt = null;
+      resumePendingIfAny(state);
+      return;
+    }
+    // No tucked grain found — destroy all units in the chosen city
+    const idsAt = Object.values(state.pieces)
+      .filter(pc => pc.location.kind === 'node' && pc.location.nodeId === nid)
+      .map(pc => pc.id);
+    for (const id of idsAt) delete state.pieces[id];
+    const label = (state.map.nodes as any)[nid]?.label ?? nid;
+    state.log.push({ message: `Supply cut at ${label}: all units there are destroyed.` });
     state.prompt = null;
     resumePendingIfAny(state);
   }
