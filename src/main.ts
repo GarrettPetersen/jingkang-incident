@@ -643,6 +643,20 @@ function makeCharacterCardDataUrl(
         <ellipse cx="${cx - 4}" cy="${cy + 1}" rx="3.6" ry="2.2" fill="#d4a857" stroke="#8a601a" stroke-width="1"/>
         <ellipse cx="${cx + 4}" cy="${cy + 1}" rx="3.6" ry="2.2" fill="#d4a857" stroke="#8a601a" stroke-width="1"/>
       </g>`;
+      } else if (tok === "guandao") {
+        // Inline guandao.svg path scaled into the badge
+        const iw = r * 1.6; // target width within badge
+        const scale = iw / 1200; // source viewBox width
+        const ix = cx - (1200 * scale) / 2;
+        const iy = cy - (1200 * scale) / 2;
+        const d = `m670.8 686.4c7.1992-12 20.398-37.199 22.801-66l18 12c2.3984 2.3984 7.1992 2.3984 9.6016 0 2.3984-2.3984 4.8008-6 3.6016-9.6016-1.1992-8.3984-6-24-12-38.398l30-2.3984c3.6016 0 7.1992-3.6016 7.1992-7.1992 1.1992-3.6016-1.1992-7.1992-3.6016-9.6016-18-10.801-60-38.398-75.602-60l4.8008-4.8008 14.398 19.199 1.1992 1.1992c2.3984 2.3984 4.8008 2.3984 7.1992 3.6016 3.6016 0 6-1.1992 8.3984-3.6016l22.801-22.801c4.8008-4.8008 4.8008-10.801 0-15.602l-7.1992-7.1992c19.199-1.1992 52.801-10.801 100.8-58.801 73.199-73.199 69.602-205.2 69.602-211.2v-12l-168 168-6-9.6016c-1.1992-2.3984-4.8008-3.6016-7.1992-4.8008-2.3984 0-6 1.1992-7.1992 3.6016l-46.801 58.801-6-6c-4.8008-4.8008-10.801-4.8008-15.602 0l-10.801 10.801c-3.6016 3.6016-4.8008 9.6016-1.1992 14.398l27.602 37.199-42 42-382.8 386.41c-7.1992 7.1992-7.1992 20.398 0 28.801 7.1992 8.3984 20.398 7.1992 28.801 0l368.4-369.6c4.8008 7.1992 12 24 21.602 54 6 19.199 8.3984 62.398 8.3984 75.602 0 2.3984 1.1992 4.8008 2.3984 6 1.1992 1.1992 2.3984 1.1992 3.6016 2.3984 4.8008 0 8.3984-1.1992 10.801-4.8008zm-27.602-168-13.199-13.199 8.3984-8.3984 15.602 9.6016zm20.402-20.398-15.602-9.6016 10.801-10.801 10.801 14.398zm-40.801 14.398 13.199 13.199-8.3984 8.3984-8.4023-17.996z`;
+        const blade = `<g transform="translate(${ix}, ${iy}) scale(${scale})">
+          <path d="${d}" fill="#cfd6dc" stroke="#6e7781" stroke-width="${60}"/>
+        </g>`;
+        iconsMarkup += `<g>
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="#fff" stroke="#222" stroke-width="2"/>
+        ${blade}
+      </g>`;
       } else if (tok === "admin") {
         // Administrative quality: brush over tally tablet inside a neutral badge
         const tabletW = 14,
@@ -924,6 +938,14 @@ function makeCharacterCardDataUrl(
         // simple dagger glyph in 12x12
         return `<g transform="translate(6,6) rotate(-20)"><rect x="-0.6" y="-5" width="1.2" height="7" fill="#555" stroke="#111" stroke-width="0.5"/><path d="M -1.8,1 L 1.8,1 L 0,4 Z" fill="#222"/></g>`;
       }
+      if (kind === "guandao") {
+        // Inline external guandao.svg path, scaled to 12x12
+        const d = `m670.8 686.4c7.1992-12 20.398-37.199 22.801-66l18 12c2.3984 2.3984 7.1992 2.3984 9.6016 0 2.3984-2.3984 4.8008-6 3.6016-9.6016-1.1992-8.3984-6-24-12-38.398l30-2.3984c3.6016 0 7.1992-3.6016 7.1992-7.1992 1.1992-3.6016-1.1992-7.1992-3.6016-9.6016-18-10.801-60-38.398-75.602-60l4.8008-4.8008 14.398 19.199 1.1992 1.1992c2.3984 2.3984 4.8008 2.3984 7.1992 3.6016 3.6016 0 6-1.1992 8.3984-3.6016l22.801-22.801c4.8008-4.8008 4.8008-10.801 0-15.602l-7.1992-7.1992c19.199-1.1992 52.801-10.801 100.8-58.801 73.199-73.199 69.602-205.2 69.602-211.2v-12l-168 168-6-9.6016c-1.1992-2.3984-4.8008-3.6016-7.1992-4.8008-2.3984 0-6 1.1992-7.1992 3.6016l-46.801 58.801-6-6c-4.8008-4.8008-10.801-4.8008-15.602 0l-10.801 10.801c-3.6016 3.6016-4.8008 9.6016-1.1992 14.398l27.602 37.199-42 42-382.8 386.41c-7.1992 7.1992-7.1992 20.398 0 28.801 7.1992 8.3984 20.398 7.1992 28.801 0l368.4-369.6c4.8008 7.1992 12 24 21.602 54 6 19.199 8.3984 62.398 8.3984 75.602 0 2.3984 1.1992 4.8008 2.3984 6 1.1992 1.1992 2.3984 1.1992 3.6016 2.3984 4.8008 0 8.3984-1.1992 10.801-4.8008zm-27.602-168-13.199-13.199 8.3984-8.3984 15.602 9.6016zm20.402-20.398-15.602-9.6016 10.801-10.801 10.801 14.398zm-40.801 14.398 13.199 13.199-8.3984 8.3984-8.4023-17.996z`;
+        // Source viewBox is 1200; scale by 0.01 to fit 12x12
+        return `<g transform="scale(0.01)">
+          <path d="${d}" fill="#cfd6dc" stroke="#6e7781" stroke-width="60"/>
+        </g>`;
+      }
       if (kind === "ship") {
         const fill = faction
           ? (FactionColor as any)[faction] ?? "#888"
@@ -959,7 +981,7 @@ function makeCharacterCardDataUrl(
       | { kind: "bold"; text: string }
       | { kind: "icon"; which: string; faction?: FactionId };
     const tokenRe =
-      /:((rebel|black|song|red|jin|yellow|daqi|green)-)?(foot|horse|ship|capital|character|dot|star|dagger|coin|salt|tea|maritime|grain|admin|song|jin|daqi|rebel):/g;
+      /:((rebel|black|song|red|jin|yellow|daqi|green)-)?(foot|horse|ship|capital|character|dot|star|dagger|guandao|coin|salt|tea|maritime|grain|admin|song|jin|daqi|rebel):/g;
     function resolveRefTitle(id: string): string {
       try {
         const cat = (window as any).__cardCatalog as
@@ -1604,7 +1626,7 @@ function makeGenericCardDataUrl(
     ? `<defs><style type="text/css"><![CDATA[@font-face{font-family:'PieceIcons';src:url('/fonts/piece-icons.woff2') format('woff2'),url('/fonts/piece-icons.ttf') format('truetype');}]]></style></defs>`
     : "";
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
   ${back}
   <rect x="0" y="0" width="${width}" height="${height}" fill="#f9f9f9" rx="12" ry="12"/>
   <text x="50%" y="56" text-anchor="middle" font-size="22" font-weight="800" fill="#111"${headAttrs}>${safeName}</text>

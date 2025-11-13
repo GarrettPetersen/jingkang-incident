@@ -6,12 +6,13 @@
     "grain-ships-captured": {
       "name": "Grain Ships Captured",
       "backText": "Shaoxing",
+      "icons": ["guandao"],
       "events-referenced": ["song-1136-wang-de-captures-huai-grain-fleet"],
       "quote": {
         "text": "In the winter of Shaoxing six, having routed the enemy at Outang, he pursued toward Shouchun but did not overtake them, and captured four hundred of their grain boats.",
         "cite": "Songshi, Vol. 368"
       },
-      "rulesTextOverride": "Move, raid, or assault with a :ship: of your faction.\n\nOR\n\nChoose an isolated city containing enemy units. A city is isolated if it cannot trace a path of friendly or neutral cities back to a friendly :capital:. Discard a tucked :grain: in front of any player in the enemy faction. If no player in the enemy faction has a tucked :grain:, destroy all units in the chosen isolated city.",
+      "rulesTextOverride": "Move, raid, or assault with a :ship: of your faction.\n\nOR\n\nChoose an isolated city containing enemy units. A city is isolated if it cannot trace a path of friendly or neutral cities back to a friendly :capital:. Discard a tucked :grain: in front of any player in the enemy faction. If no player in the enemy faction has a tucked :grain:, destroy all units in the chosen isolated city.\n\nIf at least 3 enemy units are destroyed by this action, tuck this card.",
       "effect": {
         "kind": "any",
         "effects": [
@@ -30,12 +31,13 @@
     "three-city-long-siege": {
       "name": "Three-City Long Siege",
       "backText": "Shaoxing",
+      "icons": ["guandao"],
       "events-referenced": ["song-1132-three-city-long-siege"],
       "quote": {
         "text": "Li Quan arrayed stockades to encircle the three cities; provisions and relief from the command were entirely cut off.",
         "cite": "Songshi, Vol. 477"
       },
-      "rulesTextOverride": "Recruit one :foot: in any city your faction controls.\n\nOR\n\nChoose an isolated city containing enemy units. A city is isolated if it cannot trace a path of friendly or neutral cities back to a friendly :capital:. Discard a tucked :grain: in front of any player in the enemy faction. If no player in the enemy faction has a tucked :grain:, destroy all units in the chosen isolated city.",
+      "rulesTextOverride": "Recruit one :foot: in any city your faction controls.\n\nOR\n\nChoose an isolated city containing enemy units. A city is isolated if it cannot trace a path of friendly or neutral cities back to a friendly :capital:. Discard a tucked :grain: in front of any player in the enemy faction. If no player in the enemy faction has a tucked :grain:, destroy all units in the chosen isolated city.\n\nIf at least 3 enemy units are destroyed by this action, tuck this card.",
       "effect": {
         "kind": "any",
         "effects": [

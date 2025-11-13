@@ -2159,12 +2159,30 @@ export function inputSelectNode(state: GameState, nodeId: NodeId): void {
       return;
     }
     // No tucked grain found — destroy all units in the chosen city
-    const idsAt = Object.values(state.pieces)
-      .filter(pc => pc.location.kind === 'node' && pc.location.nodeId === nid)
-      .map(pc => pc.id);
-    for (const id of idsAt) delete state.pieces[id];
+    const pcsAt = Object.values(state.pieces)
+      .filter(pc => pc.location.kind === 'node' && pc.location.nodeId === nid);
+    const enemyDestroyed = pcsAt.filter(pc => {
+      const pf = pc.faction as any;
+      if (!pf || !actingFaction) return false;
+      const rel = (state.diplomacy as any)?.[actingFaction]?.[pf];
+      const enemy = rel ? (rel === 'enemy') : (pf !== actingFaction);
+      return enemy;
+    }).length;
+    for (const pc of pcsAt) {
+      delete state.pieces[pc.id];
+    }
     const label = (state.map.nodes as any)[nid]?.label ?? nid;
     state.log.push({ message: `Supply cut at ${label}: all units there are destroyed.` });
+    // If at least 3 enemy units were destroyed by this action, tuck this card for the acting player
+    try {
+      if (enemyDestroyed >= 3) {
+        executeEffect(state, pid, (state as any).playingCard as any, { kind: 'verb', verb: { type: 'tuckToPlayer', player: 'self' } as any });
+        const player = state.players.find(p => p.id === pid);
+        if (player && (state as any).playingCard) {
+          state.log.push({ message: `${player.name} tucks ${((state as any).playingCard as any).name} for a decisive victory.` });
+        }
+      }
+    } catch {}
     state.prompt = null;
     resumePendingIfAny(state);
   }
