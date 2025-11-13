@@ -3,6 +3,50 @@
   "name": "First Jin–Song War Setup",
   "version": 1,
   "cards": {
+    "da-qi-abolished": {
+      "name": "Da Qi Abolished",
+      "icons": ["liu-yu","jin"],
+      "backText": "Da Qi",
+      "events-referenced": ["jin-1137-abolish-da-qi-and-purge-abuses","jin-1137-abolish-qi","song-1137-abolish-qi"],
+      "quote": {
+        "text": "In Tianhui 15, an edict abolished Qi and demoted Liu Yu to King of Shu.",
+        "cite": "Jinshi, Vol. 77"
+      },
+      "rulesTextOverride": "If Liu Yu has a tucked :dagger: and a :jin-foot:/:jin-horse:/:jin-ship: is present in :daqi-capital:, trash [[liu-yu-puppet-emperor-of-da-qi-star]] and tuck this in front of Liu Yu. Then replace all :daqi-foot:/:daqi-horse:/:daqi-ship: with :jin-foot:/:jin-horse:/:jin-ship: everywhere.\n\nOtherwise, take 1 :coin: from Liu Yu and give it to any :jin: player as tribute.",
+      "effect": {
+        "kind": "if",
+        "condition": {
+          "kind": "characterControllerHasTuckedIcon",
+          "characterId": "char-liu-yu",
+          "icon": "dagger",
+          "atLeast": 1
+        },
+        "then": {
+          "kind": "if",
+          "condition": {
+            "kind": "factionPresentAtFactionCapital",
+            "presentFaction": "jin",
+            "capitalFaction": "daqi"
+          },
+          "then": {
+            "kind": "all",
+            "effects": [
+              { "kind": "verb", "verb": { "type": "trashTuckedCard", "matchCardId": "liu-yu-puppet-emperor-of-da-qi-star", "target": { "controllerOfCharacterId": "char-liu-yu" } } },
+              { "kind": "verb", "verb": { "type": "tuckToPlayer", "player": { "controllerOfCharacterId": "char-liu-yu" } } },
+              { "kind": "verb", "verb": { "type": "convertFactionEverywhere", "fromFaction": "daqi", "toFaction": "jin", "pieceTypes": { "anyOf": ["foot","horse","ship"] } } }
+            ]
+          },
+          "else": {
+            "kind": "verb",
+            "verb": { "type": "transferCoinToFaction", "from": { "controllerOfCharacterId": "char-liu-yu" }, "toFaction": "jin", "amount": 1 }
+          }
+        },
+        "else": {
+          "kind": "verb",
+          "verb": { "type": "transferCoinToFaction", "from": { "controllerOfCharacterId": "char-liu-yu" }, "toFaction": "jin", "amount": 1 }
+        }
+      }
+    },
     "start-yue-fei": {
       "template": "character", "name": "Yue Fei, Loyal Song Officer",
       "backText": "START",

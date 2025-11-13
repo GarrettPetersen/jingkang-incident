@@ -272,6 +272,43 @@ function evaluateCondition(state: GameState, playerId: PlayerId, cond: Condition
       }
       return false;
     }
+    case 'characterControllerHasTuckedIcon': {
+      const chId = (cond as any).characterId as string;
+      const icon = (cond as any).icon as any;
+      const need = Math.max(1, Number((cond as any).atLeast ?? 1));
+      const ch = state.characters[chId];
+      if (!ch) return false;
+      const p = state.players.find(pp => pp.id === ch.playerId);
+      if (!p) return false;
+      let count = 0;
+      for (const c of p.tucked || []) {
+        const arr = Array.isArray((c as any)?.icons) ? ((c as any).icons as any[]) : [];
+        for (const ic of arr) if (String(ic) === String(icon)) count += 1;
+      }
+      return count >= need;
+    }
+    case 'factionPresentAtFactionCapital': {
+      const presentFaction = resolveFactionSelector(state, playerId, (cond as any).presentFaction);
+      const capitalFaction = resolveFactionSelector(state, playerId, (cond as any).capitalFaction);
+      if (!presentFaction || !capitalFaction) return false;
+      // Locate node with capitalFaction's capital piece
+      let capitalNode: string | undefined;
+      for (const pc of Object.values(state.pieces)) {
+        if (pc.location.kind !== 'node') continue;
+        if (pc.faction === (capitalFaction as any) && pc.typeId === 'capital') {
+          capitalNode = pc.location.nodeId;
+          break;
+        }
+      }
+      if (!capitalNode) return false;
+      // Check for presence of presentFaction at that node
+      return Object.values(state.pieces).some((pc) =>
+        pc.location.kind === 'node' &&
+        pc.location.nodeId === capitalNode &&
+        pc.faction === (presentFaction as any) &&
+        (pc.typeId === 'foot' || pc.typeId === 'horse' || pc.typeId === 'ship')
+      );
+    }
     case 'noStarCardInHand': {
       const p = state.players.find(pp => pp.id === playerId);
       if (!p) return false;
@@ -1078,6 +1115,67 @@ function executeVerb(
         self.coins = (self.coins ?? 0) + amt;
         state.log.push({ message: `${self.name} gains ${amt} coin(s)` });
       }
+      break;
+    }
+    case 'convertFactionEverywhere': {
+      const fromF = resolveFactionSelector(state, playerId, (verb as any).fromFaction);
+      const toF = resolveFactionSelector(state, playerId, (verb as any).toFaction);
+      if (!toF) { state.log.push({ message: `No target faction to convert to.` }); break; }
+      const allowed: string[] | undefined = (verb as any).pieceTypes?.anyOf;
+      let changed = 0;
+      for (const pc of Object.values(state.pieces)) {
+        if (fromF && pc.faction !== (fromF as any)) continue;
+        if (allowed && !allowed.includes(pc.typeId)) continue;
+        pc.faction = toF as any;
+        changed += 1;
+      }
+      state.log.push({ message: `Reflagged ${changed} piece(s) to ${String(toF)}.` });
+      break;
+    }
+    case 'transferCoinToFaction': {
+      const fromId = resolvePlayerSelector(state, playerId, (verb as any).from ?? 'self');
+      const from = state.players.find((p) => p.id === fromId)!;
+      const toFaction = resolveFactionSelector(state, playerId, (verb as any).toFaction);
+      const amount = Math.max(0, Number((verb as any).amount ?? 0));
+      if (!toFaction || amount <= 0) break;
+      const candidates = state.players.filter((p) => getPlayerFaction(state, p.id) === toFaction);
+      if (candidates.length === 0) {
+        state.log.push({ message: `No ${String(toFaction)} player to receive tribute.` });
+        break;
+      }
+      if (candidates.length > 1) {
+        state.prompt = {
+          kind: 'choose',
+          playerId,
+          choices: candidates.map((p) => ({
+            kind: 'verb',
+            verb: { type: 'transferCoinToPlayer', from: { playerId: from.id }, to: { playerId: p.id }, amount } as any,
+            label: `Give ${amount} coin to ${p.name}`,
+          })) as any,
+          message: 'Choose a Jin player to receive tribute',
+        } as any;
+        return;
+      }
+      const target = candidates[0];
+      const give = Math.min(amount, Math.max(0, from.coins ?? 0));
+      if (give <= 0) { state.log.push({ message: `${from.name} has no coin to give.` }); break; }
+      from.coins = (from.coins ?? 0) - give;
+      target.coins = (target.coins ?? 0) + give;
+      state.log.push({ message: `${from.name} pays ${give} coin(s) in tribute to ${target.name}.` });
+      break;
+    }
+    case 'transferCoinToPlayer': {
+      const fromId = resolvePlayerSelector(state, playerId, (verb as any).from ?? 'self');
+      const toId = resolvePlayerSelector(state, playerId, (verb as any).to ?? 'opponent');
+      const from = state.players.find((p) => p.id === fromId)!;
+      const to = state.players.find((p) => p.id === toId)!;
+      const amount = Math.max(0, Number((verb as any).amount ?? 0));
+      if (amount <= 0) break;
+      const give = Math.min(amount, Math.max(0, from.coins ?? 0));
+      if (give <= 0) { state.log.push({ message: `${from.name} has no coin to give.` }); break; }
+      from.coins = (from.coins ?? 0) - give;
+      to.coins = (to.coins ?? 0) + give;
+      state.log.push({ message: `${from.name} pays ${give} coin(s) to ${to.name}.` });
       break;
     }
     case 'move': {

@@ -265,6 +265,27 @@ export type VerbSpec =
       limit?: number;
     }
   | {
+      // Convert all pieces of one faction to another across the entire board (optionally filter by piece types)
+      type: "convertFactionEverywhere";
+      fromFaction: FactionSelector;
+      toFaction: FactionSelector;
+      pieceTypes?: PieceTypeSelector;
+    }
+  | {
+      // Transfer coins from one player to any player of a target faction (prompt if multiple)
+      type: "transferCoinToFaction";
+      from: PlayerSelector | { playerId: PlayerId };
+      toFaction: FactionSelector;
+      amount: number;
+    }
+  | {
+      // Transfer coins from one player directly to a chosen player
+      type: "transferCoinToPlayer";
+      from: PlayerSelector | { playerId: PlayerId };
+      to: PlayerSelector | { playerId: PlayerId };
+      amount: number;
+    }
+  | {
       // Allow the current player to place/move their character to a chosen node
       type: "placeCharacter";
       // Provide explicit options, or use nearCurrent to derive options
@@ -337,6 +358,19 @@ export type Condition =
   | {
       // True if the current player's character is in a water-accessible city (river/canal/coast adjacency)
       kind: "characterAtWaterAccessible";
+    }
+  | {
+      // True if the controller of a specific character has at least N of an icon tucked
+      kind: "characterControllerHasTuckedIcon";
+      characterId: CharacterId;
+      icon: IconId;
+      atLeast?: number;
+    }
+  | {
+      // True if any piece of presentFaction is present in the node that has capitalFaction's capital piece
+      kind: "factionPresentAtFactionCapital";
+      presentFaction: FactionSelector;
+      capitalFaction: FactionSelector;
     };
 
 // Selectors and parameter helpers for verb arguments
