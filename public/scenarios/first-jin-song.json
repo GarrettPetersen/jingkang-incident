@@ -455,6 +455,24 @@
       ] }
     }
     ,
+    "route-granary-network": {
+      "template": "character",
+      "name": "Route Granary Network",
+      "backText": "Jingkang",
+      "icons": ["grain"],
+      "events-referenced": ["jin-1127-1142-route-granary-network"],
+      "rulesTextOverride": "Move.\n\nThen, Move again.\n\nThen, tuck this card.",
+      "quote": {
+        "text": "Eighth: be clear in receipts and disbursements, with no loss of goods—this is granary excellence.",
+        "cite": "Jinshi, Vol. 55"
+      },
+      "effect": { "kind": "all", "effects": [
+        { "kind": "verb", "verb": { "type": "move" } },
+        { "kind": "verb", "verb": { "type": "move" } },
+        { "kind": "verb", "verb": { "type": "tuck", "target": "self" } }
+      ] }
+    }
+    ,
     "state-grain-markets": {
       "template": "character",
       "name": "State Grain Markets",
@@ -519,10 +537,6 @@
     "tucked": [],
     "drawPile": ["li-cheng-rebels-star"],
     "discardPile": []
-  },
-  "decks": {
-    "event": { "cards": ["mengan-mouke-system"] },
-    "ops": { "cards": [] }
   },
   "characters": [
     { "id": "char-yue-fei", "name": "Yue Fei",   "portrait": "/portraits/yue-fei.svg" },
