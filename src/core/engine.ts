@@ -1320,6 +1320,24 @@ function executeVerb(
       };
       break;
     }
+    case 'convoy': {
+      // Two-step convoy: select origin with friendly ship, then destination over water, then select units to accompany
+      const pid = playerId;
+      const fac = getPlayerFaction(state, pid);
+      // Find nodes with at least one friendly ship
+      const originOptions = Array.from(new Set(Object.values(state.pieces)
+        .filter(pc => pc.location.kind === 'node' && pc.faction === fac && pc.typeId === 'ship')
+        .map(pc => pc.location.nodeId)));
+      if (originOptions.length === 0) { state.log.push({ message: 'No friendly ship available to start a convoy.' }); break; }
+      state.prompt = {
+        kind: 'selectNode',
+        playerId: pid,
+        nodeOptions: originOptions,
+        next: { kind: 'forConvoyOrigin' } as any,
+        message: 'Select a city with a friendly ship to start a convoy',
+      } as any;
+      break;
+    }
     case 'generalMove': {
       // Character-led convoy move
       const ch = getControlledCharacter(state, playerId);
@@ -2071,7 +2089,66 @@ export function inputSelectNode(state: GameState, nodeId: NodeId): void {
       options,
       selected,
       requireShipForWater,
+      moveCharacter: true,
       message: 'Select units to accompany your general (click to toggle), then Confirm',
+    } as any;
+  } else if ((next as any).kind === 'forConvoyOrigin') {
+    const from = nodeId;
+    const pid = state.prompt.playerId;
+    const fac = getPlayerFaction(state, pid);
+    // Determine water neighbors from origin
+    function isWaterEdge(a: string, b: string): boolean {
+      for (const e of Object.values(state.map.edges)) {
+        if (!((e.a === a && e.b === b) || (e.a === b && e.b === a))) continue;
+        const kinds = (e.kinds || []).map(k => String(k).toLowerCase());
+        const isWater = kinds.includes('river') || kinds.includes('canal') || kinds.includes('coast') || kinds.includes('lake') || kinds.includes('water') || kinds.includes('sea');
+        if (isWater) return true;
+      }
+      return false;
+    }
+    // Blocked if any non-friendly piece occupies destination
+    function nodeBlocked(nid: string): boolean {
+      for (const pc of Object.values(state.pieces)) {
+        if (pc.location.kind !== 'node' || pc.location.nodeId !== nid) continue;
+        const pf = pc.faction;
+        if (pf && pf !== fac) return true;
+      }
+      return false;
+    }
+    const waterNeighbors = Object.keys(state.map.nodes)
+      .filter(n => n !== from && isWaterEdge(from, n) && !nodeBlocked(n));
+    if (waterNeighbors.length === 0) { state.prompt = null; resumePendingIfAny(state); return; }
+    state.prompt = {
+      kind: 'selectNode',
+      playerId: pid,
+      nodeOptions: waterNeighbors,
+      next: { kind: 'forConvoyDest', fromNode: from },
+      message: 'Select water-connected destination for convoy',
+    } as any;
+  } else if ((next as any).kind === 'forConvoyDest') {
+    const from = String((next as any).fromNode);
+    const to = nodeId;
+    const pid = state.prompt.playerId;
+    const fac = getPlayerFaction(state, pid);
+    // Build convoy selection prompt: must include at least one friendly ship at origin; any number of foot/horse may accompany
+    const atOrigin = Object.values(state.pieces).filter(pc => pc.location.kind === 'node' && pc.location.nodeId === from);
+    const friendlyAtOrigin = atOrigin.filter(pc => (pc.faction ?? undefined) === fac);
+    const shipIds = friendlyAtOrigin.filter(pc => pc.typeId === 'ship').map(pc => pc.id);
+    if (shipIds.length === 0) { state.prompt = null; resumePendingIfAny(state); return; }
+    const options = friendlyAtOrigin.map(pc => pc.id);
+    const selected = [shipIds[0]];
+    state.prompt = {
+      kind: 'selectConvoy',
+      playerId: pid,
+      originNodeId: from,
+      destinationNodeId: to,
+      allowLand: false,
+      allowWater: true,
+      options,
+      selected,
+      requireShipForWater: true,
+      moveCharacter: false,
+      message: 'Select ship and any foot/horse to convoy, then Confirm',
     } as any;
   } else if ((next as any).kind === 'forEstablishDaqi') {
     const nid = nodeId;
@@ -2275,8 +2352,11 @@ export function inputConfirmConvoy(state: GameState): void {
   if (!state.prompt || (state.prompt as any).kind !== 'selectConvoy') return;
   const pr = state.prompt as any;
   const { originNodeId: from, destinationNodeId: to } = pr;
+  const moveCharacter: boolean = !!pr.moveCharacter;
   const ch = getControlledCharacter(state, pr.playerId);
-  if (!ch || ch.location.kind !== 'node' || ch.location.nodeId !== from) { state.prompt = null; resumePendingIfAny(state); return; }
+  if (moveCharacter) {
+    if (!ch || ch.location.kind !== 'node' || ch.location.nodeId !== from) { state.prompt = null; resumePendingIfAny(state); return; }
+  }
     // const owner = state.players.find(p => p.id === pr.playerId);
     // const fac = owner?.faction;
   // Determine effective mode
@@ -2294,8 +2374,10 @@ export function inputConfirmConvoy(state: GameState): void {
     // Land route cannot include ships; drop any ships from selection
     pr.selected = pr.selected.filter((id: string) => state.pieces[id]?.typeId !== 'ship');
   }
-  // Move character
-  ch.location = { kind: 'node', nodeId: to } as any;
+  // Move character if applicable
+  if (moveCharacter && ch) {
+    ch.location = { kind: 'node', nodeId: to } as any;
+  }
   // Move selected pieces
   for (const pid of pr.selected) {
     const pc = state.pieces[pid];

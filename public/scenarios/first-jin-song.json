@@ -166,6 +166,26 @@
       ]}
     }
     ,
+    "river-and-canal-oversight": {
+      "template": "character",
+      "name": "River–Canal Administration",
+      "backText": "Jingkang",
+      "icons": ["admin"],
+      "events-referenced": ["jin-1127-1142-river-and-canal-oversight"],
+      "rulesTextOverride": "Convoy: Choose a city with a :ship: of your faction. Move that :ship: to an adjacent river/canal/coast/lake/sea connection. Any number of your :foot: and :horse: at the origin may accompany. Then tuck this card.",
+      "quote": {
+        "text": "The Directorate oversees rivers and marshes, ferries and bridges, boats, and canals; the chief river inspectors patrol the channels, mend the levees, and plant elms and willows; the Yanjin bridge officers at the Southern Capital inspect the crossings.",
+        "cite": "Jinshi, Vol. 56"
+      },
+      "effect": {
+        "kind": "all",
+        "effects": [
+          { "kind": "verb", "verb": { "type": "convoy" } },
+          { "kind": "verb", "verb": { "type": "tuck", "target": "self" } }
+        ]
+      }
+    }
+    ,
     "household-registers-and-baojia": {
       "template": "character",
       "name": "Household Registers and Baojia",
